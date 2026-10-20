@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: shortcut-backend
+  profiles:
+    # 프로필 없이 로컬에서 띄우면 화면과 API를 바로 쓸 수 있는 api로 시작한다.
+    default: api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/shortcut}
+    username: ${DB_USER:shortcut}
+    password: ${DB_PASSWORD:shortcut}
+    hikari:
+      # compose가 주는 DB_URL에는 스키마가 없어서 연결마다 app 스키마를 기본으로 잡는다.
+      schema: app
+  sql:
+    init:
+      mode: always
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # outbox 릴레이가 브로커 수신 확인을 받은 뒤에만 SENT로 바꾸려고 켠다.
+    publisher-confirm-type: simple
+
+shortcut:
+  jwt:
+    secret: ${JWT_SECRET:local-dev-jwt-secret-change-me-0123456789}
+    ttl: 12h
+  internal-token: ${INTERNAL_TOKEN:local-internal-token}
+  worker:
+    fail-first-attempt: ${WORKER_FAIL_FIRST_ATTEMPT:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+---
+spring:
+  config:
+    activate:
+      on-profile: api
+server:
+  port: 8080
+
+---
+spring:
+  config:
+    activate:
+      on-profile: worker
+  main:
+    web-application-type: none
+  sql:
+    init:
+      # api와 동시에 기동하면 CREATE TABLE IF NOT EXISTS도 경합으로 실패할 수 있어 테이블 생성은 api에만 맡긴다.
+      mode: never
+  rabbitmq:
+    listener:
+      simple:
+        # 배포 작업은 수신자 전원에게 DB 쓰기를 하므로 한 번에 하나씩 처리해 재시도 순서를 단순하게 둔다.
+        prefetch: 1

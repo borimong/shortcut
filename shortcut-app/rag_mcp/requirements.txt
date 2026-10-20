@@ -1,0 +1,5 @@
+fastmcp==4.1.1
+openai==3.35.1
+psycopg[binary,pool]==3.3.6
+pgvector==0.5.1
+numpy==2.4.6

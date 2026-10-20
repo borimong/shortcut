@@ -1,0 +1,126 @@
+# 공개 포트는 frontend와 backend뿐이고 나머지 서비스는 compose 네트워크 안에서 서비스 이름으로만 접근한다.
+name: shortcut
+
+x-secrets: &secrets
+  INTERNAL_TOKEN: ${INTERNAL_TOKEN:?INTERNAL_TOKEN을 .env에 넣으세요}
+
+# rabbitmq 이미지의 guest 계정은 컨테이너 밖에서 접속할 수 없어 서비스용 계정을 따로 만든다.
+x-rabbit: &rabbit
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_USER: shortcut
+  RABBITMQ_PASSWORD: shortcut
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: shortcut
+      POSTGRES_USER: shortcut
+      POSTGRES_PASSWORD: shortcut
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shortcut -d shortcut"]
+      interval: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    environment:
+      RABBITMQ_DEFAULT_USER: shortcut
+      RABBITMQ_DEFAULT_PASS: shortcut
+    ports:
+      # 관리 화면은 retry 큐와 DLQ를 확인하는 용도로만 로컬에 연다.
+      - "127.0.0.1:15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      <<: [*secrets, *rabbit]
+      SPRING_PROFILES_ACTIVE: api
+      DB_URL: jdbc:postgresql://postgres:5432/shortcut
+      DB_USER: shortcut
+      DB_PASSWORD: shortcut
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET을 .env에 넣으세요}
+    ports:
+      - "${BACKEND_HOST_PORT:-18080}:8080"
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  worker:
+    build: ./backend
+    environment:
+      <<: [*secrets, *rabbit]
+      SPRING_PROFILES_ACTIVE: worker
+      DB_URL: jdbc:postgresql://postgres:5432/shortcut
+      DB_USER: shortcut
+      DB_PASSWORD: shortcut
+      JWT_SECRET: ${JWT_SECRET}
+      WORKER_FAIL_FIRST_ATTEMPT: ${WORKER_FAIL_FIRST_ATTEMPT:-true}
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      backend: { condition: service_started }
+
+  business-mcp:
+    build: ./business_mcp
+    environment:
+      <<: *secrets
+      BACKEND_INTERNAL_URL: http://backend:8080
+    depends_on:
+      - backend
+
+  rag-mcp:
+    build: ./rag_mcp
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY를 .env에 넣으세요}
+      RAG_DB_DSN: postgresql://shortcut:shortcut@postgres:5432/shortcut
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  rag-indexer:
+    # 질문과 별개로 규정 문서를 미리 색인하는 일회성 작업이다. rag-mcp가 뜰 때까지 실패하면 다시 시도한다.
+    build: ./rag_mcp
+    command: ["python", "-m", "rag_mcp.indexer"]
+    environment:
+      RAG_MCP_URL: http://rag-mcp:9102/mcp
+    restart: on-failure:10
+    depends_on:
+      - rag-mcp
+
+  agent:
+    build: ./agent
+    environment:
+      <<: *secrets
+      BACKEND_INTERNAL_URL: http://backend:8080
+      BUSINESS_MCP_URL: http://business-mcp:9101/mcp
+      RAG_MCP_URL: http://rag-mcp:9102/mcp
+      RABBITMQ_URL: amqp://shortcut:shortcut@rabbitmq:5672/
+      CHECKPOINT_DSN: postgresql://shortcut:shortcut@postgres:5432/shortcut?options=-csearch_path%3Dagent
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      FALLBACK_MODEL: ${FALLBACK_MODEL:-gpt-4.1-mini}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_TRACING: ${LANGSMITH_TRACING:-true}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-shortcut}
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      business-mcp: { condition: service_started }
+      rag-mcp: { condition: service_started }
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_HOST_PORT:-8088}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

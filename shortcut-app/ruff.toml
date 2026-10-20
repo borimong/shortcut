@@ -1,0 +1,10 @@
+line-length = 130
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+# 한국어 주석은 한 문장을 한 줄에 쓰는 규칙이라 길이로 자르지 않는다. 코드 줄 길이는 ruff format이 맞춘다.
+ignore = ["E501"]
+
+[lint.isort]
+known-first-party = ["app", "business_mcp", "rag_mcp", "tests"]
