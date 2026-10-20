@@ -15,11 +15,11 @@ import history from '@/assets/screens/history.webp'
 // 실제 처리 순서대로 놓은 화면이다. fit은 액자 비율(1128:700)에 맞추는 방식이다.
 const steps = [
   { title: '변경 접수', desc: '우천 소식을 적어 접수합니다', src: changeNew, w: 824, h: 550, fit: 'object-cover object-center', alt: '변경 입력 화면. 우천을 고르고 13시 이후 한강 공원 강수확률이 80%로 올랐다고 적었다.' },
-  { title: 'Agent 재계획', desc: '단계마다 무엇을 했는지 남깁니다', src: taskTimeline, w: 1128, h: 836, fit: 'object-cover object-top', alt: '재계획 진행 화면. 변경 감지부터 공지까지 열 단계와 도구 호출 기록이 보인다.' },
-  { title: '변경안', desc: '바뀐 것만 나란히 비교합니다', src: proposalDiff, w: 1128, h: 669, fit: 'object-contain object-top', alt: '변경안 화면. 장소, 장비, 시간대, 비용이 현재 일정과 어떻게 달라지는지 표로 보여 준다.' },
+  { title: '재계획', desc: '단계마다 무엇을 했는지 남깁니다', src: taskTimeline, w: 1128, h: 836, fit: 'object-cover object-top', alt: '재계획 진행 화면. 변경 감지부터 공지까지 열 단계와 도구 호출 기록이 보인다.' },
+  { title: '변경안 검토', desc: '바뀐 것만 나란히 비교합니다', src: proposalDiff, w: 1128, h: 669, fit: 'object-contain object-top', alt: '변경안 화면. 장소, 장비, 시간대, 비용이 현재 일정과 어떻게 달라지는지 표로 보여 준다.' },
   { title: '승인', desc: '관련된 사람에게만 받습니다', src: proposalApprovals, w: 1128, h: 479, fit: 'object-contain object-top', alt: '승인 현황 화면. 여섯 명 중 네 명이 승인했고 두 명이 남았다.' },
-  { title: '콜시트', desc: '확정되면 바로 다시 나갑니다', src: board, w: 1128, h: 684, fit: 'object-contain object-top', alt: '오늘의 촬영판 화면. 확정 콜시트 v2 기준으로 콜타임과 팀별 콜타임, 종료 예정 시각이 보인다.' },
-  { title: '이력', desc: '거절부터 배포까지 기록됩니다', src: history, w: 664, h: 832, fit: 'object-cover object-top', alt: '변동 이력 화면. 동시녹음팀장 거절, 재계획, 새 변경안, 승인, 확정, 배포가 시간순으로 이어진다.' },
+  { title: '콜시트 발송', desc: '확정되면 바로 다시 나갑니다', src: board, w: 1128, h: 684, fit: 'object-contain object-top', alt: '오늘의 촬영판 화면. 확정 콜시트 v2 기준으로 콜타임과 팀별 콜타임, 종료 예정 시각이 보인다.' },
+  { title: '이력 확인', desc: '거절부터 배포까지 기록됩니다', src: history, w: 664, h: 832, fit: 'object-cover object-top', alt: '변동 이력 화면. 동시녹음팀장 거절, 재계획, 새 변경안, 승인, 확정, 배포가 시간순으로 이어진다.' },
 ]
 
 const DURATION = 3500

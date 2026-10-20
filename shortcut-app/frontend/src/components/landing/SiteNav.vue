@@ -23,7 +23,7 @@ const links = [
       </NavigationMenu>
       <div class="ml-auto flex items-center gap-2 md:ml-0">
         <Button as-child variant="ghost" size="sm" class="hidden md:inline-flex"><RouterLink to="/login">로그인</RouterLink></Button>
-        <Button as-child variant="brand" size="sm"><RouterLink to="/login">데모 시작하기</RouterLink></Button>
+        <Button as-child variant="brand" size="sm"><RouterLink to="/login">데모 체험하기</RouterLink></Button>
       </div>
     </div>
   </header>

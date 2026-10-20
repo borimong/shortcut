@@ -9,12 +9,12 @@ import proposalDiff from '@/assets/screens/proposal-diff.webp'
     <div class="wrap grid items-center gap-12 lg:grid-cols-2 lg:gap-14">
       <div class="flex flex-col items-start gap-6">
         <h1 class="text-[clamp(32px,3.6vw,46px)] leading-[1.16] font-extrabold tracking-[-0.04em]">
-          <span class="inline-block">내일 촬영이 틀어져도</span><br />
-          <span class="inline-block">콜시트는 제때 나갑니다</span>
+          <span class="inline-block">일정 재조정부터</span><br />
+          <span class="inline-block">콜시트 재발송까지</span>
         </h1>
-        <p class="lede">특보가 뜨면 새 일정안을 짜고 승인까지 받아 둡니다.</p>
+        <p class="lede">특보나 배우 일정이 바뀌면 새 일정안을 만들고, 관련 팀장 승인을 받아 콜시트를 다시 보냅니다.</p>
         <Button as-child size="lg" class="mt-2 h-12 px-6 text-base">
-          <RouterLink to="/login">데모 시작하기</RouterLink>
+          <RouterLink to="/login">데모 체험하기</RouterLink>
         </Button>
       </div>
 
