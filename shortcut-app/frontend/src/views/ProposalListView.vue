@@ -4,6 +4,10 @@ import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { dateTime, ver } from '../format.js'
 import { SHOOT_DAY_ID } from '../labels.js'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Empty, EmptyDescription } from '@/components/ui/empty'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const KIND_LABELS = { REPLAN: '재계획', ASK: '근거 질문' }
 
@@ -27,71 +31,87 @@ onMounted(async () => {
 
 <template>
   <div class="page">
-    <div class="page-head">
-      <div>
-        <h1 class="page-title">변경안</h1>
-        <p class="page-sub">Agent가 만든 변경안과 내가 요청한 작업을 최신순으로 봅니다.</p>
-      </div>
+    <div class="flex flex-col gap-1">
+      <h1 class="page-title">변경안</h1>
+      <p class="text-muted-foreground">Agent가 만든 변경안과 내가 요청한 작업을 최신순으로 보여 줍니다.</p>
     </div>
 
-    <p v-if="error" class="inline-error">{{ error.message }} <span class="mono">{{ error.code }}</span></p>
+    <Alert v-if="error" variant="destructive">
+      <AlertDescription>{{ error.message }} <span class="mono">{{ error.code }}</span></AlertDescription>
+    </Alert>
 
-    <section class="card">
-      <h2 class="card-title">변경안 목록</h2>
-      <div v-if="proposals.length" class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>버전</th>
-              <th>상태</th>
-              <th>루프</th>
-              <th>점수</th>
-              <th>승인</th>
-              <th>생성 시각</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in proposals" :key="p.id">
-              <td><RouterLink :to="`/proposals/${p.id}`" class="link">변경안 {{ ver(p.versionNo) }}</RouterLink></td>
-              <td><StatusBadge :status="p.status" /></td>
-              <td>{{ p.loopNo ?? '' }}</td>
-              <td class="mono">{{ p.score !== undefined && p.score !== null ? Number(p.score).toFixed(3) : '' }}</td>
-              <td>
-                <template v-if="p.requiredCount">{{ p.approvedCount }} / {{ p.requiredCount }}</template>
-              </td>
-              <td class="mono">{{ dateTime(p.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p v-else-if="!loading" class="empty">아직 만들어진 변경안이 없습니다.</p>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>변경안 목록</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div v-if="proposals.length" class="overflow-hidden rounded-lg border border-border">
+          <Table>
+            <TableHeader class="bg-muted">
+              <TableRow>
+                <TableHead>버전</TableHead>
+                <TableHead>상태</TableHead>
+                <TableHead>루프</TableHead>
+                <TableHead>점수</TableHead>
+                <TableHead>승인</TableHead>
+                <TableHead>생성 시각</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="p in proposals" :key="p.id">
+                <TableCell>
+                  <RouterLink :to="`/proposals/${p.id}`" class="font-medium underline underline-offset-3">변경안 {{ ver(p.versionNo) }}</RouterLink>
+                </TableCell>
+                <TableCell><StatusBadge :status="p.status" /></TableCell>
+                <TableCell class="mono">{{ p.loopNo ?? '' }}</TableCell>
+                <TableCell class="mono">{{ p.score !== undefined && p.score !== null ? Number(p.score).toFixed(3) : '' }}</TableCell>
+                <TableCell class="mono">
+                  <template v-if="p.requiredCount">{{ p.approvedCount }} / {{ p.requiredCount }}</template>
+                </TableCell>
+                <TableCell class="mono">{{ dateTime(p.createdAt) }}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+        <Empty v-else-if="!loading">
+          <EmptyDescription>아직 만들어진 변경안이 없습니다.</EmptyDescription>
+        </Empty>
+      </CardContent>
+    </Card>
 
-    <section class="card">
-      <h2 class="card-title">내 Agent 작업</h2>
-      <div v-if="tasks.length" class="table-wrap">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>작업</th>
-              <th>종류</th>
-              <th>상태</th>
-              <th>질문</th>
-              <th>접수 시각</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="t in tasks" :key="t.id">
-              <td><RouterLink :to="`/tasks/${t.id}`" class="link">#{{ t.id }}</RouterLink></td>
-              <td>{{ KIND_LABELS[t.kind] ?? t.kind }}</td>
-              <td><StatusBadge :status="t.status" /></td>
-              <td class="wrap">{{ t.question ?? '' }}</td>
-              <td class="mono">{{ dateTime(t.createdAt) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p v-else-if="!loading" class="empty">요청한 작업이 없습니다.</p>
-    </section>
+    <Card>
+      <CardHeader>
+        <CardTitle>내 Agent 작업</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div v-if="tasks.length" class="overflow-hidden rounded-lg border border-border">
+          <Table>
+            <TableHeader class="bg-muted">
+              <TableRow>
+                <TableHead>작업</TableHead>
+                <TableHead>종류</TableHead>
+                <TableHead>상태</TableHead>
+                <TableHead>질문</TableHead>
+                <TableHead>접수 시각</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow v-for="t in tasks" :key="t.id">
+                <TableCell>
+                  <RouterLink :to="`/tasks/${t.id}`" class="mono font-medium underline underline-offset-3">#{{ t.id }}</RouterLink>
+                </TableCell>
+                <TableCell>{{ KIND_LABELS[t.kind] ?? t.kind }}</TableCell>
+                <TableCell><StatusBadge :status="t.status" /></TableCell>
+                <TableCell class="min-w-45 whitespace-normal">{{ t.question ?? '' }}</TableCell>
+                <TableCell class="mono">{{ dateTime(t.createdAt) }}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+        <Empty v-else-if="!loading">
+          <EmptyDescription>요청한 작업이 없습니다.</EmptyDescription>
+        </Empty>
+      </CardContent>
+    </Card>
   </div>
 </template>

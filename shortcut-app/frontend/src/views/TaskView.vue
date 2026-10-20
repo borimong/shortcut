@@ -1,7 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { Check, ExternalLink, X } from '@lucide/vue'
 import StatusBadge from '../components/StatusBadge.vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
 import { api } from '../api.js'
 import { openStream } from '../sse.js'
 import { useToastStore } from '../stores/toast.js'
@@ -168,391 +175,241 @@ function describeViolation(v) {
 
 <template>
   <div class="page">
-    <div class="page-head">
-      <div>
-        <p class="eyebrow">Agent 작업 #{{ route.params.id }}</p>
-        <h1 class="page-title">{{ KIND_LABELS[task?.kind] ?? 'Agent' }} 진행</h1>
-        <p v-if="task?.question" class="page-sub">{{ task.question }}</p>
-        <p v-else-if="task?.createdAt" class="page-sub">{{ dateTime(task.createdAt) }} 접수</p>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="flex min-w-0 flex-col gap-1">
+        <h1 class="page-title">
+          {{ KIND_LABELS[task?.kind] ?? 'Agent' }} 진행
+          <span class="mono text-base font-normal text-muted-foreground">#{{ route.params.id }}</span>
+        </h1>
+        <p v-if="task?.question" class="text-muted-foreground">{{ task.question }}</p>
+        <p v-else-if="task?.createdAt" class="text-muted-foreground">{{ dateTime(task.createdAt) }} 접수</p>
       </div>
-      <div class="row">
-        <span v-if="loop" class="badge tone-run">루프 {{ loop }}</span>
+      <div class="flex flex-wrap items-center gap-2">
+        <Badge v-if="loop" variant="info">루프 {{ loop }}</Badge>
         <StatusBadge v-if="status" :status="status" />
       </div>
     </div>
 
-    <div class="card live">
-      <span class="dot" :class="{ on: isLive }"></span>
+    <div class="flex flex-wrap items-center gap-2.5 rounded-lg border border-border px-3 py-2.5 text-sm">
+      <!-- 스트림이 살아 있는 동안 점을 깜빡여 진행 중임을 보여 준다 -->
+      <span class="relative flex size-2.5 shrink-0">
+        <span v-if="isLive" class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60"></span>
+        <span class="relative inline-flex size-2.5 rounded-full" :class="isLive ? 'bg-success' : 'bg-muted-foreground/40'"></span>
+      </span>
       <span v-if="activity && isLive">{{ activity }}</span>
-      <span v-else-if="result" class="muted">작업이 끝났습니다.</span>
-      <span v-else-if="status === 'WAITING_APPROVAL'" class="muted">승인 결과를 기다리는 중입니다.</span>
-      <span v-else class="muted">Agent 이벤트를 기다리는 중입니다.</span>
-      <span v-if="connection === 'reconnecting'" class="badge tone-stale">재연결 중</span>
-      <span v-else-if="connection === 'closed' && !result" class="badge tone-bad">연결 끊김</span>
+      <span v-else-if="result" class="text-muted-foreground">작업이 끝났습니다.</span>
+      <span v-else-if="status === 'WAITING_APPROVAL'" class="text-muted-foreground">승인 결과를 기다리고 있습니다.</span>
+      <span v-else class="text-muted-foreground">Agent 이벤트를 기다리고 있습니다.</span>
+      <Badge v-if="connection === 'reconnecting'" variant="warning">재연결 중</Badge>
+      <Badge v-else-if="connection === 'closed' && !result" variant="destructive">연결 끊김</Badge>
     </div>
 
-    <section v-if="approval" class="card approval">
-      <div>
-        <p class="eyebrow">승인 요청</p>
-        <h2 class="card-title">변경안 {{ ver(approval.versionNo) }} 승인 대기</h2>
-        <p v-if="approval.summary">{{ approval.summary }}</p>
-        <div class="row approvers">
-          <span v-for="r in approval.requiredApprovers ?? []" :key="r" class="badge tone-wait">{{ ROLE_TITLES[r] ?? r }}</span>
-        </div>
-      </div>
-      <RouterLink :to="`/proposals/${approval.proposalId}`" class="btn btn-primary">
-        변경안 {{ ver(approval.versionNo) }} 승인 현황 보기
-      </RouterLink>
-    </section>
+    <Card v-if="approval" class="ring-primary/60">
+      <CardHeader>
+        <CardTitle>변경안 {{ ver(approval.versionNo) }} 승인 대기</CardTitle>
+        <CardDescription v-if="approval.summary" class="text-foreground">{{ approval.summary }}</CardDescription>
+      </CardHeader>
+      <CardContent v-if="approval.requiredApprovers?.length" class="flex flex-wrap items-center gap-2">
+        <span class="text-sm text-muted-foreground">승인할 역할</span>
+        <Badge v-for="r in approval.requiredApprovers ?? []" :key="r" variant="secondary">{{ ROLE_TITLES[r] ?? r }}</Badge>
+      </CardContent>
+      <CardFooter class="justify-end">
+        <Button as-child class="w-full sm:w-auto">
+          <RouterLink :to="`/proposals/${approval.proposalId}`">
+            변경안 {{ ver(approval.versionNo) }} 승인 현황 보기
+          </RouterLink>
+        </Button>
+      </CardFooter>
+    </Card>
 
-    <section v-if="result" class="card result" :class="result.type">
+    <Card
+      v-if="result"
+      :class="{
+        'ring-destructive/40': result.type === 'FAILED',
+        'ring-warning/60': result.type === 'NEEDS_HUMAN'
+      }"
+    >
       <template v-if="result.type === 'DONE'">
-        <h2 class="card-title">작업 완료 <StatusBadge status="DONE" /></h2>
-        <p v-if="result.answer && result.answer.trim() !== tokenText.trim()" class="answer">{{ result.answer }}</p>
-        <div class="row links">
-          <RouterLink v-if="result.callsheetVersionNo" to="/" class="btn btn-primary btn-sm">
-            확정 콜시트 {{ ver(result.callsheetVersionNo) }} 보기
-          </RouterLink>
-          <RouterLink v-if="result.proposalId" :to="`/proposals/${result.proposalId}`" class="btn btn-secondary btn-sm">
-            변경안 보기
-          </RouterLink>
-          <a v-if="result.traceUrl" :href="result.traceUrl" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">추적 기록</a>
-        </div>
-        <div v-if="result.metrics" class="metrics">
-          <div v-for="[key, label] in METRIC_LABELS" :key="key" class="metric">
-            <span class="muted small">{{ label }}</span>
-            <strong>{{ metricValue(key, result.metrics[key]) }}</strong>
+        <CardHeader>
+          <CardTitle>작업 완료</CardTitle>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <p v-if="result.answer && result.answer.trim() !== tokenText.trim()" class="leading-relaxed whitespace-pre-wrap">{{ result.answer }}</p>
+          <div class="flex flex-wrap gap-2">
+            <Button v-if="result.callsheetVersionNo" as-child size="sm">
+              <RouterLink to="/board">확정 콜시트 {{ ver(result.callsheetVersionNo) }} 보기</RouterLink>
+            </Button>
+            <Button v-if="result.proposalId" as-child size="sm" variant="outline">
+              <RouterLink :to="`/proposals/${result.proposalId}`">변경안 보기</RouterLink>
+            </Button>
+            <Button v-if="result.traceUrl" as-child size="sm" variant="outline">
+              <a :href="result.traceUrl" target="_blank" rel="noopener">추적 기록<ExternalLink data-icon="inline-end" /></a>
+            </Button>
           </div>
-        </div>
-        <div v-if="result.sources?.length" class="sources">
-          <p class="eyebrow">출처</p>
-          <ul>
-            <li v-for="s in result.sources" :key="s.docId">
-              <strong>{{ s.title }}</strong> <span class="mono muted">{{ s.docId }}</span>
-              <p v-if="s.snippet" class="muted small">{{ s.snippet }}</p>
-            </li>
-          </ul>
-        </div>
+          <template v-if="result.metrics">
+            <Separator />
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+              <div v-for="[key, label] in METRIC_LABELS" :key="key" class="flex flex-col gap-0.5">
+                <dt class="text-xs text-muted-foreground">{{ label }}</dt>
+                <dd class="mono">{{ metricValue(key, result.metrics[key]) }}</dd>
+              </div>
+            </dl>
+          </template>
+          <template v-if="result.sources?.length">
+            <Separator />
+            <div class="flex flex-col gap-2">
+              <h3 class="text-sm font-medium">출처</h3>
+              <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+                <li v-for="s in result.sources" :key="s.docId" class="min-w-0">
+                  {{ s.title }} <span class="mono text-muted-foreground">{{ s.docId }}</span>
+                  <p v-if="s.snippet" class="text-muted-foreground">{{ s.snippet }}</p>
+                </li>
+              </ul>
+            </div>
+          </template>
+        </CardContent>
       </template>
 
       <template v-else-if="result.type === 'FAILED'">
-        <h2 class="card-title">작업 실패 <StatusBadge status="FAILED" /></h2>
-        <p>{{ result.error }}</p>
-        <a v-if="result.traceUrl" :href="result.traceUrl" target="_blank" rel="noopener" class="link">추적 기록 보기</a>
+        <CardHeader>
+          <CardTitle class="text-destructive">작업 실패</CardTitle>
+        </CardHeader>
+        <CardContent class="flex flex-col items-start gap-2">
+          <p class="break-words">{{ result.error }}</p>
+          <Button v-if="result.traceUrl" as-child variant="link" class="h-auto px-0">
+            <a :href="result.traceUrl" target="_blank" rel="noopener">추적 기록 보기<ExternalLink data-icon="inline-end" /></a>
+          </Button>
+        </CardContent>
       </template>
 
       <template v-else>
-        <h2 class="card-title">사람 확인 필요 <StatusBadge status="NEEDS_HUMAN" /></h2>
-        <dl class="facts">
-          <dt>멈춘 이유</dt>
-          <dd>{{ result.reason }}</dd>
-          <template v-if="result.stopCondition">
-            <dt>멈춘 조건</dt>
-            <dd class="mono">{{ result.stopCondition }}</dd>
-          </template>
-          <template v-if="result.best">
-            <dt>가장 가까운 후보</dt>
-            <dd>{{ describeCandidate(result.best) }}</dd>
-          </template>
-        </dl>
-        <div v-if="result.violations?.length" class="stack-sm">
-          <p class="eyebrow">남은 위반</p>
-          <ul class="plain">
-            <li v-for="(v, i) in result.violations" :key="i">{{ describeViolation(v) }}</li>
-          </ul>
-        </div>
-        <div v-if="result.suggestions?.length" class="stack-sm">
-          <p class="eyebrow">4안 추천</p>
-          <div class="suggestions">
-            <div v-for="(s, i) in result.suggestions.map(describeSuggestion)" :key="i" class="suggestion">
-              <strong>{{ s.title }}</strong>
-              <span v-if="s.meta.length" class="muted small">{{ s.meta.join(' / ') }}</span>
-              <span v-if="s.reason" class="small">{{ s.reason }}</span>
-              <span v-if="s.mock" class="badge tone-wait">외부 장소 후보</span>
-            </div>
+        <CardHeader>
+          <CardTitle>사람 확인 필요</CardTitle>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-2">
+            <dt class="text-sm text-muted-foreground">멈춘 이유</dt>
+            <dd class="break-words">{{ result.reason }}</dd>
+            <template v-if="result.stopCondition">
+              <dt class="text-sm text-muted-foreground">멈춘 조건</dt>
+              <dd class="mono break-words">{{ result.stopCondition }}</dd>
+            </template>
+            <template v-if="result.best">
+              <dt class="text-sm text-muted-foreground">가장 가까운 후보</dt>
+              <dd class="break-words">{{ describeCandidate(result.best) }}</dd>
+            </template>
+          </dl>
+          <div v-if="result.violations?.length" class="flex flex-col gap-2">
+            <h3 class="text-sm font-medium">남은 위반</h3>
+            <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+              <li v-for="(v, i) in result.violations" :key="i">{{ describeViolation(v) }}</li>
+            </ul>
           </div>
-        </div>
+          <div v-if="result.suggestions?.length" class="flex flex-col gap-2">
+            <h3 class="text-sm font-medium">4안 추천 장소</h3>
+            <ul class="flex flex-col divide-y divide-border rounded-lg border border-border">
+              <li
+                v-for="(s, i) in result.suggestions.map(describeSuggestion)"
+                :key="i"
+                class="flex flex-col items-start gap-1 px-3 py-2.5"
+              >
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-medium">{{ s.title }}</span>
+                  <Badge v-if="s.mock" variant="secondary">외부 장소 후보</Badge>
+                </div>
+                <span v-if="s.meta.length" class="text-sm text-muted-foreground">{{ s.meta.join(' / ') }}</span>
+                <span v-if="s.reason" class="text-sm">{{ s.reason }}</span>
+              </li>
+            </ul>
+          </div>
+        </CardContent>
       </template>
-    </section>
+    </Card>
 
-    <section v-if="tokenText" class="card">
-      <h2 class="card-title">Agent 설명</h2>
-      <p class="answer">{{ tokenText }}<span v-if="isLive" class="caret"></span></p>
-    </section>
+    <Card v-if="tokenText">
+      <CardHeader>
+        <CardTitle>Agent 설명</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p class="leading-relaxed whitespace-pre-wrap">{{ tokenText }}<span v-if="isLive" class="ml-0.5 inline-block h-[1em] w-2 animate-pulse bg-foreground align-text-bottom"></span></p>
+      </CardContent>
+    </Card>
 
-    <div class="grid-2">
-      <section class="card">
-        <h2 class="card-title">단계 타임라인</h2>
-        <ol class="timeline">
-          <li v-for="n in timeline" :key="n.id" :class="n.status">
-            <span class="marker"></span>
-            <div class="node-body">
-              <div class="row">
-                <strong>{{ n.label }}</strong>
-                <span v-if="n.loop" class="badge tone-wait">루프 {{ n.loop }}</span>
-                <span v-if="n.status === 'running'" class="badge tone-run">진행 중</span>
-                <span v-else-if="n.status === 'failed'" class="badge tone-bad">중단</span>
-              </div>
-              <p v-if="n.detail" class="muted small">{{ n.detail }}</p>
-            </div>
-          </li>
-        </ol>
-      </section>
-
-      <section class="card">
-        <h2 class="card-title">도구 호출 로그 <span class="muted small">{{ tools.length }}건</span></h2>
-        <ul v-if="tools.length" class="tools">
-          <li v-for="(t, i) in tools" :key="i">
-            <div class="row">
-              <span class="badge" :class="!t.done ? 'tone-run' : t.ok === false ? 'tone-bad' : 'tone-ok'">
-                {{ !t.done ? '호출 중' : t.ok === false ? '실패' : '완료' }}
+    <div class="grid items-start gap-5 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>단계 타임라인</CardTitle>
+          <CardAction class="mono text-sm text-muted-foreground">
+            {{ timeline.filter((n) => n.status === 'done').length }}/{{ timeline.length }}
+          </CardAction>
+          <Progress
+            class="col-span-full mt-2 h-1.5"
+            :model-value="timeline.length ? (timeline.filter((n) => n.status === 'done').length / timeline.length) * 100 : 0"
+          />
+        </CardHeader>
+        <CardContent>
+          <ol class="flex flex-col">
+            <li v-for="(n, i) in timeline" :key="n.id" class="relative flex gap-3 pb-5 last:pb-0">
+              <!-- 다음 단계로 이어지는 세로선. 끝난 단계까지는 진하게 칠한다 -->
+              <span
+                v-if="i < timeline.length - 1"
+                aria-hidden="true"
+                class="absolute top-7 bottom-1 left-[11px] w-0.5 rounded-full"
+                :class="n.status === 'done' ? 'bg-primary' : 'bg-border'"
+              ></span>
+              <span
+                class="relative flex size-6 shrink-0 items-center justify-center rounded-full border-2"
+                :class="{
+                  'border-primary bg-primary text-primary-foreground': n.status === 'done',
+                  'border-primary bg-background': n.status === 'running',
+                  'border-destructive bg-destructive text-primary-foreground': n.status === 'failed',
+                  'border-border bg-background text-muted-foreground': n.status === 'pending'
+                }"
+              >
+                <Check v-if="n.status === 'done'" class="size-3.5" />
+                <X v-else-if="n.status === 'failed'" class="size-3.5" />
+                <span v-else-if="n.status === 'running'" class="size-2 animate-pulse rounded-full bg-primary"></span>
+                <span v-else class="mono text-[11px]">{{ i + 1 }}</span>
               </span>
-              <strong class="mono">{{ t.tool }}</strong>
-              <span v-if="t.server" class="muted small">{{ t.server === 'rag' ? 'RAG' : '업무' }} MCP</span>
-              <span v-if="t.ms !== undefined" class="muted small">{{ t.ms }}ms</span>
-            </div>
-            <p v-if="t.args" class="mono clip" :title="short(t.args)">{{ short(t.args) }}</p>
-            <p v-if="t.preview" class="small muted clip" :title="short(t.preview)">{{ short(t.preview) }}</p>
-          </li>
-        </ul>
-        <p v-else class="empty">아직 호출한 도구가 없습니다.</p>
-      </section>
+              <div class="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span :class="n.status === 'pending' ? 'text-muted-foreground' : 'font-medium'">{{ n.label }}</span>
+                  <Badge v-if="n.loop" variant="secondary">루프 {{ n.loop }}</Badge>
+                  <Badge v-if="n.status === 'running'" variant="info">진행 중</Badge>
+                  <Badge v-else-if="n.status === 'failed'" variant="destructive">중단</Badge>
+                </div>
+                <p v-if="n.detail" class="text-sm break-words text-muted-foreground">{{ n.detail }}</p>
+              </div>
+            </li>
+          </ol>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>도구 호출 로그</CardTitle>
+          <CardAction class="text-sm text-muted-foreground">{{ tools.length }}건</CardAction>
+        </CardHeader>
+        <CardContent>
+          <ul v-if="tools.length" class="flex max-h-[560px] flex-col gap-2.5 overflow-y-auto">
+            <li v-for="(t, i) in tools" :key="i" class="flex min-w-0 flex-col gap-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <Badge :variant="!t.done ? 'info' : t.ok === false ? 'destructive' : 'success'">
+                  <Spinner v-if="!t.done" data-icon="inline-start" />
+                  {{ !t.done ? '호출 중' : t.ok === false ? '실패' : '완료' }}
+                </Badge>
+                <span class="mono min-w-0 text-sm font-medium break-all">{{ t.tool }}</span>
+                <span v-if="t.server" class="text-sm text-muted-foreground">{{ t.server === 'rag' ? 'RAG' : '업무' }} MCP</span>
+                <span v-if="t.ms !== undefined" class="mono text-sm text-muted-foreground">{{ t.ms }}ms</span>
+              </div>
+              <p v-if="t.args" class="mono truncate text-xs" :title="short(t.args)">{{ short(t.args) }}</p>
+              <p v-if="t.preview" class="truncate text-sm text-muted-foreground" :title="short(t.preview)">{{ short(t.preview) }}</p>
+              <Separator v-if="i < tools.length - 1" class="mt-1.5" />
+            </li>
+          </ul>
+          <p v-else class="text-sm text-muted-foreground">아직 호출한 도구가 없습니다.</p>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>
-
-<style scoped>
-.live {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 16px 20px;
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--text-faint);
-}
-
-.dot.on {
-  background: var(--mint);
-  box-shadow: 0 0 0 0 rgba(60, 230, 211, 0.6);
-  animation: pulse 1.6s infinite;
-}
-
-@keyframes pulse {
-  70% {
-    box-shadow: 0 0 0 10px rgba(60, 230, 211, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(60, 230, 211, 0);
-  }
-}
-
-.approval {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  border: 2px solid var(--mint);
-}
-
-.approval .card-title {
-  margin-bottom: 6px;
-}
-
-.approvers {
-  margin-top: 10px;
-}
-
-.result.DONE {
-  border-top: 4px solid var(--ok);
-}
-
-.result.FAILED {
-  border-top: 4px solid var(--bad);
-}
-
-.result.NEEDS_HUMAN {
-  border-top: 4px solid var(--stale);
-}
-
-.answer {
-  white-space: pre-wrap;
-  line-height: 1.7;
-}
-
-.links {
-  margin: 14px 0;
-}
-
-.metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.metric {
-  background: var(--head-bg);
-  border-radius: 12px;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-}
-
-.metric strong {
-  font-size: 18px;
-}
-
-.sources {
-  margin-top: 18px;
-}
-
-.sources ul,
-.plain {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 8px 16px;
-  margin: 0 0 14px;
-}
-
-.facts dt {
-  color: var(--text-sub);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.facts dd {
-  margin: 0;
-}
-
-.stack-sm {
-  margin-top: 14px;
-}
-
-.suggestions {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.suggestion {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-items: flex-start;
-}
-
-.timeline {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.timeline li {
-  position: relative;
-  display: flex;
-  gap: 14px;
-  padding-bottom: 18px;
-}
-
-.timeline li:not(:last-child)::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 20px;
-  bottom: 0;
-  width: 2px;
-  background: var(--line);
-}
-
-.timeline li.done:not(:last-child)::before {
-  background: var(--charcoal);
-}
-
-.marker {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  margin-top: 2px;
-  border-radius: 50%;
-  border: 2px solid var(--line);
-  background: #fff;
-}
-
-.done .marker {
-  border-color: var(--charcoal);
-  background: var(--charcoal);
-  box-shadow: inset 0 0 0 4px var(--charcoal), inset 0 0 0 9px var(--mint);
-}
-
-.running .marker {
-  border-color: var(--mint);
-  background: var(--mint);
-  animation: pulse 1.6s infinite;
-}
-
-.failed .marker {
-  border-color: var(--bad);
-  background: var(--bad);
-}
-
-.pending .node-body strong {
-  color: var(--text-faint);
-}
-
-.node-body {
-  min-width: 0;
-}
-
-.tools {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 560px;
-  overflow-y: auto;
-}
-
-.tools li {
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 10px;
-  min-width: 0;
-}
-
-.clip {
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  .metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .approval .btn {
-    width: 100%;
-  }
-}
-</style>

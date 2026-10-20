@@ -27,9 +27,13 @@ watch(
 </script>
 
 <template>
-  <AppHeader v-if="auth.isLoggedIn && route.name !== 'login'" />
-  <main class="container">
-    <RouterView />
-  </main>
+  <!-- 랜딩은 자체 메뉴와 전체 폭 레이아웃을 쓴다 -->
+  <RouterView v-if="route.meta.landing" />
+  <template v-else>
+    <AppHeader v-if="auth.isLoggedIn && route.name !== 'login'" />
+    <main class="wrap">
+      <RouterView />
+    </main>
+  </template>
   <ToastHost />
 </template>

@@ -1,6 +1,14 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Bell } from '@lucide/vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Empty, EmptyDescription } from '@/components/ui/empty'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime } from '../format.js'
@@ -9,13 +17,12 @@ const store = useNotificationStore()
 const toast = useToastStore()
 const router = useRouter()
 const open = ref(false)
-const root = ref(null)
 
-const KIND_LABELS = {
-  CHANGE_NOTICE: '변경 공지',
-  APPROVAL_REQUEST: '승인 요청',
-  DECISION: '승인 결과',
-  CALLSHEET: '콜시트'
+const KIND = {
+  CHANGE_NOTICE: ['변경 공지', 'warning'],
+  APPROVAL_REQUEST: ['승인 요청', 'info'],
+  DECISION: ['승인 결과', 'secondary'],
+  CALLSHEET: ['콜시트', 'success']
 }
 
 async function select(n) {
@@ -35,166 +42,37 @@ async function readAll() {
     toast.error(e)
   }
 }
-
-function onOutside(e) {
-  if (open.value && root.value && !root.value.contains(e.target)) open.value = false
-}
-
-onMounted(() => document.addEventListener('click', onOutside))
-onBeforeUnmount(() => document.removeEventListener('click', onOutside))
 </script>
 
 <template>
-  <div ref="root" class="bell-wrap">
-    <button type="button" class="bell" :aria-label="`알림 ${store.unreadCount}건`" @click="open = !open">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-      </svg>
-      <span v-if="store.unreadCount > 0" class="count">{{ store.unreadCount > 99 ? '99+' : store.unreadCount }}</span>
-    </button>
-    <div v-if="open" class="dropdown">
-      <div class="drop-head">
-        <strong>알림</strong>
-        <button type="button" class="text-btn" :disabled="store.unreadCount === 0" @click="readAll">모두 읽음</button>
+  <Popover v-model:open="open">
+    <PopoverTrigger as-child>
+      <Button variant="outline" size="icon" class="relative rounded-full" :aria-label="`알림 ${store.unreadCount}건`">
+        <Bell />
+        <Badge v-if="store.unreadCount > 0" class="absolute -top-1.5 -right-1.5 h-5 min-w-5 bg-destructive px-1 text-[11px] text-primary-foreground">
+          {{ store.unreadCount > 99 ? '99+' : store.unreadCount }}
+        </Badge>
+      </Button>
+    </PopoverTrigger>
+    <PopoverContent align="end" class="w-[min(360px,calc(100vw-32px))] p-0">
+      <div class="flex items-center justify-between px-4 py-3">
+        <h2 class="text-sm font-medium">알림</h2>
+        <Button variant="link" size="sm" :disabled="store.unreadCount === 0" @click="readAll">모두 읽음</Button>
       </div>
-      <ul v-if="store.items.length" class="list">
-        <li v-for="n in store.items" :key="n.id">
-          <button type="button" class="item" :class="{ unread: !n.read }" @click="select(n)">
-            <span class="kind">{{ KIND_LABELS[n.kind] ?? n.kind }}</span>
-            <span class="title">{{ n.title }}</span>
-            <span v-if="n.body" class="body">{{ n.body }}</span>
-            <span class="time">{{ dateTime(n.createdAt) }}</span>
-          </button>
-        </li>
-      </ul>
-      <p v-else class="empty">새 알림이 없습니다.</p>
-    </div>
-  </div>
+      <Separator />
+      <ScrollArea v-if="store.items.length" class="max-h-[420px]">
+        <ul class="flex flex-col p-1">
+          <li v-for="n in store.items" :key="n.id">
+            <button type="button" :class="cn('grid w-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 rounded-md px-3 py-2.5 text-left text-sm hover:bg-muted', !n.read && 'bg-accent/60')" @click="select(n)">
+              <Badge :variant="KIND[n.kind]?.[1] ?? 'secondary'" class="row-span-3 self-start">{{ KIND[n.kind]?.[0] ?? n.kind }}</Badge>
+              <span class="font-medium">{{ n.title }}</span>
+              <span v-if="n.body" class="text-muted-foreground">{{ n.body }}</span>
+              <span class="text-xs text-muted-foreground">{{ dateTime(n.createdAt) }}</span>
+            </button>
+          </li>
+        </ul>
+      </ScrollArea>
+      <Empty v-else class="py-8"><EmptyDescription>새 알림이 없습니다.</EmptyDescription></Empty>
+    </PopoverContent>
+  </Popover>
 </template>
-
-<style scoped>
-.bell-wrap {
-  position: relative;
-}
-
-.bell {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: #fff;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  color: var(--charcoal);
-}
-
-.count {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--bad);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
-
-.dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 10px);
-  width: min(360px, calc(100vw - 32px));
-  max-height: 440px;
-  overflow-y: auto;
-  background: #fff;
-  border-radius: var(--radius-card);
-  box-shadow: 0 16px 40px rgba(31, 41, 55, 0.16);
-  padding: 8px;
-}
-
-.drop-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 10px;
-}
-
-.text-btn {
-  border: 0;
-  background: none;
-  color: var(--text-sub);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.text-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.item {
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: none;
-  border-radius: 10px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  cursor: pointer;
-  color: var(--text-sub);
-}
-
-.item:hover {
-  background: var(--head-bg);
-}
-
-.item.unread {
-  color: var(--text);
-  background: #f0fbf9;
-}
-
-.kind {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--run);
-}
-
-.title {
-  font-weight: 700;
-}
-
-.body {
-  font-size: 13px;
-}
-
-.time {
-  font-size: 12px;
-  color: var(--text-faint);
-}
-
-@media (max-width: 480px) {
-  .dropdown {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    top: 64px;
-    width: auto;
-  }
-}
-</style>

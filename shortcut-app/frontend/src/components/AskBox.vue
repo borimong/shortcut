@@ -2,6 +2,12 @@
 import { onBeforeUnmount, ref } from 'vue'
 import { api } from '../api.js'
 import { openStream } from '../sse.js'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
 
 const props = defineProps({ proposalId: { type: Number, required: true } })
 
@@ -65,71 +71,44 @@ onBeforeUnmount(() => source?.close())
 </script>
 
 <template>
-  <section class="card">
-    <h2 class="card-title">근거 질문</h2>
-    <form class="ask" @submit.prevent="ask">
-      <input
-        v-model="question"
-        class="input"
-        placeholder="예: 파주 세트장에서 드론을 못 쓰는 근거가 뭐야?"
-        :disabled="busy"
-      />
-      <button type="submit" class="btn btn-primary" :disabled="busy || !question.trim()">질문</button>
-    </form>
+  <Card>
+    <CardHeader>
+      <CardTitle>근거 질문</CardTitle>
+    </CardHeader>
+    <CardContent class="flex flex-col gap-4">
+      <form class="flex gap-2" @submit.prevent="ask">
+        <Input
+          v-model="question"
+          class="min-w-0 flex-1"
+          placeholder="예: 파주 세트장에서 드론을 못 쓰는 근거가 뭐야?"
+          :disabled="busy"
+        />
+        <Button type="submit" :disabled="busy || !question.trim()">질문</Button>
+      </form>
 
-    <div v-if="asked" class="answer-box">
-      <p class="q">{{ asked }}</p>
-      <p v-if="activity" class="muted small">{{ activity }}</p>
-      <p v-if="text" class="a">{{ text }}<span v-if="busy" class="caret"></span></p>
-      <p v-if="error" class="inline-error">{{ error.message }} <span class="mono">{{ error.code }}</span></p>
-      <div v-if="sources.length" class="sources">
-        <p class="eyebrow">출처</p>
-        <ul>
-          <li v-for="s in sources" :key="s.docId">
-            <strong>{{ s.title }}</strong> <span class="mono muted">{{ s.docId }}</span>
-            <p v-if="s.snippet" class="muted small">{{ s.snippet }}</p>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </section>
+      <template v-if="asked">
+        <Separator />
+        <section class="flex flex-col gap-2">
+          <p class="font-medium">{{ asked }}</p>
+          <p v-if="activity" class="flex items-center gap-2 text-sm text-muted-foreground">
+            <Spinner />
+            {{ activity }}
+          </p>
+          <p v-if="text" class="leading-relaxed whitespace-pre-wrap">{{ text }}<span v-if="busy" class="ml-0.5 inline-block h-[1em] w-2 animate-pulse bg-foreground align-text-bottom"></span></p>
+          <Alert v-if="error" variant="destructive">
+            <AlertDescription>{{ error.message }} <span class="mono">{{ error.code }}</span></AlertDescription>
+          </Alert>
+          <div v-if="sources.length" class="mt-1 flex flex-col gap-1.5">
+            <h3 class="text-sm font-medium">출처</h3>
+            <ul class="flex list-disc flex-col gap-1.5 pl-5 text-sm">
+              <li v-for="s in sources" :key="s.docId">
+                {{ s.title }} <span class="mono text-muted-foreground">{{ s.docId }}</span>
+                <p v-if="s.snippet" class="text-muted-foreground">{{ s.snippet }}</p>
+              </li>
+            </ul>
+          </div>
+        </section>
+      </template>
+    </CardContent>
+  </Card>
 </template>
-
-<style scoped>
-.ask {
-  display: flex;
-  gap: 8px;
-}
-
-.ask .input {
-  flex: 1;
-  min-width: 0;
-}
-
-.answer-box {
-  margin-top: 16px;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--head-bg);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.q {
-  font-weight: 700;
-}
-
-.a {
-  white-space: pre-wrap;
-  line-height: 1.7;
-}
-
-.sources ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-</style>

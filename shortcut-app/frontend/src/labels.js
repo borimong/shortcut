@@ -11,17 +11,17 @@ export const DEMO_ACCOUNTS = [
   { username: 'ad2', name: '서도현', role: 'AD2', title: '2조감독' },
   { username: 'dop', name: '문태오', role: 'DOP', title: '촬영감독 (장비)' },
   { username: 'sound', name: '배수아', role: 'SOUND', title: '동시녹음팀장 (소음)' },
-  { username: 'crew', name: '임채원', role: 'CREW', title: '연출부원 (열람만)' }
+  { username: 'crew', name: '임채원', role: 'CREW', title: '연출부원 (열람 전용)' }
 ]
 
 export const ROLE_TITLES = Object.fromEntries(DEMO_ACCOUNTS.map((a) => [a.role, a.title]))
 
 export const EVENT_TYPES = [
-  { value: 'RAIN', label: '우천', hint: '예: 13시 이후 한강 공원 강수확률이 80%로 올라갔습니다.' },
-  { value: 'ACTOR_SCHEDULE', label: '배우 일정', hint: '예: 배우 A가 15시까지만 촬영 가능하다고 연락이 왔습니다.' },
-  { value: 'LOCATION_CANCEL', label: '장소 취소', hint: '예: 성수 스튜디오 오후 대관이 취소되었습니다.' },
-  { value: 'EQUIPMENT_FAILURE', label: '장비 고장', hint: '예: 드론 배터리 불량으로 오늘 비행이 어렵습니다.' },
-  { value: 'DISASTER', label: '천재지변', hint: '예: 서울 영등포구에 호우 경보 재난 문자가 발송되었습니다.' }
+  { value: 'RAIN', label: '우천', hint: '13시 이후 한강 공원 강수확률이 80%로 올라갔습니다.' },
+  { value: 'ACTOR_SCHEDULE', label: '배우 일정', hint: '배우 A가 15시까지만 촬영 가능하다고 연락이 왔습니다.' },
+  { value: 'LOCATION_CANCEL', label: '장소 취소', hint: '성수 스튜디오 오후 대관이 취소되었습니다.' },
+  { value: 'EQUIPMENT_FAILURE', label: '장비 고장', hint: '드론 배터리 불량으로 오늘 비행이 어렵습니다.' },
+  { value: 'DISASTER', label: '천재지변', hint: '서울 영등포구에 호우 경보 재난 문자가 발송되었습니다.' }
 ]
 
 export const NODE_ORDER = [

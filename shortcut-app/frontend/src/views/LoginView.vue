@@ -1,7 +1,15 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { CircleAlert } from '@lucide/vue'
 import logoUrl from '../assets/logo.png'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
 import { useAuthStore } from '../stores/auth.js'
 import { DEMO_ACCOUNTS } from '../labels.js'
 
@@ -23,7 +31,7 @@ async function submit() {
   busy.value = true
   try {
     await auth.login(username.value.trim(), password.value)
-    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+    const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/board'
     router.replace(redirect)
   } catch (e) {
     error.value = e.status === 401 ? { message: '아이디 또는 비밀번호가 올바르지 않습니다.', code: e.code } : e
@@ -40,140 +48,58 @@ function quick(account) {
 </script>
 
 <template>
-  <div class="login">
-    <section class="intro">
-      <img :src="logoUrl" alt="ShortCut" class="logo" />
-      <h1>촬영 변수가 생겨도<br />오늘 콜시트를 다시 짭니다</h1>
-      <p class="muted">
-        변경을 입력하면 Agent가 영향 범위와 규정 근거를 찾아 1/2/3안을 다시 조합하고, 필수 승인자가 모두 승인하면 콜시트를 확정해 배포합니다.
-      </p>
+  <div class="grid min-h-[calc(100vh-40px)] items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+    <section class="flex flex-col gap-4">
+      <RouterLink to="/" aria-label="소개 페이지로 이동"><img :src="logoUrl" alt="ShortCut" class="h-16 w-auto sm:h-20" /></RouterLink>
+      <p class="text-lg text-muted-foreground">촬영 당일 바뀐 일정을 다시 짜는 도구</p>
     </section>
 
-    <section class="card panel">
-      <h2 class="card-title">로그인</h2>
-      <form class="stack" @submit.prevent="submit">
-        <label class="field">
-          <span class="field-label">아이디</span>
-          <input v-model="username" class="input" autocomplete="username" required />
-        </label>
-        <label class="field">
-          <span class="field-label">비밀번호</span>
-          <input v-model="password" class="input" type="password" autocomplete="current-password" required />
-        </label>
-        <p v-if="error" class="inline-error">{{ error.message }} <span class="mono">{{ error.code }}</span></p>
-        <button type="submit" class="btn btn-primary" :disabled="busy">{{ busy ? '로그인 중' : '로그인' }}</button>
-      </form>
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-lg">로그인</CardTitle>
+        <CardDescription>제작팀에서 받은 아이디와 비밀번호를 입력합니다.</CardDescription>
+      </CardHeader>
+      <CardContent class="flex flex-col gap-6">
+        <form @submit.prevent="submit">
+          <FieldGroup>
+            <Field>
+              <FieldLabel for="username">아이디</FieldLabel>
+              <Input id="username" v-model="username" autocomplete="username" required />
+            </Field>
+            <Field>
+              <FieldLabel for="password">비밀번호</FieldLabel>
+              <Input id="password" v-model="password" type="password" autocomplete="current-password" required />
+            </Field>
+            <Alert v-if="error" variant="destructive">
+              <CircleAlert />
+              <AlertDescription>{{ error.message }} <span class="mono">{{ error.code }}</span></AlertDescription>
+            </Alert>
+            <Button type="submit" :disabled="busy">
+              <Spinner v-if="busy" data-icon="inline-start" />{{ busy ? '로그인 중' : '로그인' }}
+            </Button>
+          </FieldGroup>
+        </form>
 
-      <div class="demo">
-        <p class="eyebrow">데모 계정 빠른 선택</p>
-        <div class="demo-grid">
-          <button
-            v-for="a in DEMO_ACCOUNTS"
-            :key="a.username"
-            type="button"
-            class="demo-btn"
-            :disabled="busy"
-            @click="quick(a)"
-          >
-            <strong>{{ a.name }}</strong>
-            <span>{{ a.title }}</span>
-            <span class="mono role">{{ a.role }}</span>
-          </button>
+        <Separator />
+
+        <div class="flex flex-col gap-3">
+          <h2 class="text-sm font-medium">데모 계정으로 로그인</h2>
+          <div class="grid grid-cols-2 gap-2">
+            <Button
+              v-for="a in DEMO_ACCOUNTS"
+              :key="a.username"
+              variant="outline"
+              class="h-auto flex-col items-start gap-0.5 py-2 text-left whitespace-normal"
+              :disabled="busy"
+              @click="quick(a)"
+            >
+              <span>{{ a.name }}</span>
+              <span class="text-xs font-normal text-muted-foreground">{{ a.title }}</span>
+              <span class="mono text-[11px] font-normal text-muted-foreground">{{ a.role }}</span>
+            </Button>
+          </div>
         </div>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   </div>
 </template>
-
-<style scoped>
-.login {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
-  align-items: center;
-  gap: 48px;
-  padding: 48px 0;
-}
-
-.logo {
-  height: 40px;
-  width: auto;
-  margin-bottom: 28px;
-}
-
-.intro h1 {
-  font-size: 36px;
-  line-height: 1.3;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin-bottom: 16px;
-}
-
-.intro p {
-  max-width: 460px;
-}
-
-.panel {
-  padding: 32px;
-}
-
-.demo {
-  margin-top: 28px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-
-.demo-grid {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.demo-btn {
-  text-align: left;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  background: #fff;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-}
-
-.demo-btn:hover:not(:disabled) {
-  border-color: var(--charcoal);
-  background: var(--head-bg);
-}
-
-.demo-btn span {
-  font-size: 12.5px;
-  color: var(--text-sub);
-}
-
-.demo-btn .role {
-  font-size: 11px;
-  color: var(--text-faint);
-}
-
-@media (max-width: 900px) {
-  .login {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 24px;
-    padding: 32px 0;
-    min-height: auto;
-  }
-
-  .intro h1 {
-    font-size: 26px;
-  }
-}
-
-@media (max-width: 480px) {
-  .panel {
-    padding: 20px;
-  }
-}
-</style>

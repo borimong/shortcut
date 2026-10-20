@@ -9,6 +9,20 @@ import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, signedWon, ver, won } from '../format.js'
 import { CONSTRAINT_LABELS, ISSUE_LABELS, ISSUE_OPTIONS, REVIEW_ACTIONS, REVIEW_LABELS, SCORE_LABELS, SHOOT_DAY_ID } from '../labels.js'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty'
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { cn } from '@/lib/utils'
 
 const route = useRoute()
 const router = useRouter()
@@ -225,472 +239,342 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page">
-    <p v-if="error" class="inline-error">{{ error.message }} <span class="mono">{{ error.code }}</span></p>
+    <Alert v-if="error" variant="destructive">
+      <AlertDescription>{{ error.message }} <span class="mono">{{ error.code }}</span></AlertDescription>
+    </Alert>
 
     <template v-if="proposal">
-      <div class="page-head">
-        <div>
-          <p class="eyebrow">변경안 #{{ proposal.id }}, 루프 {{ proposal.loopNo }}</p>
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div class="flex min-w-0 flex-col gap-1">
           <h1 class="page-title">변경안 {{ ver(proposal.versionNo) }}</h1>
-          <p class="page-sub">{{ dateTime(proposal.createdAt) }} 생성, 데이터 버전 {{ proposal.dataVersion }}</p>
+          <p class="text-sm text-muted-foreground">
+            <span class="mono">#{{ proposal.id }}</span>, 루프 {{ proposal.loopNo }}, {{ dateTime(proposal.createdAt) }} 생성, 데이터 버전 {{ proposal.dataVersion }}
+          </p>
         </div>
-        <div class="row">
-          <RouterLink :to="`/tasks/${proposal.taskId}`" class="btn btn-secondary btn-sm">Agent 진행 보기</RouterLink>
+        <div class="flex flex-wrap items-center gap-2">
           <StatusBadge :status="proposal.status" />
+          <Button as-child variant="outline" size="sm">
+            <RouterLink :to="`/tasks/${proposal.taskId}`">Agent 진행 보기</RouterLink>
+          </Button>
         </div>
       </div>
 
-      <div v-if="proposal.status === 'REJECTED'" class="replan-note">
+      <Alert v-if="proposal.status === 'REJECTED'" class="flex flex-wrap items-center justify-between gap-3 border-primary/50">
         <template v-if="nextProposalId">
-          <span>거절 사유를 보완한 새 변경안이 나왔습니다.</span>
-          <RouterLink :to="`/proposals/${nextProposalId}`" class="btn btn-primary btn-sm">새 변경안 보기</RouterLink>
+          <span>거절 사유를 반영한 새 변경안이 나왔습니다.</span>
+          <Button as-child size="sm">
+            <RouterLink :to="`/proposals/${nextProposalId}`">새 변경안 보기</RouterLink>
+          </Button>
         </template>
         <template v-else-if="task?.status === 'NEEDS_HUMAN'">
-          <span>더 짤 수 있는 안이 없어 사람에게 넘겼습니다. 진행 화면에서 멈춘 이유와 추천 장소를 확인하세요.</span>
-          <RouterLink :to="`/tasks/${proposal.taskId}`" class="btn btn-secondary btn-sm">진행 보기</RouterLink>
+          <span>더 짤 수 있는 안이 없어 사람이 확인하도록 넘겼습니다. 멈춘 이유와 추천 장소는 진행 화면에 있습니다.</span>
+          <Button as-child variant="outline" size="sm">
+            <RouterLink :to="`/tasks/${proposal.taskId}`">진행 보기</RouterLink>
+          </Button>
         </template>
         <template v-else>
-          <span>거절 사유를 반영해 새 계획안을 만드는 중입니다.</span>
-          <RouterLink :to="`/tasks/${proposal.taskId}`" class="btn btn-secondary btn-sm">진행 보기</RouterLink>
+          <span>거절 사유를 반영해 새 계획안을 만들고 있습니다.</span>
+          <Button as-child variant="outline" size="sm">
+            <RouterLink :to="`/tasks/${proposal.taskId}`">진행 보기</RouterLink>
+          </Button>
         </template>
-      </div>
+      </Alert>
 
-      <section v-if="priorRejections.length" class="card">
-        <h2 class="card-title">반영한 거절 사유</h2>
-        <p class="muted small">이 안은 앞선 안이 거절되어 다시 짠 루프 {{ proposal.loopNo }}의 안입니다. 문제로 고른 요소만 바꾸고 나머지는 최대한 유지했습니다.</p>
-        <ul class="rejections">
-          <li v-for="r in priorRejections" :key="r.id">
-            <RouterLink :to="`/proposals/${r.id}`" class="mono">루프 {{ r.loopNo }}</RouterLink>
-            <span>{{ r.plan }}</span>
-            <template v-if="r.rejection">
-              <strong>{{ r.rejection.title }} 거절</strong>
-              <span v-if="r.rejection.issues?.length" class="badge tone-bad">{{ issueText(r.rejection.issues) }}</span>
-              <span class="wrap">"{{ r.rejection.reason }}"</span>
-            </template>
-          </li>
-        </ul>
-      </section>
+      <Alert v-if="proposal.status === 'STALE'" class="border-warning/40 bg-warning/20 text-warning-foreground">
+        <AlertDescription class="text-warning-foreground">승인을 기다리는 사이 촬영 데이터가 바뀌어 이 변경안은 확정할 수 없습니다.</AlertDescription>
+      </Alert>
 
-      <p v-if="proposal.status === 'STALE'" class="stale-note">
-        승인을 기다리는 동안 촬영 데이터가 바뀌어 이 변경안은 확정할 수 없습니다.
-      </p>
+      <Card v-if="priorRejections.length">
+        <CardHeader>
+          <CardTitle>반영한 거절 사유</CardTitle>
+          <CardDescription>앞선 안이 거절돼 루프 {{ proposal.loopNo }}에서 다시 짠 안입니다. 거절할 때 고른 항목만 바꾸고 나머지는 되도록 그대로 뒀습니다.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul class="flex flex-col">
+            <li
+              v-for="r in priorRejections"
+              :key="r.id"
+              class="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-border py-2.5 first:pt-0 last:border-b-0 last:pb-0"
+            >
+              <RouterLink :to="`/proposals/${r.id}`" class="mono underline underline-offset-3">루프 {{ r.loopNo }}</RouterLink>
+              <span class="text-muted-foreground">{{ r.plan }}</span>
+              <template v-if="r.rejection">
+                <span>{{ r.rejection.title }} 거절</span>
+                <Badge v-if="r.rejection.issues?.length" variant="destructive">{{ issueText(r.rejection.issues) }}</Badge>
+                <span class="basis-full text-muted-foreground">"{{ r.rejection.reason }}"</span>
+              </template>
+            </li>
+          </ul>
+        </CardContent>
+      </Card>
 
-      <section class="card">
-        <h2 class="card-title">원본 대비 변경</h2>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>항목</th>
-                <th>현재 확정</th>
-                <th>변경안</th>
-                <th>출처</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in diffRows" :key="r.label" :class="{ changed: r.changed }">
-                <td><strong>{{ r.label }}</strong></td>
-                <td class="muted">{{ r.from }}</td>
-                <td>
-                  <strong v-if="r.changed">{{ r.to }}</strong>
-                  <span v-else>{{ r.to }}</span>
-                </td>
-                <td>
-                  <span v-if="r.source" class="badge tone-run">{{ r.source === 4 ? '4안 (대체 장소)' : `${r.source}안` }}</span>
-                  <span v-else class="muted">계산값</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <p v-if="proposal.explanation" class="explain">{{ proposal.explanation }}</p>
-      </section>
-
-      <section v-if="review" class="card">
-        <h2 class="card-title">
-          자체 검토
-          <span class="small muted">승인 요청 전 Agent가 승인자 입장에서 100점 만점으로 채점, {{ review.threshold }}점 미만이면 고쳐서 다시 검토</span>
-        </h2>
-        <div class="total">
-          <strong>{{ review.score }}</strong>
-          <span class="muted">/ 100</span>
-          <span class="badge" :class="review.passed ? 'tone-ok' : 'tone-stale'">
-            {{ review.passed ? `${review.rounds}회차 통과` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
-          </span>
-        </div>
-        <ul class="scores">
-          <li v-for="r in review.rows" :key="r.key">
-            <div class="score-head">
-              <span>{{ r.label }}</span>
-              <strong class="mono small">{{ r.value }} / 20</strong>
-            </div>
-            <div class="meter"><span :style="{ width: `${(r.value / 20) * 100}%` }"></span></div>
-          </li>
-        </ul>
-        <ol class="review-history">
-          <li v-for="h in review.history" :key="h.round" :class="{ chosen: h.round === review.chosenRound }">
-            <span class="mono">{{ h.round }}회차</span>
-            <strong>{{ h.score }}점</strong>
-            <span v-if="h.score < review.threshold" class="muted small">{{ REVIEW_ACTIONS[h.action] ?? h.action }}</span>
-            <span class="small">{{ (h.feedback ?? []).join(' ') }}</span>
-          </li>
-        </ol>
-      </section>
-
-      <div class="grid-2">
-        <section class="card">
-          <h2 class="card-title">종합 점수</h2>
-          <div class="total">
-            <strong>{{ Number(proposal.score).toFixed(3) }}</strong>
-            <span class="muted">/ 1.000</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>원본 대비 변경</CardTitle>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <div class="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader class="bg-muted">
+                <TableRow>
+                  <TableHead>항목</TableHead>
+                  <TableHead>현재 확정</TableHead>
+                  <TableHead>변경안</TableHead>
+                  <TableHead>출처</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="r in diffRows" :key="r.label">
+                  <TableCell :class="r.changed ? 'border-l-2 border-l-primary' : 'text-muted-foreground'">{{ r.label }}</TableCell>
+                  <TableCell class="text-muted-foreground">{{ r.from }}</TableCell>
+                  <TableCell :class="r.changed ? 'font-semibold' : ''">{{ r.to }}</TableCell>
+                  <TableCell>
+                    <Badge v-if="r.source" variant="info">{{ r.source === 4 ? '4안 (대체 장소)' : `${r.source}안` }}</Badge>
+                    <span v-else class="text-muted-foreground">계산값</span>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
-          <div class="meter mint"><span :style="{ width: `${Math.min(proposal.score, 1) * 100}%` }"></span></div>
-          <ul class="scores">
-            <li v-for="s in scoreRows" :key="s.key">
-              <div class="score-head">
-                <span>{{ s.label }}</span>
-                <span class="muted small">
-                  <template v-if="s.weight !== undefined">가중치 {{ Math.round(s.weight * 100) }}%, </template>
-                  <strong class="mono">{{ s.value.toFixed(3) }}</strong>
-                </span>
-              </div>
-              <div class="meter"><span :style="{ width: `${Math.min(s.value, 1) * 100}%` }"></span></div>
-            </li>
-          </ul>
-        </section>
+          <p v-if="proposal.explanation" class="leading-relaxed whitespace-pre-wrap">{{ proposal.explanation }}</p>
+        </CardContent>
+      </Card>
 
-        <section class="card">
-          <h2 class="card-title">하드 제약 체크리스트</h2>
-          <ul class="checks">
-            <li v-for="c in proposal.checklist" :key="c.constraint">
-              <div class="row">
-                <StatusBadge :status="c.status" />
-                <strong>{{ CONSTRAINT_LABELS[c.constraint] ?? c.constraint }}</strong>
+      <Card v-if="review">
+        <CardHeader>
+          <CardTitle>자체 검토</CardTitle>
+          <CardDescription>승인을 요청하기 전에 Agent가 승인자 입장에서 100점 만점으로 채점합니다. {{ review.threshold }}점이 안 되면 고쳐서 다시 검토합니다.</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-5">
+          <div class="flex flex-wrap items-baseline gap-1.5">
+            <span class="text-3xl font-bold tracking-tight">{{ review.score }}</span>
+            <span class="text-muted-foreground">/ 100</span>
+            <Badge :variant="review.passed ? 'success' : 'warning'" class="ml-1">
+              {{ review.passed ? `${review.rounds}회차 통과` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
+            </Badge>
+          </div>
+          <ul class="flex flex-col gap-3">
+            <li v-for="r in review.rows" :key="r.key" class="flex flex-col gap-1">
+              <div class="flex justify-between gap-2 text-sm">
+                <span>{{ r.label }}</span>
+                <span class="mono text-muted-foreground">{{ r.value }} / 20</span>
               </div>
-              <p v-if="c.note" class="small">{{ c.note }}</p>
-              <div v-if="c.evidenceIds?.length" class="row">
-                <button
-                  v-for="id in c.evidenceIds"
-                  :key="id"
-                  type="button"
-                  class="chip mono"
-                  @click="openEvidence(id)"
-                >
-                  {{ id }}
-                </button>
-              </div>
+              <Progress :model-value="(r.value / 20) * 100" class="h-1.5 *:data-[slot=progress-indicator]:bg-foreground/70" />
             </li>
           </ul>
-          <div class="unresolved">
-            <p class="eyebrow">미확정 항목</p>
-            <ul v-if="proposal.unresolved?.length">
-              <li v-for="(u, i) in proposal.unresolved" :key="i">{{ u }}</li>
+          <Separator />
+          <ol class="flex flex-col gap-2">
+            <li
+              v-for="h in review.history"
+              :key="h.round"
+              :class="cn(
+                'flex flex-wrap items-baseline gap-x-2 gap-y-1 border-l-2 border-transparent pl-3 text-sm',
+                h.round === review.chosenRound && 'border-primary'
+              )"
+            >
+              <span class="mono text-muted-foreground">{{ h.round }}회차</span>
+              <span class="mono">{{ h.score }}점</span>
+              <span v-if="h.score < review.threshold" class="text-muted-foreground">{{ REVIEW_ACTIONS[h.action] ?? h.action }}</span>
+              <span class="basis-full">{{ (h.feedback ?? []).join(' ') }}</span>
+            </li>
+          </ol>
+        </CardContent>
+      </Card>
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>종합 점수</CardTitle>
+          </CardHeader>
+          <CardContent class="flex flex-col gap-5">
+            <div class="flex flex-col gap-2.5">
+              <div class="flex items-baseline gap-1.5">
+                <span class="mono text-3xl font-bold tracking-tight">{{ Number(proposal.score).toFixed(3) }}</span>
+                <span class="text-muted-foreground">/ 1.000</span>
+              </div>
+              <Progress :model-value="Math.min(proposal.score, 1) * 100" class="h-2" />
+            </div>
+            <ul class="flex flex-col gap-3">
+              <li v-for="s in scoreRows" :key="s.key" class="flex flex-col gap-1">
+                <div class="flex justify-between gap-2 text-sm">
+                  <span>
+                    {{ s.label }}
+                    <span v-if="s.weight !== undefined" class="text-muted-foreground">(가중치 {{ Math.round(s.weight * 100) }}%)</span>
+                  </span>
+                  <span class="mono">{{ s.value.toFixed(3) }}</span>
+                </div>
+                <Progress :model-value="Math.min(s.value, 1) * 100" class="h-1.5 *:data-[slot=progress-indicator]:bg-foreground/70" />
+              </li>
             </ul>
-            <p v-else class="muted small">미확정 항목이 없습니다.</p>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>하드 제약 체크리스트</CardTitle>
+          </CardHeader>
+          <CardContent class="flex flex-col gap-4">
+            <ul class="flex flex-col">
+              <li
+                v-for="c in proposal.checklist"
+                :key="c.constraint"
+                class="flex flex-col gap-1.5 border-b border-border py-3 first:pt-0 last:border-b-0 last:pb-0"
+              >
+                <div class="flex flex-wrap items-center gap-2">
+                  <StatusBadge :status="c.status" />
+                  <span class="font-medium">{{ CONSTRAINT_LABELS[c.constraint] ?? c.constraint }}</span>
+                </div>
+                <p v-if="c.note" class="text-sm text-muted-foreground">{{ c.note }}</p>
+                <div v-if="c.evidenceIds?.length" class="flex flex-wrap items-center gap-1.5">
+                  <Button
+                    v-for="id in c.evidenceIds"
+                    :key="id"
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    class="mono"
+                    @click="openEvidence(id)"
+                  >
+                    {{ id }}
+                  </Button>
+                </div>
+              </li>
+            </ul>
+            <Separator />
+            <div class="flex flex-col gap-1.5">
+              <h3 class="text-sm font-medium">미확정 항목</h3>
+              <ul v-if="proposal.unresolved?.length" class="list-disc pl-5 text-sm">
+                <li v-for="(u, i) in proposal.unresolved" :key="i">{{ u }}</li>
+              </ul>
+              <p v-else class="text-sm text-muted-foreground">없습니다.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <section class="card">
-        <h2 class="card-title">
-          승인 현황
-          <span class="small muted">{{ proposal.approvedCount }} / {{ proposal.requiredCount }} 완료</span>
-        </h2>
-        <div class="meter mint progress"><span :style="{ width: `${progress}%` }"></span></div>
-        <div class="table-wrap">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>역할</th>
-                <th>담당 범위</th>
-                <th>상태</th>
-                <th>처리자</th>
-                <th>시각</th>
-                <th>거절 사유</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="a in proposal.approvals" :key="a.role" :class="{ mine: a.role === auth.user?.role }">
-                <td>
-                  <strong>{{ a.title }}</strong>
-                  <span class="mono muted role">{{ a.role }}</span>
-                </td>
-                <td>{{ a.scope }}</td>
-                <td><StatusBadge :status="a.status" /></td>
-                <td>{{ a.userName ?? '' }}</td>
-                <td class="mono">{{ dateTime(a.decidedAt) }}</td>
-                <td class="wrap">
-                  <span v-if="a.issues?.length" class="badge tone-bad">{{ issueText(a.issues) }}</span>
-                  {{ a.reason ?? '' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div v-if="myPending" class="decide">
-          <p><strong>{{ myPending.title }}</strong> 승인 차례입니다. 담당 범위: {{ myPending.scope }}</p>
-          <div v-if="!rejecting" class="row">
-            <button type="button" class="btn btn-primary" :disabled="deciding" @click="decide('APPROVE')">승인</button>
-            <button type="button" class="btn btn-danger" :disabled="deciding" @click="rejecting = true">거절</button>
-          </div>
-          <div v-else class="stack">
-            <div class="field">
-              <span class="field-label">무엇이 문제인가요? (하나 이상)</span>
-              <div class="row">
-                <button
-                  v-for="o in ISSUE_OPTIONS"
-                  :key="o.value"
-                  type="button"
-                  class="chip issue"
-                  :class="{ on: issues.includes(o.value) }"
-                  :aria-pressed="issues.includes(o.value)"
-                  @click="toggleIssue(o.value)"
+      <Card>
+        <CardHeader>
+          <CardTitle>승인 현황</CardTitle>
+          <CardAction>
+            <span class="mono text-sm text-muted-foreground">{{ proposal.approvedCount }} / {{ proposal.requiredCount }} 완료</span>
+          </CardAction>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <Progress :model-value="progress" class="h-2" />
+          <div class="overflow-hidden rounded-lg border border-border">
+            <Table>
+              <TableHeader class="bg-muted">
+                <TableRow>
+                  <TableHead>역할</TableHead>
+                  <TableHead>담당 범위</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>처리자</TableHead>
+                  <TableHead>시각</TableHead>
+                  <TableHead>거절 사유</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow
+                  v-for="a in proposal.approvals"
+                  :key="a.role"
+                  :class="{ 'bg-accent/60 hover:bg-accent/60': a.role === auth.user?.role }"
                 >
-                  {{ o.label }}
-                </button>
-              </div>
-            </div>
-            <label class="field">
-              <span class="field-label">거절 사유 (필수, {{ MIN_REASON }}자 이상, 고르지 않은 요소는 그대로 유지됩니다)</span>
-              <textarea
-                v-model="reason"
-                class="textarea"
-                placeholder="예: 성수 스튜디오는 오후 공사 소음 때문에 동시녹음이 어렵습니다."
-              ></textarea>
-            </label>
-            <div class="row">
-              <button type="button" class="btn btn-danger" :disabled="deciding || !canReject" @click="decide('REJECT')">
-                거절하고 새 계획 요청
-              </button>
-              <button type="button" class="btn btn-secondary" :disabled="deciding" @click="rejecting = false">취소</button>
-            </div>
+                  <TableCell>
+                    <span class="font-medium">{{ a.title }}</span>
+                    <span class="mono block text-[11px] text-muted-foreground">{{ a.role }}</span>
+                  </TableCell>
+                  <TableCell>{{ a.scope }}</TableCell>
+                  <TableCell><StatusBadge :status="a.status" /></TableCell>
+                  <TableCell>{{ a.userName ?? '' }}</TableCell>
+                  <TableCell class="mono">{{ dateTime(a.decidedAt) }}</TableCell>
+                  <TableCell class="min-w-45 whitespace-normal">
+                    <Badge v-if="a.issues?.length" variant="destructive">{{ issueText(a.issues) }}</Badge>
+                    {{ a.reason ?? '' }}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
-        </div>
-      </section>
+
+          <section v-if="myPending" class="flex flex-col gap-3 rounded-lg border border-primary p-4">
+            <div class="flex flex-col gap-1">
+              <h3 class="font-semibold">{{ myPending.title }} 승인 차례입니다</h3>
+              <dl class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 text-sm">
+                <dt class="text-muted-foreground">담당 범위</dt>
+                <dd class="break-words">{{ myPending.scope }}</dd>
+              </dl>
+            </div>
+            <div v-if="!rejecting" class="flex flex-wrap gap-2">
+              <Button type="button" :disabled="deciding" @click="decide('APPROVE')">승인</Button>
+              <Button type="button" variant="destructive" :disabled="deciding" @click="rejecting = true">거절</Button>
+            </div>
+            <FieldGroup v-else>
+              <FieldSet>
+                <FieldLegend variant="label">문제가 있는 항목</FieldLegend>
+                <FieldDescription>하나 이상 골라야 하며, 고르지 않은 항목은 그대로 둡니다.</FieldDescription>
+                <ToggleGroup
+                  v-model="issues"
+                  type="multiple"
+                  variant="outline"
+                  size="sm"
+                  :spacing="2"
+                  class="flex-wrap"
+                >
+                  <ToggleGroupItem
+                    v-for="o in ISSUE_OPTIONS"
+                    :key="o.value"
+                    :value="o.value"
+                    class="aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    {{ o.label }}
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </FieldSet>
+              <Field>
+                <FieldLabel for="reject-reason">거절 사유</FieldLabel>
+                <Textarea
+                  id="reject-reason"
+                  v-model="reason"
+                  placeholder="예: 성수 스튜디오는 오후 공사 소음 때문에 동시녹음이 어렵습니다."
+                />
+                <FieldDescription>{{ MIN_REASON }}자 이상 적어야 거절할 수 있습니다.</FieldDescription>
+              </Field>
+              <div class="flex flex-wrap gap-2">
+                <Button type="button" variant="destructive" :disabled="deciding || !canReject" @click="decide('REJECT')">
+                  거절하고 새 계획 요청
+                </Button>
+                <Button type="button" variant="outline" :disabled="deciding" @click="rejecting = false">취소</Button>
+              </div>
+            </FieldGroup>
+          </section>
+        </CardContent>
+      </Card>
 
       <AskBox :proposal-id="proposal.id" />
     </template>
 
-    <div v-else-if="!error" class="card empty">변경안을 불러오는 중입니다.</div>
+    <Empty v-else-if="!error" class="border">
+      <EmptyMedia><Spinner /></EmptyMedia>
+      <EmptyDescription>변경안을 불러오는 중입니다.</EmptyDescription>
+    </Empty>
 
-    <div v-if="evidence" class="drawer-back" @click.self="evidence = null">
-      <aside class="drawer" role="dialog" aria-label="근거 원문">
-        <div class="drawer-head">
-          <div>
-            <p class="eyebrow">근거 {{ evidence.docType ?? '' }}</p>
-            <h2 class="card-title">{{ evidence.title }}</h2>
-            <p class="mono muted">{{ evidence.id }}<template v-if="evidence.docId"> / {{ evidence.docId }}</template></p>
+    <Dialog :open="!!evidence" @update:open="(open) => { if (!open) evidence = null }">
+      <DialogContent
+        :show-close-button="false"
+        class="top-0 right-0 left-auto h-full max-h-none w-full max-w-[440px] translate-x-0 translate-y-0 content-start overflow-y-auto rounded-none p-6 sm:max-w-[440px] data-open:slide-in-from-right data-closed:slide-out-to-right"
+      >
+        <DialogHeader class="flex-row items-start justify-between gap-3">
+          <div class="flex min-w-0 flex-col gap-1">
+            <DialogTitle class="text-lg leading-snug">{{ evidence?.title }}</DialogTitle>
+            <DialogDescription>
+              <template v-if="evidence?.docType">{{ evidence.docType }} 근거, </template>
+              <span class="mono">{{ evidence?.id }}<template v-if="evidence?.docId"> / {{ evidence.docId }}</template></span>
+            </DialogDescription>
           </div>
-          <button type="button" class="btn btn-secondary btn-sm" @click="evidence = null">닫기</button>
-        </div>
-        <p class="clause">{{ evidence.text }}</p>
-      </aside>
-    </div>
+          <Button type="button" variant="outline" size="sm" @click="evidence = null">닫기</Button>
+        </DialogHeader>
+        <p class="rounded-lg bg-muted p-4 text-sm leading-relaxed whitespace-pre-wrap">{{ evidence?.text }}</p>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
-
-<style scoped>
-.replan-note {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--mint);
-  border-radius: var(--radius-btn);
-  padding: 12px 16px;
-  font-weight: 600;
-}
-
-.rejections {
-  list-style: none;
-  margin: 12px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.rejections li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.review-history {
-  margin: 16px 0 0;
-  padding-left: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.review-history li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
-  padding: 8px 10px;
-  border-radius: var(--radius-btn);
-  background: var(--head-bg);
-}
-
-.review-history li.chosen {
-  box-shadow: inset 3px 0 0 var(--mint);
-}
-
-.chip.issue.on {
-  background: var(--charcoal);
-  color: var(--mint);
-  border-color: var(--charcoal);
-}
-
-.stale-note {
-  color: var(--stale);
-  background: var(--stale-bg);
-  border-radius: var(--radius-btn);
-  padding: 12px 16px;
-  font-weight: 600;
-}
-
-.table tr.changed td:first-child {
-  box-shadow: inset 3px 0 0 var(--mint);
-}
-
-.explain {
-  margin-top: 16px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-}
-
-.total {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.total strong {
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.scores {
-  list-style: none;
-  margin: 20px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.score-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 4px;
-  font-size: 14px;
-}
-
-.checks {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.checks li {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.chip {
-  border: 1px solid var(--line);
-  background: var(--head-bg);
-  border-radius: 999px;
-  padding: 3px 10px;
-  cursor: pointer;
-}
-
-.chip:hover {
-  border-color: var(--charcoal);
-}
-
-.unresolved {
-  margin-top: 16px;
-}
-
-.unresolved ul {
-  margin: 6px 0 0;
-  padding-left: 18px;
-}
-
-.progress {
-  margin-bottom: 16px;
-}
-
-.role {
-  display: block;
-  font-size: 11px;
-}
-
-.table tr.mine td {
-  background: #f0fbf9;
-}
-
-.decide {
-  margin-top: 18px;
-  padding: 16px;
-  border-radius: 12px;
-  border: 2px solid var(--mint);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.drawer-back {
-  position: fixed;
-  inset: 0;
-  background: rgba(31, 41, 55, 0.28);
-  z-index: 80;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.drawer {
-  width: min(440px, 100%);
-  height: 100%;
-  overflow-y: auto;
-  background: #fff;
-  padding: 24px;
-  box-shadow: -12px 0 32px rgba(31, 41, 55, 0.14);
-}
-
-.drawer-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.clause {
-  white-space: pre-wrap;
-  line-height: 1.75;
-  background: var(--head-bg);
-  border-radius: 12px;
-  padding: 16px;
-}
-</style>

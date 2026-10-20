@@ -6,7 +6,8 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { public: true } },
-    { path: '/', name: 'board', component: () => import('./views/BoardView.vue') },
+    { path: '/', name: 'landing', component: () => import('./views/LandingView.vue'), meta: { public: true, landing: true } },
+    { path: '/board', name: 'board', component: () => import('./views/BoardView.vue') },
     {
       path: '/changes/new',
       name: 'change-new',
@@ -19,19 +20,19 @@ const router = createRouter({
     { path: '/history', name: 'history', component: () => import('./views/HistoryView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
-  scrollBehavior: () => ({ top: 0 })
+  scrollBehavior: (to) => (to.hash ? { el: to.hash, top: 72, behavior: 'smooth' } : { top: 0 })
 })
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
   if (to.meta.public) {
-    return auth.isLoggedIn && to.name === 'login' ? '/' : true
+    return auth.isLoggedIn && to.name === 'login' ? '/board' : true
   }
   if (!auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.meta.roles && !to.meta.roles.includes(auth.user?.role)) {
-    return '/'
+    return '/board'
   }
   return true
 })

@@ -1,21 +1,27 @@
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import logoUrl from '../assets/logo.png'
 import NotificationBell from './NotificationBell.vue'
+import { Button } from '@/components/ui/button'
+import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu'
+import { cn } from '@/lib/utils'
 import { useAuthStore } from '../stores/auth.js'
 
 const auth = useAuthStore()
+const route = useRoute()
 const router = useRouter()
 
 const menu = computed(() =>
   [
-    { to: '/', label: '오늘의 촬영판' },
+    { to: '/board', label: '오늘의 촬영판' },
     auth.canSubmitChange && { to: '/changes/new', label: '변경 입력' },
     { to: '/proposals', label: '변경안' },
     { to: '/history', label: '변동 이력' }
   ].filter(Boolean)
 )
+
+const isActive = (to) => route.path.startsWith(to)
 
 function logout() {
   auth.logout()
@@ -24,129 +30,33 @@ function logout() {
 </script>
 
 <template>
-  <header class="header">
-    <div class="container bar">
-      <RouterLink to="/" class="brand" aria-label="오늘의 촬영판으로 이동">
-        <img :src="logoUrl" alt="ShortCut" />
+  <header class="sticky top-0 z-50 border-b bg-background/90 backdrop-blur">
+    <div class="wrap flex h-16 items-center gap-6">
+      <RouterLink to="/board" aria-label="오늘의 촬영판으로 이동">
+        <img :src="logoUrl" alt="ShortCut" class="h-6 w-auto" />
       </RouterLink>
-      <nav class="menu">
-        <RouterLink
-          v-for="m in menu"
-          :key="m.to"
-          :to="m.to"
-          class="menu-link"
-          :class="{ active: m.to === '/' ? $route.path === '/' : $route.path.startsWith(m.to) }"
-        >
-          {{ m.label }}
-        </RouterLink>
-      </nav>
-      <div class="right">
+      <NavigationMenu class="hidden md:flex">
+        <NavigationMenuList>
+          <NavigationMenuItem v-for="m in menu" :key="m.to">
+            <NavigationMenuLink as-child :active="isActive(m.to)">
+              <RouterLink :to="m.to" :class="cn('px-3 text-sm', isActive(m.to) && 'text-primary')">{{ m.label }}</RouterLink>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+      <div class="ml-auto flex items-center gap-3">
         <NotificationBell />
-        <div class="who">
-          <strong>{{ auth.user?.name }}</strong>
-          <span class="muted small">{{ auth.user?.title }}</span>
+        <div class="hidden flex-col leading-tight sm:flex">
+          <span class="text-sm font-medium">{{ auth.user?.name }}</span>
+          <span class="text-xs text-muted-foreground">{{ auth.user?.title }}</span>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" @click="logout">로그아웃</button>
+        <Button variant="outline" size="sm" @click="logout">로그아웃</Button>
       </div>
     </div>
+    <nav class="wrap flex gap-1 overflow-x-auto pb-2 md:hidden" aria-label="화면 메뉴">
+      <Button v-for="m in menu" :key="m.to" as-child size="sm" :variant="isActive(m.to) ? 'secondary' : 'ghost'">
+        <RouterLink :to="m.to">{{ m.label }}</RouterLink>
+      </Button>
+    </nav>
   </header>
 </template>
-
-<style scoped>
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(31, 41, 55, 0.06);
-}
-
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  min-height: 64px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.brand img {
-  height: 28px;
-  width: auto;
-  display: block;
-}
-
-.menu {
-  display: flex;
-  gap: 4px;
-  flex: 1;
-  min-width: 0;
-}
-
-.menu-link {
-  padding: 8px 12px;
-  border-radius: var(--radius-btn);
-  text-decoration: none;
-  font-weight: 600;
-  color: var(--text-sub);
-  white-space: nowrap;
-}
-
-.menu-link:hover {
-  color: var(--text);
-  background: var(--head-bg);
-}
-
-.menu-link.active {
-  color: var(--mint);
-  background: var(--charcoal);
-}
-
-.right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-shrink: 0;
-}
-
-.who {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.25;
-  text-align: right;
-}
-
-@media (max-width: 900px) {
-  .bar {
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    padding-top: 10px;
-  }
-
-  .right {
-    margin-left: auto;
-  }
-
-  .menu {
-    order: 3;
-    flex-basis: 100%;
-    overflow-x: auto;
-    padding-bottom: 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .who span {
-    display: none;
-  }
-
-  .right {
-    gap: 8px;
-  }
-}
-</style>
