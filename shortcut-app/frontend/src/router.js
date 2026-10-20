@@ -8,6 +8,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { public: true } },
     { path: '/', name: 'landing', component: () => import('./views/LandingView.vue'), meta: { public: true, landing: true } },
     { path: '/board', name: 'board', component: () => import('./views/BoardView.vue') },
+    { path: '/callsheet', name: 'callsheet', component: () => import('./views/CallsheetView.vue') },
     {
       path: '/changes/new',
       name: 'change-new',

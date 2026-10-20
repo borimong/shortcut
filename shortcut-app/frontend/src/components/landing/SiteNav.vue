@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu'
 
 const links = [
-  { href: '#flow', label: '작동 순서' },
   { href: '#features', label: '기능' },
   { href: '#preview', label: '미리 보기' },
   { href: '#faq', label: '자주 묻는 질문' },

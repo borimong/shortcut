@@ -3,9 +3,9 @@ import logoUrl from '@/assets/logo.png'
 import { Separator } from '@/components/ui/separator'
 
 const cols = [
-  { title: '서비스', links: ['작동 순서', '기능', '미리 보기', '자주 묻는 질문'] },
-  { title: '기능', links: ['특보 감지', '일정 재조정', '승인 관리', '콜시트 배포'] },
-  { title: '프로젝트', links: ['SKALA AI Agent 캡스톤', '기획 문서', '팀 소개'] },
+  { title: '서비스', links: [['기능', '#features'], ['미리 보기', '#preview'], ['자주 묻는 질문', '#faq']] },
+  { title: '기능', links: [['변경 접수', '#features'], ['일정 재조정', '#features'], ['승인 관리', '#features'], ['콜시트 배포', '#features']] },
+  { title: '프로젝트', links: [['SKALA AI Agent 캡스톤', '#top']] },
 ]
 </script>
 
@@ -17,7 +17,7 @@ const cols = [
         <div v-for="c in cols" :key="c.title">
           <p class="mb-3.5 text-[13px] font-bold text-foreground">{{ c.title }}</p>
           <ul class="flex flex-col gap-2.5">
-            <li v-for="l in c.links" :key="l"><a href="#top" class="text-[13px] hover:text-foreground">{{ l }}</a></li>
+            <li v-for="[label, href] in c.links" :key="label"><a :href="href" class="text-[13px] hover:text-foreground">{{ label }}</a></li>
           </ul>
         </div>
       </div>
