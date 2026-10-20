@@ -1,0 +1,61 @@
+{
+  "locationId": "L01",
+  "date": "2026-11-12",
+  "outdoor": true,
+  "source": "기상청 단기예보 (mock)",
+  "hourly": [
+    {
+      "hour": "09:00",
+      "rainProb": 20
+    },
+    {
+      "hour": "10:00",
+      "rainProb": 20
+    },
+    {
+      "hour": "11:00",
+      "rainProb": 20
+    },
+    {
+      "hour": "12:00",
+      "rainProb": 30
+    },
+    {
+      "hour": "13:00",
+      "rainProb": 80
+    },
+    {
+      "hour": "14:00",
+      "rainProb": 80
+    },
+    {
+      "hour": "15:00",
+      "rainProb": 80
+    },
+    {
+      "hour": "16:00",
+      "rainProb": 80
+    },
+    {
+      "hour": "17:00",
+      "rainProb": 80
+    },
+    {
+      "hour": "18:00",
+      "rainProb": 70
+    },
+    {
+      "hour": "19:00",
+      "rainProb": 60
+    },
+    {
+      "hour": "20:00",
+      "rainProb": 60
+    },
+    {
+      "hour": "21:00",
+      "rainProb": 50
+    }
+  ],
+  "rainThreshold": 60
+}

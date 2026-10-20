@@ -1,0 +1,53 @@
+{
+  "blockId": "B2",
+  "date": "2026-11-12",
+  "dataVersion": 7,
+  "current": {
+    "locationId": "L01",
+    "start": "13:00",
+    "end": "15:00",
+    "sceneIds": [
+      "S12",
+      "S13",
+      "S14"
+    ],
+    "packageId": "PKG-BASE"
+  },
+  "plans": {
+    "P1": {
+      "label": "1안",
+      "locationId": "L01",
+      "packageId": "PKG-BASE",
+      "start": "13:00",
+      "end": "15:00",
+      "packageName": "기존 렌탈 (카메라·드론·반사판)",
+      "locationName": "한강공원 망원지구",
+      "extraCost": 0
+    },
+    "P2": {
+      "label": "2안",
+      "locationId": "L02",
+      "packageId": "PKG-LIGHT",
+      "start": "14:00",
+      "end": "16:00",
+      "packageName": "추가 조명 대여 (카메라·반사판·추가 조명)",
+      "locationName": "성수 스튜디오 S",
+      "extraCost": 320000
+    },
+    "P3": {
+      "label": "3안",
+      "locationId": "L03",
+      "packageId": "PKG-MIN",
+      "start": "10:00",
+      "end": "12:00",
+      "packageName": "최소 장비 (카메라)",
+      "locationName": "파주 세트장",
+      "extraCost": 0
+    }
+  },
+  "elements": [
+    "location",
+    "equipment",
+    "time"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "event": {
+    "eventType": "WEATHER",
+    "entityType": "LOCATION",
+    "entityId": "L01",
+    "date": "2026-11-12",
+    "start": "13:00",
+    "end": "18:00"
+  },
+  "blocks": [
+    {
+      "blockId": "B2",
+      "locationId": "L01",
+      "start": "13:00",
+      "end": "15:00",
+      "hasPlanSet": true
+    }
+  ],
+  "scenes": [
+    "S12",
+    "S13",
+    "S14"
+  ],
+  "actors": [
+    {
+      "actorId": "A01",
+      "name": "윤재하",
+      "currentContractDocId": "contract-A01-v3",
+      "contractVersion": 3,
+      "managerUserIds": []
+    },
+    {
+      "actorId": "A04",
+      "name": "차여름",
+      "currentContractDocId": "contract-A04-v3",
+      "contractVersion": 3,
+      "managerUserIds": [
+        31
+      ]
+    }
+  ],
+  "locations": [
+    "L01"
+  ],
+  "equipment": [
+    "E01",
+    "E02",
+    "E03"
+  ],
+  "bookings": [],
+  "regulationDocIds": [
+    "law-labor",
+    "permit-hangang"
+  ]
+}

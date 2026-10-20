@@ -1,0 +1,8 @@
+jsonschema>=4.18
+referencing
+pyyaml
+# --mcp 점검에만 필요
+fastmcp>=4.1,<5
+# gen_examples.py에만 필요
+starlette
+httpx

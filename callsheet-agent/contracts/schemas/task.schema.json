@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://callsheet.local/schemas/task.schema.json",
+  "title": "AI 작업: 변경 이벤트, 큐 메시지, 진행 이벤트 (rc2, A ↔ B ↔ E)",
+  "$defs": {
+    "ChangeEvent": {
+      "type": "object",
+      "description": "제작실장·조감독이 입력하는 변경 이벤트. 작업 생성 요청 본문이자 큐 START의 input",
+      "required": ["eventType", "entityType", "entityId", "date", "message"],
+      "properties": {
+        "eventType": { "$ref": "domain.schema.json#/$defs/EventType" },
+        "entityType": { "enum": ["LOCATION", "ACTOR", "EQUIPMENT"] },
+        "entityId": { "type": "string" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "start": { "$ref": "common.schema.json#/$defs/Time" },
+        "end": { "$ref": "common.schema.json#/$defs/Time" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "directorInstruction": { "type": ["string", "null"], "description": "감독 지시(예: 웃돈을 줘도 좋은 데로). Agent가 가중치로 바꾼다" },
+        "dedupKey": { "type": "string", "description": "중복 제거 키. backend가 eventType+entityId+date+시간대로 만든다" }
+      }
+    },
+    "Rejection": {
+      "type": "object", "required": ["role", "reason"],
+      "properties": { "role": { "$ref": "common.schema.json#/$defs/Role" }, "reason": { "type": "string" } }
+    },
+    "QueueMessage": {
+      "description": "ai.tasks 큐 메시지 (backend → agent). 큐 도입 전에는 POST http://agent:8000/tasks 본문으로 같은 JSON을 쓴다.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "taskId", "threadId", "user", "input", "attempt"],
+          "properties": {
+            "type": { "const": "START" },
+            "taskId": { "$ref": "common.schema.json#/$defs/TaskId" },
+            "threadId": { "type": "string", "description": "LangGraph thread_id = taskId" },
+            "user": { "$ref": "common.schema.json#/$defs/UserContext" },
+            "input": { "$ref": "#/$defs/ChangeEvent" },
+            "attempt": { "type": "integer", "minimum": 1, "maximum": 3 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "taskId", "threadId", "user", "planId", "approval", "attempt"],
+          "properties": {
+            "type": { "const": "RESUME" },
+            "taskId": { "$ref": "common.schema.json#/$defs/TaskId" },
+            "threadId": { "type": "string" },
+            "user": { "$ref": "common.schema.json#/$defs/UserContext" },
+            "planId": { "type": "integer" },
+            "approval": {
+              "type": "object",
+              "description": "backend가 다중 승인을 집계한 결과. 전원 승인이면 ALL_APPROVED, 1명이라도 거절이면 즉시 REJECTED, 승인 대기 중 원본이 바뀌면 STALE",
+              "required": ["result", "rejections"],
+              "properties": {
+                "result": { "enum": ["ALL_APPROVED", "REJECTED", "STALE"] },
+                "rejections": { "type": "array", "items": { "$ref": "#/$defs/Rejection" } }
+              }
+            },
+            "attempt": { "type": "integer", "minimum": 1, "maximum": 3 }
+          }
+        }
+      ]
+    },
+
+    "StatusData": { "type": "object", "required": ["status"], "properties": { "status": { "$ref": "common.schema.json#/$defs/TaskStatus" } } },
+    "TokenData": { "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } },
+    "ToolStartData": {
+      "type": "object", "required": ["node", "tool", "label"],
+      "properties": {
+        "node": { "type": "string", "examples": ["analyze_impact"] },
+        "tool": { "type": "string", "examples": ["business_find_impacted_entities"] },
+        "label": { "type": "string", "description": "화면에 그대로 보여줄 문장", "examples": ["우천 영향 블록 찾는 중"] }
+      }
+    },
+    "ToolEndData": {
+      "type": "object", "required": ["node", "tool", "ok", "summary"],
+      "properties": { "node": { "type": "string" }, "tool": { "type": "string" }, "ok": { "type": "boolean" }, "summary": { "type": "string" } }
+    },
+    "EvaluationData": {
+      "type": "object",
+      "description": "루프마다 1/2/3안 재평가 결과 요약",
+      "required": ["loop", "feasibleCount", "bestChoice", "bestTotal"],
+      "properties": {
+        "loop": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "feasibleCount": { "type": "integer", "minimum": 0 },
+        "bestChoice": { "oneOf": [{ "$ref": "plan.schema.json#/$defs/Choice" }, { "type": "null" }] },
+        "bestTotal": { "type": ["number", "null"] }
+      }
+    },
+    "ApprovalRequiredData": {
+      "type": "object",
+      "required": ["planId", "version", "summary", "choice", "changes", "total", "scores", "extraCost", "requiredApprovers", "sources", "bookingNeeded"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "version": { "type": "string", "examples": ["v8"] },
+        "summary": { "type": "string", "examples": ["우천으로 1안(한강 야외) 불가 → 장소 2안(성수 스튜디오) + 장비 1안 + 시간대 2안 재조합. 추가 비용 0원"] },
+        "choice": { "$ref": "plan.schema.json#/$defs/Choice" },
+        "changes": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Change" } },
+        "total": { "type": "number" },
+        "scores": { "$ref": "plan.schema.json#/$defs/Scores" },
+        "extraCost": { "type": "integer" },
+        "requiredApprovers": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Approver" } },
+        "sources": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Source" } },
+        "bookingNeeded": { "type": "boolean" }
+      }
+    },
+    "ApprovalUpdatedData": {
+      "type": "object",
+      "description": "backend가 승인자 한 명의 응답을 받을 때마다 낸다 (Agent가 아니라 backend가 발행)",
+      "required": ["planId", "role", "status", "completed", "total"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "role": { "$ref": "common.schema.json#/$defs/Role" },
+        "status": { "$ref": "plan.schema.json#/$defs/ApprovalStatus" },
+        "reason": { "type": ["string", "null"] },
+        "completed": { "type": "integer" },
+        "total": { "type": "integer" }
+      }
+    },
+    "PlanStaleData": {
+      "type": "object", "required": ["planId", "currentDataVersion"],
+      "properties": { "planId": { "type": "integer" }, "currentDataVersion": { "type": "integer" } }
+    },
+    "DoneData": {
+      "type": "object", "required": ["answer", "sources", "scheduleVersion"],
+      "properties": {
+        "answer": { "type": "string" },
+        "sources": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Source" } },
+        "scheduleVersion": { "type": ["integer", "null"], "description": "확정했으면 새 계획 버전, 아니면 null" }
+      }
+    },
+    "EscalatedData": {
+      "type": "object",
+      "description": "한도 도달(루프 3회, 도구 20회, 120초), 세 안 모두 불가, 거절 사유 충돌 시 사람에게 넘김",
+      "required": ["reason", "handoffRole", "unresolved"],
+      "properties": {
+        "reason": { "enum": ["LOOP_LIMIT", "TOOL_LIMIT", "TIME_LIMIT", "NO_FEASIBLE_PLAN", "CONFLICTING_REJECTIONS"] },
+        "handoffRole": { "enum": ["AD1", "PRODUCER"], "description": "일정·순서 문제는 1조감독, 예산 한도 문제는 책임 프로듀서" },
+        "unresolved": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Violation" } },
+        "alternatives": { "type": "array", "items": { "type": "object" }, "description": "search_locations 결과 등 사람이 참고할 대안" }
+      }
+    },
+    "FailedData": {
+      "type": "object", "required": ["reason", "traceUrl"],
+      "properties": { "reason": { "type": "string" }, "traceUrl": { "type": ["string", "null"] } }
+    },
+
+    "TaskEvent": {
+      "description": "진행 이벤트. agent → backend 콜백(POST /internal/tasks/{taskId}/events) 본문이자, 화면 폴링 응답의 각 항목(event+data). APPROVAL_UPDATED와 PLAN_STALE은 backend가 직접 만든다.",
+      "oneOf": [
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "STATUS" }, "data": { "$ref": "#/$defs/StatusData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "TOKEN" }, "data": { "$ref": "#/$defs/TokenData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "TOOL_START" }, "data": { "$ref": "#/$defs/ToolStartData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "TOOL_END" }, "data": { "$ref": "#/$defs/ToolEndData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "EVALUATION" }, "data": { "$ref": "#/$defs/EvaluationData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "APPROVAL_REQUIRED" }, "data": { "$ref": "#/$defs/ApprovalRequiredData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "APPROVAL_UPDATED" }, "data": { "$ref": "#/$defs/ApprovalUpdatedData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "PLAN_STALE" }, "data": { "$ref": "#/$defs/PlanStaleData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "DONE" }, "data": { "$ref": "#/$defs/DoneData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "ESCALATED" }, "data": { "$ref": "#/$defs/EscalatedData" } } },
+        { "type": "object", "required": ["event", "data"], "properties": { "event": { "const": "FAILED" }, "data": { "$ref": "#/$defs/FailedData" } } }
+      ]
+    },
+    "StoredEvent": {
+      "description": "backend가 저장한 이벤트. 폴링 응답과 (선택) SSE에 그대로 쓴다",
+      "allOf": [
+        { "$ref": "#/$defs/TaskEvent" },
+        {
+          "type": "object", "required": ["taskId", "seq", "ts"],
+          "properties": { "taskId": { "$ref": "common.schema.json#/$defs/TaskId" }, "seq": { "type": "integer", "minimum": 1 }, "ts": { "$ref": "common.schema.json#/$defs/DateTime" } }
+        }
+      ]
+    }
+  }
+}

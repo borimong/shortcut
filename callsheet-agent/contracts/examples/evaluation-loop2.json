@@ -1,0 +1,77 @@
+{
+  "blockId": "B2",
+  "evaluated": 27,
+  "feasibleCount": 2,
+  "ranked": [
+    {
+      "choice": {
+        "location": "P3",
+        "equipment": "P3",
+        "time": "P1"
+      },
+      "planHash": "5aed432e4ba0",
+      "total": 0.6771,
+      "scores": {
+        "location": 0.6,
+        "equipment": 0.6,
+        "weather": 1.0,
+        "budget": 1.0,
+        "time": 0.3958,
+        "distance": 0.3167
+      },
+      "extraCost": 0,
+      "totalKm": 82,
+      "recombined": true
+    },
+    {
+      "choice": {
+        "location": "P3",
+        "equipment": "P2",
+        "time": "P1"
+      },
+      "planHash": "a31430b9aa29",
+      "total": 0.5771,
+      "scores": {
+        "location": 0.6,
+        "equipment": 1.0,
+        "weather": 1.0,
+        "budget": 0.2,
+        "time": 0.3958,
+        "distance": 0.3167
+      },
+      "extraCost": 320000,
+      "totalKm": 82,
+      "recombined": true
+    }
+  ],
+  "originalPlans": {
+    "P1": {
+      "feasible": false
+    },
+    "P2": {
+      "feasible": false
+    },
+    "P3": {
+      "feasible": false
+    }
+  },
+  "infeasibleByCode": {
+    "LAW.BREAK": 9,
+    "SCHEDULE.OVERLAP": 9,
+    "SCHEDULE.APPROVER_CONDITION": 9,
+    "SCHEDULE.OUTDOOR_RAIN": 6,
+    "SCHEDULE.LOCATION_HOURS": 6,
+    "SCHEDULE.EQUIPMENT_AVAILABILITY": 3,
+    "NO_FILMING_ZONE.DRONE": 3,
+    "SCHEDULE.TRAVEL": 3
+  },
+  "dataVersion": 7,
+  "weights": {
+    "location": 0.25,
+    "equipment": 0.15,
+    "weather": 0.15,
+    "budget": 0.2,
+    "time": 0.1,
+    "distance": 0.15
+  }
+}

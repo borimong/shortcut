@@ -1,0 +1,22 @@
+{
+  "planHash": "7a2810736b1a",
+  "valid": true,
+  "violations": [],
+  "scores": {
+    "location": 0.75,
+    "equipment": 0.8,
+    "weather": 1.0,
+    "budget": 1.0,
+    "time": 0.3958,
+    "distance": 0.3167
+  },
+  "weights": {
+    "location": 0.25,
+    "equipment": 0.15,
+    "weather": 0.15,
+    "budget": 0.2,
+    "time": 0.1,
+    "distance": 0.15
+  },
+  "total": 0.7446
+}

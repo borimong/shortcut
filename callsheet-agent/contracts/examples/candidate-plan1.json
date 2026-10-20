@@ -1,0 +1,108 @@
+{
+  "planHash": "22eb677def4a",
+  "dataVersion": 7,
+  "blockId": "B2",
+  "choice": {
+    "location": "P1",
+    "equipment": "P1",
+    "time": "P1"
+  },
+  "block": {
+    "blockId": "B2",
+    "locationId": "L01",
+    "start": "13:00",
+    "end": "15:00",
+    "sceneIds": [
+      "S12",
+      "S13",
+      "S14"
+    ],
+    "equipmentIds": [
+      "E01",
+      "E02",
+      "E03"
+    ],
+    "packageId": "PKG-BASE"
+  },
+  "day": [
+    {
+      "blockId": "B1",
+      "locationId": "L03",
+      "start": "09:00",
+      "end": "11:40",
+      "sceneIds": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "equipmentIds": [
+        "E01",
+        "E03"
+      ],
+      "packageId": null
+    },
+    {
+      "blockId": "B2",
+      "locationId": "L01",
+      "start": "13:00",
+      "end": "15:00",
+      "sceneIds": [
+        "S12",
+        "S13",
+        "S14"
+      ],
+      "equipmentIds": [
+        "E01",
+        "E02",
+        "E03"
+      ],
+      "packageId": "PKG-BASE"
+    },
+    {
+      "blockId": "B3",
+      "locationId": "L02",
+      "start": "16:30",
+      "end": "18:30",
+      "sceneIds": [
+        "S18",
+        "S19"
+      ],
+      "equipmentIds": [
+        "E01",
+        "E03",
+        "E05"
+      ],
+      "packageId": null
+    },
+    {
+      "blockId": "B4",
+      "locationId": "L03",
+      "start": "19:30",
+      "end": "21:30",
+      "sceneIds": [
+        "S20",
+        "S21",
+        "S22",
+        "S23",
+        "S24",
+        "S25",
+        "S26"
+      ],
+      "equipmentIds": [
+        "E01",
+        "E03"
+      ],
+      "packageId": null
+    }
+  ],
+  "extraCost": 0,
+  "totalKm": 79,
+  "changes": [],
+  "bookingNeeded": false,
+  "extraConstraints": []
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "EXCLUDE_LOCATION",
+  "locationId": "L02",
+  "reason": "성수 스튜디오 오후 공사 소음, 동시녹음 불가",
+  "fromRole": "SOUND_LEAD"
+}

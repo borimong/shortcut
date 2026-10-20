@@ -1,0 +1,150 @@
+[
+  {
+    "file": "entity-context-A04.json",
+    "schema": "domain.schema.json#/$defs/EntityContext"
+  },
+  {
+    "file": "impact-request.json",
+    "schema": "domain.schema.json#/$defs/ImpactRequest"
+  },
+  {
+    "file": "impact-result.json",
+    "schema": "domain.schema.json#/$defs/ImpactResult"
+  },
+  {
+    "file": "plan-set-B2.json",
+    "schema": "plan.schema.json#/$defs/PlanSet"
+  },
+  {
+    "file": "availability-A04.json",
+    "schema": "domain.schema.json#/$defs/Availability"
+  },
+  {
+    "file": "weather-L01.json",
+    "schema": "domain.schema.json#/$defs/Weather"
+  },
+  {
+    "file": "route-L03-L02.json",
+    "schema": "domain.schema.json#/$defs/Route"
+  },
+  {
+    "file": "equipment-quote.json",
+    "schema": "domain.schema.json#/$defs/EquipmentQuote"
+  },
+  {
+    "file": "location-search.json",
+    "schema": "domain.schema.json#/$defs/LocationSearchResult"
+  },
+  {
+    "file": "evaluation-loop1.json",
+    "schema": "plan.schema.json#/$defs/EvaluationResult"
+  },
+  {
+    "file": "extra-constraint.json",
+    "schema": "plan.schema.json#/$defs/ExtraConstraint"
+  },
+  {
+    "file": "evaluate-request-loop2.json",
+    "schema": "domain.schema.json#/$defs/EvaluateRequest"
+  },
+  {
+    "file": "candidate-plan1.json",
+    "schema": "plan.schema.json#/$defs/PlanCandidate"
+  },
+  {
+    "file": "validation-invalid.json",
+    "schema": "plan.schema.json#/$defs/ValidationResult"
+  },
+  {
+    "file": "validation-valid.json",
+    "schema": "plan.schema.json#/$defs/ValidationResult"
+  },
+  {
+    "file": "saved-plan-v8.json",
+    "schema": "plan.schema.json#/$defs/SavedPlan"
+  },
+  {
+    "file": "error-approval-required.json",
+    "schema": "common.schema.json#/$defs/Error"
+  },
+  {
+    "file": "evaluation-loop2.json",
+    "schema": "plan.schema.json#/$defs/EvaluationResult"
+  },
+  {
+    "file": "commit-result.json",
+    "schema": "plan.schema.json#/$defs/CommitResult"
+  },
+  {
+    "file": "error-stale.json",
+    "schema": "common.schema.json#/$defs/Error"
+  },
+  {
+    "file": "booking.json",
+    "schema": "plan.schema.json#/$defs/Booking"
+  },
+  {
+    "file": "create-task-request.json",
+    "schema": "api.schema.json#/$defs/CreateTaskRequest"
+  },
+  {
+    "file": "mcp-ctx.json",
+    "schema": "common.schema.json#/$defs/McpCtx"
+  },
+  {
+    "file": "queue-start.json",
+    "schema": "task.schema.json#/$defs/QueueMessage"
+  },
+  {
+    "file": "queue-resume-rejected.json",
+    "schema": "task.schema.json#/$defs/QueueMessage"
+  },
+  {
+    "file": "event-tool-start.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-evaluation.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-approval-required.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-approval-updated.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-plan-stale.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-done.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-escalated.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "event-failed.json",
+    "schema": "task.schema.json#/$defs/TaskEvent"
+  },
+  {
+    "file": "task-events-page.json",
+    "schema": "api.schema.json#/$defs/TaskEventsPage"
+  },
+  {
+    "file": "approval-decision-reject.json",
+    "schema": "api.schema.json#/$defs/ApprovalDecisionRequest"
+  },
+  {
+    "file": "approval-board.json",
+    "schema": "api.schema.json#/$defs/ApprovalBoard"
+  },
+  {
+    "file": "notification-list.json",
+    "schema": "api.schema.json#/$defs/NotificationList"
+  }
+]

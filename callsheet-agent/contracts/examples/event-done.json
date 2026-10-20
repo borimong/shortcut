@@ -1,0 +1,15 @@
+{
+  "event": "DONE",
+  "data": {
+    "answer": "변경안 v9을 확정하고 콜시트 17건을 배포 대기열에 넣었습니다.",
+    "sources": [
+      {
+        "docId": "permit-hangang",
+        "section": "3.1",
+        "title": "한강공원 촬영 허가 운영 기준 (가상) 3.1 기상 악화 시 촬영",
+        "snippet": "강수 확률이 60% 이상인 시간대에는 공원 이용객 안전과 장비 보호를 위해 야외 촬영을 하지 않는다."
+      }
+    ],
+    "scheduleVersion": 9
+  }
+}

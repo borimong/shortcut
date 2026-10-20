@@ -1,0 +1,38 @@
+{
+  "planHash": "22eb677def4a",
+  "valid": false,
+  "violations": [
+    {
+      "category": "SCHEDULE",
+      "code": "SCHEDULE.OUTDOOR_RAIN",
+      "target": {
+        "locationId": "L01",
+        "start": "13:00",
+        "end": "15:00"
+      },
+      "detail": "한강공원 망원지구 13:00~15:00 강수 확률 최대 80% (기준 60%)",
+      "source": {
+        "docId": "permit-hangang",
+        "section": "3.1"
+      },
+      "hint": "실내 장소를 고르거나 비가 오기 전 시간대를 고른다"
+    }
+  ],
+  "scores": {
+    "location": 0.95,
+    "equipment": 1.0,
+    "weather": 0.2,
+    "budget": 1.0,
+    "time": 0.4167,
+    "distance": 0.3417
+  },
+  "weights": {
+    "location": 0.25,
+    "equipment": 0.15,
+    "weather": 0.15,
+    "budget": 0.2,
+    "time": 0.1,
+    "distance": 0.15
+  },
+  "total": 0.7104
+}

@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://callsheet.local/schemas/common.schema.json",
+  "title": "공통 타입 (rc2)",
+  "description": "여러 계약에서 함께 쓰는 타입. 날짜·시각은 Asia/Seoul 기준이다.",
+  "$defs": {
+    "Date": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "examples": ["2026-11-12"] },
+    "Time": { "type": "string", "pattern": "^\\d{2}:\\d{2}$", "examples": ["13:00"] },
+    "DateTime": { "type": "string", "format": "date-time", "examples": ["2026-11-12T10:03:00+09:00"] },
+    "TaskId": { "type": "string", "pattern": "^t_[0-9A-Za-z_]+$", "examples": ["t_20261112_0001"] },
+    "ProjectId": { "type": "string", "examples": ["drama-ep07"] },
+    "PlanOptionId": { "type": "string", "pattern": "^P\\d+$", "description": "1/2/3안 ID", "examples": ["P2"] },
+
+    "Role": {
+      "type": "string",
+      "description": "제작부: PRODUCER(책임 프로듀서), PRODUCTION_PD(제작 PD), PRODUCTION_MANAGER(제작실장), PRODUCTION_STAFF. 연출부: DIRECTOR(연출감독), AD1, AD2, DIRECTING_STAFF. 기술부서: DOP(촬영감독), GAFFER(조명감독), ART_DIRECTOR(미술감독), SOUND_LEAD(동시녹음팀장), GRIP_CHIEF(그립실장), COSTUME_MAKEUP(의상·분장실장). 그 밖: CAST(출연자), AGENCY_MANAGER(소속사 매니저).",
+      "enum": [
+        "PRODUCER", "PRODUCTION_PD", "PRODUCTION_MANAGER", "PRODUCTION_STAFF",
+        "DIRECTOR", "AD1", "AD2", "DIRECTING_STAFF",
+        "DOP", "GAFFER", "ART_DIRECTOR", "SOUND_LEAD", "GRIP_CHIEF", "COSTUME_MAKEUP",
+        "CAST", "AGENCY_MANAGER"
+      ]
+    },
+    "TaskStatus": { "type": "string", "enum": ["QUEUED", "RUNNING", "WAITING_APPROVAL", "DONE", "FAILED", "ESCALATED"] },
+
+    "UserContext": {
+      "type": "object",
+      "description": "큐 메시지의 user. backend가 JWT에서 만든다.",
+      "required": ["id", "role", "projectId"],
+      "properties": {
+        "id": { "type": "integer" },
+        "role": { "$ref": "#/$defs/Role" },
+        "projectId": { "$ref": "#/$defs/ProjectId" }
+      }
+    },
+    "McpCtx": {
+      "type": "object",
+      "description": "business-mcp 도구의 ctx 인자. Agent가 자동 주입하고 모델에게는 숨긴다.",
+      "required": ["id", "role", "projectId", "taskId"],
+      "properties": {
+        "id": { "type": "integer" },
+        "role": { "$ref": "#/$defs/Role" },
+        "projectId": { "$ref": "#/$defs/ProjectId" },
+        "taskId": { "$ref": "#/$defs/TaskId" }
+      }
+    },
+
+    "Source": {
+      "type": "object",
+      "description": "근거 한 건. docId + section으로 원문을 읽는다 (doc://{docId}/{section}, get_source, /api/docs/...).",
+      "required": ["docId", "section", "title", "snippet"],
+      "properties": {
+        "docId": { "type": "string", "examples": ["contract-A04-v3"] },
+        "section": { "type": "string", "examples": ["5.4"] },
+        "title": { "type": "string" },
+        "snippet": { "type": "string" },
+        "score": { "type": "number" }
+      }
+    },
+    "SourceRef": {
+      "type": ["object", "null"],
+      "required": ["docId", "section"],
+      "properties": { "docId": { "type": "string" }, "section": { "type": "string" } }
+    },
+
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "UNAUTHORIZED", "FORBIDDEN", "VALIDATION_ERROR",
+        "ENTITY_NOT_FOUND", "BLOCK_NOT_FOUND", "PLAN_NOT_FOUND", "CANDIDATE_NOT_FOUND",
+        "LOCATION_NOT_FOUND", "PACKAGE_NOT_FOUND", "TASK_NOT_FOUND", "NOTIFICATION_NOT_FOUND",
+        "APPROVAL_REQUIRED", "STALE_PLAN", "HARD_VIOLATION", "BOOKING_NOT_NEEDED", "ALREADY_DECIDED",
+        "INTERNAL"
+      ]
+    },
+    "Error": {
+      "type": "object",
+      "description": "모든 4xx/5xx 응답 본문. details 규칙은 README 4장.",
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/ErrorCode" },
+        "message": { "type": "string" },
+        "details": { "type": "object" }
+      }
+    }
+  }
+}

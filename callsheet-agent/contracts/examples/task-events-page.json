@@ -1,0 +1,33 @@
+{
+  "events": [
+    {
+      "event": "TOOL_START",
+      "data": {
+        "node": "analyze_impact",
+        "tool": "business_find_impacted_entities",
+        "label": "우천 영향 블록 찾는 중"
+      },
+      "taskId": "t_20261112_0001",
+      "seq": 3,
+      "ts": "2026-11-12T10:03:12+09:00"
+    },
+    {
+      "event": "EVALUATION",
+      "data": {
+        "loop": 1,
+        "feasibleCount": 5,
+        "bestChoice": {
+          "location": "P2",
+          "equipment": "P1",
+          "time": "P2"
+        },
+        "bestTotal": 0.7446
+      },
+      "taskId": "t_20261112_0001",
+      "seq": 4,
+      "ts": "2026-11-12T10:03:20+09:00"
+    }
+  ],
+  "nextAfter": 4,
+  "done": false
+}

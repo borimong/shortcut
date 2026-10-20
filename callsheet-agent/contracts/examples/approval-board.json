@@ -1,0 +1,95 @@
+{
+  "planId": 801,
+  "version": "v8",
+  "status": "REJECTED",
+  "completed": 5,
+  "total": 9,
+  "approvals": [
+    {
+      "role": "PRODUCTION_MANAGER",
+      "roleName": "제작실장",
+      "userId": 3,
+      "scope": "장소 변경, 일정 확정",
+      "status": "APPROVED",
+      "reason": null,
+      "decidedAt": "2026-11-12T10:42:00+09:00"
+    },
+    {
+      "role": "DIRECTOR",
+      "roleName": "연출감독",
+      "userId": 4,
+      "scope": "장소 변경",
+      "status": "APPROVED",
+      "reason": null,
+      "decidedAt": "2026-11-12T10:42:00+09:00"
+    },
+    {
+      "role": "AD1",
+      "roleName": "1조감독",
+      "userId": 5,
+      "scope": "시간대·콜타임 변경",
+      "status": "APPROVED",
+      "reason": null,
+      "decidedAt": "2026-11-12T10:42:00+09:00"
+    },
+    {
+      "role": "AD2",
+      "roleName": "2조감독",
+      "userId": 6,
+      "scope": "동선·이동 변경",
+      "status": "PENDING",
+      "reason": null,
+      "decidedAt": null
+    },
+    {
+      "role": "DOP",
+      "roleName": "촬영감독",
+      "userId": 7,
+      "scope": "장소 변경",
+      "status": "APPROVED",
+      "reason": null,
+      "decidedAt": "2026-11-12T10:42:00+09:00"
+    },
+    {
+      "role": "GAFFER",
+      "roleName": "조명감독",
+      "userId": 8,
+      "scope": "장소 변경, 시간대·콜타임 변경",
+      "status": "APPROVED",
+      "reason": null,
+      "decidedAt": "2026-11-12T10:42:00+09:00"
+    },
+    {
+      "role": "ART_DIRECTOR",
+      "roleName": "미술감독",
+      "userId": 9,
+      "scope": "장소 변경",
+      "status": "PENDING",
+      "reason": null,
+      "decidedAt": null
+    },
+    {
+      "role": "SOUND_LEAD",
+      "roleName": "동시녹음팀장",
+      "userId": 10,
+      "scope": "장소 변경",
+      "status": "REJECTED",
+      "reason": "성수 스튜디오 오후 공사 소음, 동시녹음 불가",
+      "decidedAt": "2026-11-12T10:47:00+09:00"
+    },
+    {
+      "role": "COSTUME_MAKEUP",
+      "roleName": "의상·분장실장",
+      "userId": 12,
+      "scope": "시간대·콜타임 변경",
+      "status": "PENDING",
+      "reason": null,
+      "decidedAt": null
+    }
+  ],
+  "replanning": {
+    "loop": 2,
+    "maxLoop": 3,
+    "constraint": "성수 스튜디오 제외 (동시녹음팀장: 오후 공사 소음)"
+  }
+}

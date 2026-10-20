@@ -1,0 +1,9 @@
+{
+  "event": "ESCALATED",
+  "data": {
+    "reason": "LOOP_LIMIT",
+    "handoffRole": "AD1",
+    "unresolved": [],
+    "alternatives": []
+  }
+}

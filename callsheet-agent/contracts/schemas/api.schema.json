@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://callsheet.local/schemas/api.schema.json",
+  "title": "외부 API 전용 타입 (rc2, A ↔ B). 202 접수 + 폴링",
+  "$defs": {
+    "LoginRequest": {
+      "type": "object", "required": ["email", "password"],
+      "properties": { "email": { "type": "string", "format": "email" }, "password": { "type": "string", "minLength": 1 } }
+    },
+    "Me": {
+      "type": "object", "required": ["id", "name", "role", "roleName", "projectId", "department"],
+      "properties": {
+        "id": { "type": "integer" }, "name": { "type": "string" },
+        "role": { "$ref": "common.schema.json#/$defs/Role" }, "roleName": { "type": "string" },
+        "projectId": { "$ref": "common.schema.json#/$defs/ProjectId" },
+        "department": { "enum": ["PRODUCTION", "DIRECTING", "TECHNICAL", "CAST", "EXTERNAL"] },
+        "canRequestChange": { "type": "boolean" },
+        "actorId": { "type": ["string", "null"] }
+      }
+    },
+    "LoginResponse": {
+      "type": "object", "required": ["accessToken", "user"],
+      "properties": { "accessToken": { "type": "string" }, "user": { "$ref": "#/$defs/Me" } }
+    },
+
+    "CreateTaskRequest": { "$ref": "task.schema.json#/$defs/ChangeEvent" },
+    "TaskCreated": {
+      "type": "object", "required": ["taskId", "deduplicated"],
+      "properties": {
+        "taskId": { "$ref": "common.schema.json#/$defs/TaskId" },
+        "deduplicated": { "type": "boolean", "description": "같은 이벤트가 이미 처리 중이면 true이고 기존 taskId를 돌려준다" }
+      }
+    },
+    "TaskDetail": {
+      "type": "object", "required": ["taskId", "status", "input", "answer", "sources", "currentPlanId", "loop", "createdAt"],
+      "properties": {
+        "taskId": { "$ref": "common.schema.json#/$defs/TaskId" },
+        "status": { "$ref": "common.schema.json#/$defs/TaskStatus" },
+        "input": { "$ref": "task.schema.json#/$defs/ChangeEvent" },
+        "answer": { "type": ["string", "null"] },
+        "sources": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Source" } },
+        "currentPlanId": { "type": ["integer", "null"] },
+        "loop": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "scheduleVersion": { "type": ["integer", "null"] },
+        "traceUrl": { "type": ["string", "null"] },
+        "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" }
+      }
+    },
+    "TaskSummary": {
+      "type": "object", "required": ["taskId", "status", "eventType", "message", "createdAt"],
+      "properties": {
+        "taskId": { "$ref": "common.schema.json#/$defs/TaskId" },
+        "status": { "$ref": "common.schema.json#/$defs/TaskStatus" },
+        "eventType": { "$ref": "domain.schema.json#/$defs/EventType" },
+        "message": { "type": "string" },
+        "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" }
+      }
+    },
+    "TaskEventsPage": {
+      "type": "object",
+      "description": "진행 상황 폴링 응답 (1~2초 간격). after 다음 이벤트부터 돌려준다",
+      "required": ["events", "nextAfter", "done"],
+      "properties": {
+        "events": { "type": "array", "items": { "$ref": "task.schema.json#/$defs/StoredEvent" } },
+        "nextAfter": { "type": "integer", "minimum": 0, "description": "다음 요청의 after 값" },
+        "done": { "type": "boolean", "description": "DONE, ESCALATED, FAILED 뒤면 true. 폴링을 멈춘다" }
+      }
+    },
+
+    "TodayBoard": {
+      "type": "object", "description": "오늘의 촬영판", "required": ["projectId", "date", "scheduleVersion", "blocks", "history", "activePlanId"],
+      "properties": {
+        "projectId": { "$ref": "common.schema.json#/$defs/ProjectId" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "scheduleVersion": { "type": "integer" },
+        "blocks": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Block" } },
+        "weather": { "type": "array", "items": { "$ref": "domain.schema.json#/$defs/Weather" } },
+        "history": {
+          "type": "array", "description": "오늘의 변동 이력, 최신순",
+          "items": { "type": "object", "required": ["at", "text"], "properties": { "at": { "$ref": "common.schema.json#/$defs/DateTime" }, "text": { "type": "string" } } }
+        },
+        "activePlanId": { "type": ["integer", "null"] }
+      }
+    },
+    "PlanDetail": {
+      "type": "object", "description": "변경안 상세: 원본 대비 변경, 종합 점수, 규정 근거, 미확정 항목",
+      "required": ["planId", "version", "status", "reason", "choice", "changes", "scores", "weights", "total", "extraCost", "totalKm", "base", "proposed", "sources", "pending"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "version": { "type": "string" },
+        "status": { "$ref": "plan.schema.json#/$defs/PlanStatus" },
+        "reason": { "type": "string" },
+        "choice": { "$ref": "plan.schema.json#/$defs/Choice" },
+        "changes": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Change" } },
+        "scores": { "$ref": "plan.schema.json#/$defs/Scores" },
+        "weights": { "$ref": "plan.schema.json#/$defs/Weights" },
+        "total": { "type": "number" },
+        "extraCost": { "type": "integer" },
+        "totalKm": { "type": "integer" },
+        "base": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Block" } },
+        "proposed": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Block" } },
+        "sources": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Source" } },
+        "pending": { "type": "array", "items": { "type": "string" }, "description": "미확정 항목. 예: 성수 스튜디오 예약 담당자 확인 대기" }
+      }
+    },
+    "ApprovalBoard": {
+      "type": "object", "description": "승인 현황 보드 (5초 폴링)", "required": ["planId", "version", "status", "completed", "total", "approvals", "replanning"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "version": { "type": "string" },
+        "status": { "$ref": "plan.schema.json#/$defs/PlanStatus" },
+        "completed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "approvals": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/Approver" } },
+        "replanning": {
+          "type": ["object", "null"], "description": "거절 후 Agent가 다음 루프를 도는 중이면 채운다",
+          "required": ["loop", "maxLoop", "constraint"],
+          "properties": { "loop": { "type": "integer" }, "maxLoop": { "type": "integer" }, "constraint": { "type": "string" } }
+        }
+      }
+    },
+    "ApprovalDecisionRequest": {
+      "type": "object", "required": ["decision"],
+      "properties": {
+        "decision": { "enum": ["APPROVE", "REJECT"] },
+        "reason": { "type": ["string", "null"], "maxLength": 500, "description": "REJECT면 필수. Agent가 새 제약으로 바꾼다" }
+      },
+      "if": { "properties": { "decision": { "const": "REJECT" } } },
+      "then": { "required": ["reason"], "properties": { "reason": { "type": "string", "minLength": 2 } } }
+    },
+    "Notification": {
+      "type": "object", "required": ["id", "kind", "title", "createdAt", "read", "link"],
+      "properties": {
+        "id": { "type": "integer" },
+        "kind": { "enum": ["CHANGE_NOTICE", "APPROVAL_REQUEST", "APPROVAL_RESULT", "CALLSHEET"] },
+        "title": { "type": "string", "examples": ["음향감독이 변경안 v8을 거절했습니다"] },
+        "createdAt": { "$ref": "common.schema.json#/$defs/DateTime" },
+        "read": { "type": "boolean" },
+        "link": { "type": "string", "examples": ["/plans/801"] }
+      }
+    },
+    "NotificationList": {
+      "type": "object", "description": "헤더 종 알림 (30초 폴링)", "required": ["items", "unread", "nextAfter"],
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/Notification" } },
+        "unread": { "type": "integer" },
+        "nextAfter": { "type": "integer" }
+      }
+    },
+    "Callsheet": {
+      "type": "object", "required": ["scheduleVersion", "date", "callTime", "location", "scenes", "notes"],
+      "properties": {
+        "scheduleVersion": { "type": "integer" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "callTime": { "$ref": "common.schema.json#/$defs/Time" },
+        "location": { "type": "object", "required": ["id", "name"], "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },
+        "scenes": {
+          "type": "array",
+          "items": { "type": "object", "required": ["sceneId", "start", "end"], "properties": { "sceneId": { "type": "string" }, "title": { "type": "string" }, "start": { "type": "string" }, "end": { "type": "string" } } }
+        },
+        "notes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "DocSection": {
+      "type": "object", "required": ["docId", "section", "title", "text"],
+      "properties": { "docId": { "type": "string" }, "section": { "type": "string" }, "title": { "type": "string" }, "text": { "type": "string" } }
+    }
+  }
+}

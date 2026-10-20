@@ -1,0 +1,8 @@
+{
+  "eventType": "WEATHER",
+  "entityType": "LOCATION",
+  "entityId": "L01",
+  "date": "2026-11-12",
+  "start": "13:00",
+  "end": "18:00"
+}

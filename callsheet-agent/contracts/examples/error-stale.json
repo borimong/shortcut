@@ -1,0 +1,8 @@
+{
+  "code": "STALE_PLAN",
+  "message": "승인 대기 중 원본이 바뀌어 이 계획안은 오래됐다. 최신 데이터로 다시 평가한다",
+  "details": {
+    "planDataVersion": 7,
+    "currentDataVersion": 8
+  }
+}

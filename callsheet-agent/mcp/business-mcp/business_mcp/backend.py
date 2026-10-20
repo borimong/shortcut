@@ -1,4 +1,4 @@
-"""backend `/internal/**` 호출 클라이언트 (아키텍처 문서 6장, 계약 3).
+"""backend `/internal/**` 호출 클라이언트 (계약 rc2, contracts/openapi-internal.yaml).
 
 business-mcp는 업무 규칙을 갖지 않는다. 이 모듈은 다음 세 가지만 한다.
 1. 사용자 컨텍스트(ctx)를 X-* 헤더로 바꿔 backend를 호출한다.
@@ -16,7 +16,7 @@ except ImportError:  # pragma: no cover
     import httpx2 as httpx  # type: ignore[no-redef]
 
 # Agent가 큐 메시지의 user와 taskId로 채워 넘기는 키 (문서 5장, 6장)
-REQUIRED_CTX_KEYS = ("id", "role", "productionId", "taskId")
+REQUIRED_CTX_KEYS = ("id", "role", "projectId", "taskId")
 
 
 class BackendError(Exception):
@@ -45,7 +45,7 @@ def ctx_headers(ctx: dict[str, Any]) -> dict[str, str]:
     return {
         "X-User-Id": str(ctx["id"]),
         "X-User-Role": str(ctx["role"]),
-        "X-Production-Id": str(ctx["productionId"]),
+        "X-Project-Id": str(ctx["projectId"]),
         "X-Task-Id": str(ctx["taskId"]),
     }
 

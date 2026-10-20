@@ -1,0 +1,21 @@
+{
+  "type": "RESUME",
+  "taskId": "t_20261112_0001",
+  "threadId": "t_20261112_0001",
+  "user": {
+    "id": 3,
+    "role": "PRODUCTION_MANAGER",
+    "projectId": "drama-ep07"
+  },
+  "planId": 801,
+  "approval": {
+    "result": "REJECTED",
+    "rejections": [
+      {
+        "role": "SOUND_LEAD",
+        "reason": "성수 스튜디오 오후 공사 소음, 동시녹음 불가"
+      }
+    ]
+  },
+  "attempt": 1
+}

@@ -1,0 +1,7 @@
+{
+  "event": "PLAN_STALE",
+  "data": {
+    "planId": 801,
+    "currentDataVersion": 8
+  }
+}

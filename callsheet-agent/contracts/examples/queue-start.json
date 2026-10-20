@@ -1,0 +1,21 @@
+{
+  "type": "START",
+  "taskId": "t_20261112_0001",
+  "threadId": "t_20261112_0001",
+  "user": {
+    "id": 3,
+    "role": "PRODUCTION_MANAGER",
+    "projectId": "drama-ep07"
+  },
+  "input": {
+    "eventType": "WEATHER",
+    "entityType": "LOCATION",
+    "entityId": "L01",
+    "date": "2026-11-12",
+    "start": "13:00",
+    "end": "18:00",
+    "message": "13시 이후 한강 우천 예보. 오늘 오후 야외 촬영 재계획 필요",
+    "directorInstruction": null
+  },
+  "attempt": 1
+}

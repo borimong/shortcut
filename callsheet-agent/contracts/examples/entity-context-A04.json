@@ -1,0 +1,71 @@
+{
+  "entity": {
+    "type": "ACTOR",
+    "id": "A04",
+    "label": "차여름",
+    "attrs": {
+      "available": [
+        {
+          "start": "09:00",
+          "end": "16:00"
+        }
+      ],
+      "weeklyHoursSoFar": 30.0
+    }
+  },
+  "relations": [
+    {
+      "relation": "HAS_CONTRACT",
+      "direction": "out",
+      "target": {
+        "type": "CONTRACT",
+        "id": "contract-A04-v3",
+        "label": "차여름 출연 계약서 v3"
+      },
+      "attrs": {
+        "version": 3,
+        "status": "CURRENT"
+      }
+    },
+    {
+      "relation": "APPEARS_IN",
+      "direction": "out",
+      "target": {
+        "type": "SCENE",
+        "id": "S12",
+        "label": "한강 산책 1"
+      },
+      "attrs": {}
+    },
+    {
+      "relation": "APPEARS_IN",
+      "direction": "out",
+      "target": {
+        "type": "SCENE",
+        "id": "S13",
+        "label": "한강 산책 2"
+      },
+      "attrs": {}
+    },
+    {
+      "relation": "APPEARS_IN",
+      "direction": "out",
+      "target": {
+        "type": "SCENE",
+        "id": "S14",
+        "label": "한강 산책 3"
+      },
+      "attrs": {}
+    },
+    {
+      "relation": "MANAGED_BY",
+      "direction": "out",
+      "target": {
+        "type": "PERSON",
+        "id": "31",
+        "label": "정바름"
+      },
+      "attrs": {}
+    }
+  ]
+}

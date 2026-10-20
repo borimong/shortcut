@@ -1,0 +1,132 @@
+{
+  "event": "APPROVAL_REQUIRED",
+  "data": {
+    "planId": 801,
+    "version": "v8",
+    "summary": "13시 이후 우천으로 1안(한강 야외) 불가 → 장소 2안(성수 스튜디오) + 장비 1안(기존 렌탈) + 시간대 2안(14~16시) 재조합. 추가 비용 0원",
+    "choice": {
+      "location": "P2",
+      "equipment": "P1",
+      "time": "P2"
+    },
+    "changes": [
+      {
+        "element": "location",
+        "from": "L01",
+        "to": "L02"
+      },
+      {
+        "element": "time",
+        "from": "13:00-15:00",
+        "to": "14:00-16:00"
+      },
+      {
+        "element": "route",
+        "from": "79km",
+        "to": "82km"
+      }
+    ],
+    "total": 0.7446,
+    "scores": {
+      "location": 0.75,
+      "equipment": 0.8,
+      "weather": 1.0,
+      "budget": 1.0,
+      "time": 0.3958,
+      "distance": 0.3167
+    },
+    "extraCost": 0,
+    "requiredApprovers": [
+      {
+        "role": "PRODUCTION_MANAGER",
+        "roleName": "제작실장",
+        "userId": 3,
+        "scope": "장소 변경, 일정 확정",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "DIRECTOR",
+        "roleName": "연출감독",
+        "userId": 4,
+        "scope": "장소 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "AD1",
+        "roleName": "1조감독",
+        "userId": 5,
+        "scope": "시간대·콜타임 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "AD2",
+        "roleName": "2조감독",
+        "userId": 6,
+        "scope": "동선·이동 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "DOP",
+        "roleName": "촬영감독",
+        "userId": 7,
+        "scope": "장소 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "GAFFER",
+        "roleName": "조명감독",
+        "userId": 8,
+        "scope": "장소 변경, 시간대·콜타임 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "ART_DIRECTOR",
+        "roleName": "미술감독",
+        "userId": 9,
+        "scope": "장소 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "SOUND_LEAD",
+        "roleName": "동시녹음팀장",
+        "userId": 10,
+        "scope": "장소 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      },
+      {
+        "role": "COSTUME_MAKEUP",
+        "roleName": "의상·분장실장",
+        "userId": 12,
+        "scope": "시간대·콜타임 변경",
+        "status": "PENDING",
+        "reason": null,
+        "decidedAt": null
+      }
+    ],
+    "sources": [
+      {
+        "docId": "permit-hangang",
+        "section": "3.1",
+        "title": "한강공원 촬영 허가 운영 기준 (가상) 3.1 기상 악화 시 촬영",
+        "snippet": "강수 확률이 60% 이상인 시간대에는 공원 이용객 안전과 장비 보호를 위해 야외 촬영을 하지 않는다."
+      }
+    ],
+    "bookingNeeded": true
+  }
+}

@@ -3,17 +3,19 @@
 문서 형식 (C와 합의, data/docs/*.md):
 
     ---
-    docId: contract-A03
-    type: contract            # contract | permit | script | guide
-    title: 출연 계약서 (A03 서하린)
-    actorId: A03              # 선택: contract
-    region: 서울 중구          # 선택: permit
+    docId: contract-A04-v3
+    type: contract            # contract | regulation
+    category: CONTRACT        # regulation이면 LABOR_LAW | CONTRACT_LAW | FILMING_PERMIT | NO_FILMING_ZONE
+    title: 출연 계약서 v3 (A04 차여름)
+    actorId: A04              # 선택: contract
+    version: 3                # 선택: contract
+    status: CURRENT           # 선택: CURRENT | SUPERSEDED
+    supersededBy: ...         # 선택: SUPERSEDED일 때 새 버전 docId
     ---
     ## 5.2 근로시간
     본문 ...
-    ## S21 남산 산책로 재회     # script 문서는 씬 ID로 시작하는 제목
 
-`## ` 제목 하나가 chunk 하나다. 제목의 첫 단어(5.2, S21)가 section ID가 되어
+`## ` 제목 하나가 chunk 하나다. 제목의 첫 단어(5.2, 53)가 section ID가 되어
 Resource 주소 doc://{docId}/{section}과 위반 스키마 source.section에 쓰인다.
 """
 from __future__ import annotations

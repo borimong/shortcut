@@ -1,0 +1,10 @@
+{
+  "bookingId": "BK-0001",
+  "planId": 801,
+  "locationId": "L02",
+  "start": "14:00",
+  "end": "16:00",
+  "status": "MANUAL_PENDING",
+  "assigneeRole": "PRODUCTION_MANAGER",
+  "note": "아워플레이스 예약 API 협의 전: 제작실장이 직접 예약한 뒤 완료 처리한다"
+}

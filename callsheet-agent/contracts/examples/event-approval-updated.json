@@ -1,0 +1,11 @@
+{
+  "event": "APPROVAL_UPDATED",
+  "data": {
+    "planId": 801,
+    "role": "SOUND_LEAD",
+    "status": "REJECTED",
+    "reason": "성수 스튜디오 오후 공사 소음, 동시녹음 불가",
+    "completed": 5,
+    "total": 9
+  }
+}

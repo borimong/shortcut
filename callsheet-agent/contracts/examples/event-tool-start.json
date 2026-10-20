@@ -1,0 +1,8 @@
+{
+  "event": "TOOL_START",
+  "data": {
+    "node": "analyze_impact",
+    "tool": "business_find_impacted_entities",
+    "label": "우천 영향 블록 찾는 중"
+  }
+}

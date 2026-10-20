@@ -1,0 +1,7 @@
+{
+  "from": "L03",
+  "to": "L02",
+  "km": 41,
+  "minutes": 60,
+  "source": "지도 경로 API (mock)"
+}

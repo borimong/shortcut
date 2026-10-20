@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://callsheet.local/schemas/domain.schema.json",
+  "title": "온톨로지·가용 시간·외부 서비스·내부 요청 본문 (rc2, backend /internal/**)",
+  "$defs": {
+    "EntityType": { "enum": ["ACTOR", "SCENE", "BLOCK", "LOCATION", "EQUIPMENT", "CONTRACT", "BOOKING", "PLAN_SET", "REGULATION", "PERSON"] },
+    "EventType": { "enum": ["WEATHER", "ACTOR_SCHEDULE", "LOCATION_CANCELLED", "EQUIPMENT_FAILURE"] },
+    "TimeRange": {
+      "type": "object", "required": ["start", "end"],
+      "properties": { "start": { "$ref": "common.schema.json#/$defs/Time" }, "end": { "$ref": "common.schema.json#/$defs/Time" } }
+    },
+
+    "EntityRef": {
+      "type": "object", "required": ["type", "id", "label"],
+      "properties": { "type": { "$ref": "#/$defs/EntityType" }, "id": { "type": "string" }, "label": { "type": "string" } }
+    },
+    "Entity": {
+      "allOf": [{ "$ref": "#/$defs/EntityRef" }, { "type": "object", "required": ["attrs"], "properties": { "attrs": { "type": "object" } } }]
+    },
+    "EntityContext": {
+      "type": "object", "required": ["entity", "relations"],
+      "properties": {
+        "entity": { "$ref": "#/$defs/Entity" },
+        "relations": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["relation", "direction", "target", "attrs"],
+            "properties": {
+              "relation": { "type": "string", "examples": ["HAS_CONTRACT", "APPEARS_IN", "IN_BLOCK", "SHOT_AT", "USES", "BOOKED_AS", "MANAGED_BY", "SUPERSEDES", "GOVERNED_BY", "HAS_PLAN_SET"] },
+              "direction": { "enum": ["out", "in"] },
+              "target": { "$ref": "#/$defs/EntityRef" },
+              "attrs": { "type": "object" }
+            }
+          }
+        }
+      }
+    },
+    "ImpactRequest": {
+      "type": "object", "required": ["eventType", "entityType", "entityId", "date"],
+      "properties": {
+        "eventType": { "$ref": "#/$defs/EventType" },
+        "entityType": { "enum": ["LOCATION", "ACTOR", "EQUIPMENT"] },
+        "entityId": { "type": "string" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "start": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Time" }, { "type": "null" }] },
+        "end": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Time" }, { "type": "null" }] }
+      }
+    },
+    "ImpactResult": {
+      "type": "object", "required": ["event", "blocks", "scenes", "actors", "locations", "equipment", "bookings", "regulationDocIds"],
+      "properties": {
+        "event": { "type": "object" },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["blockId", "locationId", "start", "end", "hasPlanSet"],
+            "properties": {
+              "blockId": { "type": "string" }, "locationId": { "type": "string" },
+              "start": { "$ref": "common.schema.json#/$defs/Time" }, "end": { "$ref": "common.schema.json#/$defs/Time" },
+              "hasPlanSet": { "type": "boolean" }
+            }
+          }
+        },
+        "scenes": { "type": "array", "items": { "type": "string" } },
+        "actors": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["actorId", "name", "currentContractDocId", "contractVersion", "managerUserIds"],
+            "properties": {
+              "actorId": { "type": "string" }, "name": { "type": "string" },
+              "currentContractDocId": { "type": "string", "description": "RAG search_contract_clause에 그대로 넘긴다" },
+              "contractVersion": { "type": "integer" },
+              "managerUserIds": { "type": "array", "items": { "type": "integer" }, "description": "변경 통보 대상" }
+            }
+          }
+        },
+        "locations": { "type": "array", "items": { "type": "string" } },
+        "equipment": { "type": "array", "items": { "type": "string" } },
+        "bookings": { "type": "array", "items": { "type": "string" } },
+        "regulationDocIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "LinkRequest": {
+      "type": "object", "required": ["fromType", "fromId", "relation", "toType", "toId"],
+      "properties": {
+        "fromType": { "$ref": "#/$defs/EntityType" }, "fromId": { "type": "string" },
+        "relation": { "type": "string", "pattern": "^[A-Z_]+$" },
+        "toType": { "$ref": "#/$defs/EntityType" }, "toId": { "type": "string" },
+        "attrs": { "type": "object" }
+      }
+    },
+    "LinkResult": {
+      "allOf": [{ "$ref": "#/$defs/LinkRequest" }, { "type": "object", "required": ["linkId"], "properties": { "linkId": { "type": "integer" } } }]
+    },
+
+    "Availability": {
+      "type": "object", "required": ["entityType", "entityId", "date", "windows", "busy"],
+      "properties": {
+        "entityType": { "enum": ["ACTOR", "LOCATION", "EQUIPMENT"] },
+        "entityId": { "type": "string" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "windows": { "type": "array", "items": { "$ref": "#/$defs/TimeRange" } },
+        "busy": {
+          "type": "array",
+          "items": { "type": "object", "required": ["blockId", "start", "end"], "properties": { "blockId": { "type": "string" }, "start": { "type": "string" }, "end": { "type": "string" } } }
+        }
+      }
+    },
+
+    "Weather": {
+      "type": "object", "required": ["locationId", "date", "outdoor", "hourly", "rainThreshold"],
+      "properties": {
+        "locationId": { "type": "string" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "outdoor": { "type": "boolean" },
+        "source": { "type": "string" },
+        "hourly": {
+          "type": "array",
+          "items": { "type": "object", "required": ["hour", "rainProb"], "properties": { "hour": { "$ref": "common.schema.json#/$defs/Time" }, "rainProb": { "type": "integer", "minimum": 0, "maximum": 100 } } }
+        },
+        "rainThreshold": { "type": "integer" }
+      }
+    },
+    "LocationSearchResult": {
+      "type": "object", "required": ["source", "results"],
+      "properties": {
+        "source": { "type": "string" },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["placeId", "name", "area", "indoor", "areaPyeong", "pricePerHour", "naturalLight"],
+            "properties": {
+              "placeId": { "type": "string" }, "name": { "type": "string" }, "area": { "type": "string" },
+              "indoor": { "type": "boolean" }, "areaPyeong": { "type": "integer" }, "pricePerHour": { "type": "integer" }, "naturalLight": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "Route": {
+      "type": "object", "required": ["from", "to", "km", "minutes"],
+      "properties": { "from": { "type": "string" }, "to": { "type": "string" }, "km": { "type": "integer" }, "minutes": { "type": "integer" }, "source": { "type": "string" } }
+    },
+    "EquipmentQuote": {
+      "type": "object", "required": ["packageId", "name", "items", "extraCost"],
+      "properties": {
+        "packageId": { "type": "string" }, "name": { "type": "string" }, "date": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "type": "object", "required": ["equipmentId", "name", "available"], "properties": { "equipmentId": { "type": "string" }, "name": { "type": "string" }, "available": { "type": "array", "items": { "$ref": "#/$defs/TimeRange" } } } }
+        },
+        "extraCost": { "type": "integer", "minimum": 0 },
+        "source": { "type": "string" }
+      }
+    },
+
+    "EvaluateRequest": {
+      "type": "object", "required": ["blockId"],
+      "properties": {
+        "blockId": { "type": "string" },
+        "weights": { "oneOf": [{ "$ref": "plan.schema.json#/$defs/Weights" }, { "type": "null" }] },
+        "extraConstraints": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/ExtraConstraint" } },
+        "top": { "type": "integer", "minimum": 1, "maximum": 27, "default": 5 }
+      }
+    },
+    "BuildRequest": {
+      "type": "object", "required": ["blockId", "choice"],
+      "properties": {
+        "blockId": { "type": "string" },
+        "choice": { "$ref": "plan.schema.json#/$defs/Choice" },
+        "extraConstraints": { "type": "array", "items": { "$ref": "plan.schema.json#/$defs/ExtraConstraint" } }
+      }
+    },
+    "ValidateRequest": {
+      "type": "object", "required": ["planHash"],
+      "properties": { "planHash": { "type": "string" }, "weights": { "oneOf": [{ "$ref": "plan.schema.json#/$defs/Weights" }, { "type": "null" }] } }
+    },
+    "SavePlanRequest": {
+      "type": "object", "required": ["planHash", "reason"],
+      "properties": {
+        "planHash": { "type": "string" },
+        "reason": { "type": "string", "description": "변경 사유와 재조합 내용 한두 문장" },
+        "weights": { "oneOf": [{ "$ref": "plan.schema.json#/$defs/Weights" }, { "type": "null" }] }
+      }
+    },
+    "CommitRequest": {
+      "type": "object", "required": ["dataVersion"],
+      "properties": { "dataVersion": { "type": "integer", "description": "save_plan이 돌려준 값. 다르면 409 STALE_PLAN" } }
+    },
+    "BookingRequest": {
+      "type": "object", "required": ["planId", "locationId"],
+      "properties": { "planId": { "type": "integer" }, "locationId": { "type": "string" } }
+    },
+    "EventAccepted": { "type": "object", "required": ["seq"], "properties": { "seq": { "type": "integer", "minimum": 1 } } }
+  }
+}

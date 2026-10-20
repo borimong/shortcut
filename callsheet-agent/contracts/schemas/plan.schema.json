@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://callsheet.local/schemas/plan.schema.json",
+  "title": "계획안·재조합·검증·승인 (rc2, 제공: B·C 제약·점수 엔진, 사용: D·E·A)",
+  "description": "규칙과 계산식은 contracts/ENGINE.md. 참조 구현은 mcp/mock-backend/mock_backend/engine.py.",
+  "$defs": {
+    "Block": {
+      "type": "object",
+      "description": "같은 장소에서 이어 찍는 씬 묶음. 재계획은 블록 하나를 다시 배치한다.",
+      "required": ["blockId", "locationId", "start", "end", "sceneIds", "equipmentIds"],
+      "properties": {
+        "blockId": { "type": "string", "examples": ["B2"] },
+        "locationId": { "type": "string" },
+        "start": { "$ref": "common.schema.json#/$defs/Time" },
+        "end": { "$ref": "common.schema.json#/$defs/Time" },
+        "sceneIds": { "type": "array", "items": { "type": "string" } },
+        "equipmentIds": { "type": "array", "items": { "type": "string" } },
+        "packageId": { "type": ["string", "null"] }
+      }
+    },
+    "PlanOption": {
+      "type": "object",
+      "description": "제작사가 미리 만든 1안·2안·3안 하나. 요소 = 장소, 장비 묶음, 시간대",
+      "required": ["label", "locationId", "packageId", "start", "end"],
+      "properties": {
+        "label": { "type": "string", "examples": ["2안"] },
+        "locationId": { "type": "string" },
+        "locationName": { "type": "string" },
+        "packageId": { "type": "string" },
+        "packageName": { "type": "string" },
+        "start": { "$ref": "common.schema.json#/$defs/Time" },
+        "end": { "$ref": "common.schema.json#/$defs/Time" },
+        "extraCost": { "type": "integer", "minimum": 0, "description": "원" }
+      }
+    },
+    "PlanSet": {
+      "type": "object",
+      "required": ["blockId", "dataVersion", "current", "plans", "elements"],
+      "properties": {
+        "blockId": { "type": "string" },
+        "date": { "$ref": "common.schema.json#/$defs/Date" },
+        "dataVersion": { "type": "integer" },
+        "current": { "type": "object" },
+        "plans": { "type": "object", "additionalProperties": { "$ref": "#/$defs/PlanOption" } },
+        "elements": { "type": "array", "items": { "enum": ["location", "equipment", "time"] } }
+      }
+    },
+    "Choice": {
+      "type": "object",
+      "description": "요소마다 어느 안에서 가져올지. 셋이 다르면 재조합이다.",
+      "required": ["location", "equipment", "time"],
+      "properties": {
+        "location": { "$ref": "common.schema.json#/$defs/PlanOptionId" },
+        "equipment": { "$ref": "common.schema.json#/$defs/PlanOptionId" },
+        "time": { "$ref": "common.schema.json#/$defs/PlanOptionId" }
+      }
+    },
+    "ExtraConstraint": {
+      "type": "object",
+      "description": "승인자 거절 사유를 Agent가 바꾼 추가 제약. 다음 루프부터 HARD로 검사된다.",
+      "required": ["kind", "reason"],
+      "properties": {
+        "kind": { "enum": ["EXCLUDE_LOCATION", "EXCLUDE_TIME_WINDOW", "EXCLUDE_PACKAGE", "MAX_EXTRA_COST"] },
+        "locationId": { "type": "string" },
+        "packageId": { "type": "string" },
+        "start": { "$ref": "common.schema.json#/$defs/Time" },
+        "end": { "$ref": "common.schema.json#/$defs/Time" },
+        "amount": { "type": "integer", "minimum": 0 },
+        "reason": { "type": "string" },
+        "fromRole": { "$ref": "common.schema.json#/$defs/Role" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "EXCLUDE_LOCATION" } } }, "then": { "required": ["locationId"] } },
+        { "if": { "properties": { "kind": { "const": "EXCLUDE_TIME_WINDOW" } } }, "then": { "required": ["start", "end"] } },
+        { "if": { "properties": { "kind": { "const": "EXCLUDE_PACKAGE" } } }, "then": { "required": ["packageId"] } },
+        { "if": { "properties": { "kind": { "const": "MAX_EXTRA_COST" } } }, "then": { "required": ["amount"] } }
+      ]
+    },
+    "Weights": {
+      "type": "object",
+      "description": "SOFT 가중치. 합이 1이 아니어도 엔진이 정규화한다. 기본값은 ENGINE.md",
+      "required": ["location", "equipment", "weather", "budget", "time", "distance"],
+      "properties": {
+        "location": { "type": "number", "minimum": 0 }, "equipment": { "type": "number", "minimum": 0 },
+        "weather": { "type": "number", "minimum": 0 }, "budget": { "type": "number", "minimum": 0 },
+        "time": { "type": "number", "minimum": 0 }, "distance": { "type": "number", "minimum": 0 }
+      }
+    },
+    "Scores": {
+      "type": "object",
+      "description": "SOFT 6개 기준 정규화 점수 (0~1, 높을수록 좋음)",
+      "required": ["location", "equipment", "weather", "budget", "time", "distance"],
+      "properties": {
+        "location": { "type": "number", "minimum": 0, "maximum": 1 }, "equipment": { "type": "number", "minimum": 0, "maximum": 1 },
+        "weather": { "type": "number", "minimum": 0, "maximum": 1 }, "budget": { "type": "number", "minimum": 0, "maximum": 1 },
+        "time": { "type": "number", "minimum": 0, "maximum": 1 }, "distance": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "Change": {
+      "type": "object",
+      "required": ["element", "from", "to"],
+      "properties": {
+        "element": { "enum": ["location", "time", "equipment", "route"] },
+        "from": { "type": ["string", "null"] },
+        "to": { "type": ["string", "null"] }
+      }
+    },
+    "PlanCandidate": {
+      "type": "object",
+      "description": "build_schedule 결과. 판정 전 후보. backend가 planHash로 잠시 보관한다.",
+      "required": ["planHash", "dataVersion", "blockId", "choice", "block", "day", "extraCost", "totalKm", "changes", "bookingNeeded"],
+      "properties": {
+        "planHash": { "type": "string", "pattern": "^[0-9a-f]{12}$" },
+        "dataVersion": { "type": "integer" },
+        "blockId": { "type": "string" },
+        "choice": { "$ref": "#/$defs/Choice" },
+        "block": { "$ref": "#/$defs/Block" },
+        "day": { "type": "array", "items": { "$ref": "#/$defs/Block" } },
+        "extraCost": { "type": "integer", "minimum": 0 },
+        "totalKm": { "type": "integer", "minimum": 0 },
+        "changes": { "type": "array", "items": { "$ref": "#/$defs/Change" } },
+        "bookingNeeded": { "type": "boolean" },
+        "extraConstraints": { "type": "array", "items": { "$ref": "#/$defs/ExtraConstraint" } }
+      }
+    },
+    "HardCategory": { "enum": ["CONTRACT", "SCHEDULE", "LAW", "BUDGET_LIMIT", "NO_FILMING_ZONE"] },
+    "Violation": {
+      "type": "object",
+      "description": "HARD 위반 한 건. code = '{category}.{세부}' (목록은 ENGINE.md 2장)",
+      "required": ["category", "code", "target", "detail", "source", "hint"],
+      "properties": {
+        "category": { "$ref": "#/$defs/HardCategory" },
+        "code": { "type": "string", "pattern": "^(CONTRACT|SCHEDULE|LAW|BUDGET_LIMIT|NO_FILMING_ZONE)\\.[A-Z0-9_]+$", "examples": ["SCHEDULE.OUTDOOR_RAIN"] },
+        "target": { "type": "object" },
+        "detail": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "hint": { "type": "string" }
+      }
+    },
+    "ValidationResult": {
+      "type": "object",
+      "required": ["planHash", "valid", "violations", "scores", "weights", "total"],
+      "properties": {
+        "planHash": { "type": "string" },
+        "valid": { "type": "boolean", "description": "HARD 위반이 하나도 없으면 true" },
+        "violations": { "type": "array", "items": { "$ref": "#/$defs/Violation" } },
+        "scores": { "$ref": "#/$defs/Scores" },
+        "weights": { "$ref": "#/$defs/Weights" },
+        "total": { "type": "number", "minimum": 0, "maximum": 1, "description": "Σ(가중치 × 점수)" }
+      }
+    },
+    "RankedCandidate": {
+      "type": "object",
+      "required": ["choice", "planHash", "total", "scores", "extraCost", "totalKm", "recombined"],
+      "properties": {
+        "choice": { "$ref": "#/$defs/Choice" },
+        "planHash": { "type": "string" },
+        "total": { "type": "number" },
+        "scores": { "$ref": "#/$defs/Scores" },
+        "extraCost": { "type": "integer" },
+        "totalKm": { "type": "integer" },
+        "recombined": { "type": "boolean", "description": "요소가 서로 다른 안에서 왔는가" }
+      }
+    },
+    "EvaluationResult": {
+      "type": "object",
+      "description": "evaluate_plans 결과. 요소 조합 전수 평가 후 HARD 통과안만 총점 순",
+      "required": ["blockId", "evaluated", "feasibleCount", "ranked", "originalPlans", "infeasibleByCode", "dataVersion", "weights"],
+      "properties": {
+        "blockId": { "type": "string" },
+        "evaluated": { "type": "integer" },
+        "feasibleCount": { "type": "integer" },
+        "ranked": { "type": "array", "items": { "$ref": "#/$defs/RankedCandidate" } },
+        "originalPlans": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object", "required": ["feasible"],
+            "properties": { "feasible": { "type": "boolean" }, "total": { "type": "number" } }
+          }
+        },
+        "infeasibleByCode": { "type": "object", "additionalProperties": { "type": "integer" } },
+        "dataVersion": { "type": "integer" },
+        "weights": { "$ref": "#/$defs/Weights" }
+      }
+    },
+    "ApprovalStatus": { "enum": ["PENDING", "APPROVED", "REJECTED"] },
+    "Approver": {
+      "type": "object",
+      "required": ["role", "roleName", "userId", "scope", "status", "reason", "decidedAt"],
+      "properties": {
+        "role": { "$ref": "common.schema.json#/$defs/Role" },
+        "roleName": { "type": "string", "examples": ["동시녹음팀장"] },
+        "userId": { "type": "integer" },
+        "scope": { "type": "string", "description": "이 사람이 보는 범위", "examples": ["장소 변경"] },
+        "status": { "$ref": "#/$defs/ApprovalStatus" },
+        "reason": { "type": ["string", "null"] },
+        "decidedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/DateTime" }, { "type": "null" }] }
+      }
+    },
+    "PlanStatus": { "enum": ["PENDING_APPROVAL", "APPROVED", "REJECTED", "STALE", "COMMITTED"] },
+    "SavedPlan": {
+      "type": "object",
+      "description": "save_plan 결과. 변경안 v8 등",
+      "required": ["planId", "version", "status", "dataVersion", "requiredApprovers", "bookingNeeded", "total"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "version": { "type": "string", "pattern": "^v\\d+$" },
+        "status": { "$ref": "#/$defs/PlanStatus" },
+        "dataVersion": { "type": "integer" },
+        "requiredApprovers": { "type": "array", "items": { "$ref": "#/$defs/Approver" } },
+        "bookingNeeded": { "type": "boolean" },
+        "total": { "type": "number" }
+      }
+    },
+    "CommitResult": {
+      "type": "object",
+      "required": ["planId", "scheduleVersion", "dataVersion", "callsheetJobs"],
+      "properties": {
+        "planId": { "type": "integer" },
+        "scheduleVersion": { "type": "integer", "description": "확정 계획 버전 = 승인된 변경안 번호" },
+        "dataVersion": { "type": "integer" },
+        "callsheetJobs": { "type": "integer", "description": "콜시트 배포·알림 작업 수 (Outbox → RabbitMQ)" }
+      }
+    },
+    "Booking": {
+      "type": "object",
+      "required": ["bookingId", "planId", "locationId", "start", "end", "status", "assigneeRole", "note"],
+      "properties": {
+        "bookingId": { "type": "string" },
+        "planId": { "type": "integer" },
+        "locationId": { "type": "string" },
+        "start": { "$ref": "common.schema.json#/$defs/Time" },
+        "end": { "$ref": "common.schema.json#/$defs/Time" },
+        "status": { "enum": ["MANUAL_PENDING", "CONFIRMED", "FAILED"] },
+        "assigneeRole": { "$ref": "common.schema.json#/$defs/Role" },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}

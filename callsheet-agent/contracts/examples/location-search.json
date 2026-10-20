@@ -1,0 +1,14 @@
+{
+  "source": "아워플레이스 (mock, 공개 예약 API 미확인)",
+  "results": [
+    {
+      "placeId": "OP-101",
+      "name": "성수 루프탑 스튜디오",
+      "area": "성수",
+      "indoor": true,
+      "areaPyeong": 35,
+      "pricePerHour": 120000,
+      "naturalLight": true
+    }
+  ]
+}

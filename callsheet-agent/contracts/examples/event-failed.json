@@ -1,0 +1,7 @@
+{
+  "event": "FAILED",
+  "data": {
+    "reason": "LLM API 503이 재시도 2회와 대체 모델에서도 계속됨",
+    "traceUrl": null
+  }
+}

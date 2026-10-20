@@ -1,0 +1,30 @@
+{
+  "unread": 3,
+  "nextAfter": 12,
+  "items": [
+    {
+      "id": 12,
+      "kind": "APPROVAL_RESULT",
+      "title": "동시녹음팀장이 변경안 v8을 거절했습니다",
+      "createdAt": "2026-11-12T10:47:00+09:00",
+      "read": false,
+      "link": "/plans/801"
+    },
+    {
+      "id": 11,
+      "kind": "APPROVAL_REQUEST",
+      "title": "변경안 v8 승인이 필요합니다",
+      "createdAt": "2026-11-12T10:04:00+09:00",
+      "read": false,
+      "link": "/plans/801/approvals"
+    },
+    {
+      "id": 10,
+      "kind": "CHANGE_NOTICE",
+      "title": "13시 이후 우천 예보로 오늘 계획이 바뀝니다",
+      "createdAt": "2026-11-12T09:58:00+09:00",
+      "read": false,
+      "link": "/projects/drama-ep07/today"
+    }
+  ]
+}

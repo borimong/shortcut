@@ -1,0 +1,13 @@
+{
+  "event": "EVALUATION",
+  "data": {
+    "loop": 1,
+    "feasibleCount": 5,
+    "bestChoice": {
+      "location": "P2",
+      "equipment": "P1",
+      "time": "P2"
+    },
+    "bestTotal": 0.7446
+  }
+}

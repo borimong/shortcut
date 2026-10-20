@@ -1,0 +1,18 @@
+{
+  "code": "APPROVAL_REQUIRED",
+  "message": "필수 승인자 전원의 승인이 없다",
+  "details": {
+    "planStatus": "PENDING_APPROVAL",
+    "pendingRoles": [
+      "PRODUCTION_MANAGER",
+      "DIRECTOR",
+      "AD1",
+      "AD2",
+      "DOP",
+      "GAFFER",
+      "ART_DIRECTOR",
+      "SOUND_LEAD",
+      "COSTUME_MAKEUP"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "packageId": "PKG-LIGHT",
+  "name": "추가 조명 대여 (카메라·반사판·추가 조명)",
+  "date": "2026-11-12",
+  "items": [
+    {
+      "equipmentId": "E01",
+      "name": "카메라 세트",
+      "available": [
+        {
+          "start": "07:00",
+          "end": "23:00"
+        }
+      ]
+    },
+    {
+      "equipmentId": "E03",
+      "name": "반사판",
+      "available": [
+        {
+          "start": "07:00",
+          "end": "23:00"
+        }
+      ]
+    },
+    {
+      "equipmentId": "E04",
+      "name": "추가 조명 세트",
+      "available": [
+        {
+          "start": "13:00",
+          "end": "19:00"
+        }
+      ]
+    }
+  ],
+  "extraCost": 320000,
+  "source": "장비 렌탈사 견적 (mock)"
+}

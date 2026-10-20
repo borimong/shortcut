@@ -1,6 +1,6 @@
 """검색 로직. MCP와 무관한 순수 함수라 단위 테스트가 쉽다.
 
-모든 검색 결과는 같은 형식으로 돌려준다 (아키텍처 문서 4장 sources[], 7장 rag-mcp):
+모든 검색 결과는 같은 형식으로 돌려준다 (계약 rc2 common.schema.json Source):
     {docId, section, title, snippet, score}
 docId + section으로 doc://{docId}/{section} Resource를 읽으면 원문이 나온다.
 """
@@ -36,9 +36,6 @@ class Retriever:
     def search(self, query: str, k: int = 5, where: dict | None = None) -> list[dict]:
         qv = self.embedder.embed([query])[0]
         return [to_hit(c, s) for c, s in self.store.search(qv, k=k, where=where)]
-
-    def scene(self, scene_id: str) -> list[dict]:
-        return [to_hit(c) for c in self.store.filter({"type": "script", "sceneId": scene_id})]
 
     def section_text(self, doc_id: str, section: str) -> Chunk | None:
         return self.store.get(doc_id, section)
