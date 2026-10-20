@@ -1,9 +1,11 @@
-"""backend `/internal/**` 호출 클라이언트 (계약 rc2, contracts/openapi-internal.yaml).
+"""backend 내부 API(`/internal/**`) 호출 클라이언트.
 
-business-mcp는 업무 규칙을 갖지 않는다. 이 모듈은 다음 세 가지만 한다.
-1. 사용자 컨텍스트(ctx)를 X-* 헤더로 바꿔 backend를 호출한다.
+business-mcp는 업무 규칙을 갖지 않는다. 이 모듈은 세 가지만 한다.
+1. `X-Internal-Token`과, Agent가 MCP 요청에 실어 보낸 `X-Acting-User`를 붙여 backend를 부른다.
 2. 성공 응답 JSON을 그대로 돌려준다.
-3. 실패 응답 {code, message, details}를 BackendError로 바꾼다.
+3. 실패 응답 `{code, message, ...}`와 연결 실패를 BackendError로 바꾼다. 모델용 문장은 errors.py가 만든다.
+
+경로와 본문은 shortcut-app/backend의 `web/internal/*Controller.java`를 따른다.
 """
 from __future__ import annotations
 
@@ -15,46 +17,41 @@ try:  # httpx와 그 후속 패키지 httpx2 중 설치된 쪽을 쓴다
 except ImportError:  # pragma: no cover
     import httpx2 as httpx  # type: ignore[no-redef]
 
-# Agent가 큐 메시지의 user와 taskId로 채워 넘기는 키 (문서 5장, 6장)
-REQUIRED_CTX_KEYS = ("id", "role", "projectId", "taskId")
+# 내부 API 한 번이 길어지면 Agent 작업 한도(120초)를 혼자 다 쓰게 되므로 10초에서 끊는다.
+REQUEST_TIMEOUT_SECONDS = 10.0
+ACTING_USER_HEADER = "X-Acting-User"
 
 
 class BackendError(Exception):
-    """backend가 돌려준 오류. code는 문서 6장 '오류 응답' 표의 값이다."""
+    """backend 호출 실패. status 0은 응답을 받지 못한 경우(연결 실패, 시간 초과)다."""
 
-    def __init__(self, status: int, code: str, message: str, details: dict[str, Any] | None = None):
+    def __init__(self, status: int, code: str, message: str, body: dict[str, Any] | None = None):
         super().__init__(f"{status} {code}: {message}")
         self.status = status
         self.code = code
         self.message = message
-        self.details = details or {}
+        self.body = body or {}
 
     @property
     def retryable(self) -> bool:
-        """같은 인자로 다시 호출하면 성공할 수 있는 일시 오류인가."""
-        return self.status >= 500 or self.code in {"INTERNAL", "BACKEND_UNAVAILABLE"}
+        """같은 인자로 다시 보내면 성공할 수 있는가. 4xx는 인자나 상태를 바꿔야 하므로 아니다."""
+        return self.status == 0 or self.status == 429 or self.status >= 500
 
 
-def ctx_headers(ctx: dict[str, Any]) -> dict[str, str]:
-    """ctx를 backend가 읽는 헤더로 바꾼다. 빠진 키가 있으면 바로 실패시킨다."""
-    if not isinstance(ctx, dict):
-        raise ValueError("ctx가 없다. Agent가 도구 호출 시 사용자 컨텍스트를 주입해야 한다.")
-    missing = [k for k in REQUIRED_CTX_KEYS if ctx.get(k) in (None, "")]
-    if missing:
-        raise ValueError(f"ctx에 {', '.join(missing)} 값이 없다. 필요한 키: {', '.join(REQUIRED_CTX_KEYS)}")
-    return {
-        "X-User-Id": str(ctx["id"]),
-        "X-User-Role": str(ctx["role"]),
-        "X-Project-Id": str(ctx["projectId"]),
-        "X-Task-Id": str(ctx["taskId"]),
-    }
+def acting_user() -> str | None:
+    """MCP 요청 헤더의 작업 요청자를 읽는다. HTTP 요청 밖(인메모리 테스트)에서는 None."""
+    try:
+        from fastmcp.server.dependencies import get_http_headers
+    except ImportError:  # pragma: no cover
+        return None
+    try:
+        return get_http_headers().get("x-acting-user") or None
+    except RuntimeError:
+        return None
 
 
 class BackendClient:
-    """backend `/internal/**` 호출기.
-
-    테스트에서는 transport에 ASGI/Mock transport를 넘겨 실제 서버 없이 호출한다.
-    """
+    """backend 내부 API 호출기. 테스트에서는 transport에 httpx.MockTransport를 넘긴다."""
 
     def __init__(
         self,
@@ -62,47 +59,46 @@ class BackendClient:
         token: str | None = None,
         *,
         transport: Any = None,
-        timeout: float = 10.0,
+        timeout: float = REQUEST_TIMEOUT_SECONDS,
     ):
-        self.base_url = (base_url or os.environ.get("BACKEND_URL", "http://backend:8080")).rstrip("/")
-        self.token = token if token is not None else os.environ.get("INTERNAL_TOKEN", "dev-internal-token")
+        self.base_url = (
+            base_url
+            or os.getenv("BACKEND_INTERNAL_URL")
+            or os.getenv("BACKEND_URL")  # 예전 이름
+            or "http://localhost:8080"
+        ).rstrip("/")
+        self.token = token if token is not None else os.getenv("INTERNAL_TOKEN", "local-internal-token")
         self.transport = transport
         self.timeout = timeout
 
-    async def request(
-        self,
-        method: str,
-        path: str,
-        ctx: dict[str, Any],
-        *,
-        params: dict[str, Any] | None = None,
-        json: Any = None,
-        idempotency_key: str | None = None,
-    ) -> Any:
-        headers = {"X-Internal-Token": self.token, **ctx_headers(ctx)}
-        if idempotency_key:
-            headers["Idempotency-Key"] = idempotency_key
+    async def request(self, method: str, path: str, *, params: dict | None = None, json: Any = None) -> Any:
+        headers = {"X-Internal-Token": self.token}
+        user = acting_user()
+        if user:
+            headers[ACTING_USER_HEADER] = user
         params = {k: v for k, v in (params or {}).items() if v is not None}
 
         try:
-            async with httpx.AsyncClient(
-                base_url=self.base_url, transport=self.transport, timeout=self.timeout
-            ) as client:
-                resp = await client.request(method, path, headers=headers, params=params, json=json)
-        except httpx.HTTPError as exc:  # 연결 실패, 타임아웃
-            raise BackendError(503, "BACKEND_UNAVAILABLE", f"backend에 연결하지 못했다 ({type(exc).__name__})") from exc
+            async with httpx.AsyncClient(base_url=self.base_url, transport=self.transport, timeout=self.timeout) as client:
+                resp = await client.request(method, path, headers=headers, params=params or None, json=json)
+        except httpx.TimeoutException as exc:
+            raise BackendError(0, "BACKEND_TIMEOUT", "업무 API 응답이 늦습니다") from exc
+        except httpx.TransportError as exc:
+            raise BackendError(0, "BACKEND_UNAVAILABLE", "업무 API에 연결할 수 없습니다") from exc
 
         if resp.status_code >= 400:
             try:
                 body = resp.json()
             except ValueError:
                 body = {}
+            if not isinstance(body, dict):
+                body = {}
             raise BackendError(
                 resp.status_code,
-                body.get("code", "INTERNAL" if resp.status_code >= 500 else "HTTP_ERROR"),
-                body.get("message", resp.text[:200] or "오류 응답"),
-                body.get("details"),
+                body.get("code") or f"HTTP_{resp.status_code}",
+                body.get("message") or resp.reason_phrase or "오류 응답",
+                body,
             )
         if resp.status_code == 204 or not resp.content:
-            return {}
+            return {"ok": True}
         return resp.json()

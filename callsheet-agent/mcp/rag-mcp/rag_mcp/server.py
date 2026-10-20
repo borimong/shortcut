@@ -1,15 +1,18 @@
-"""rag-mcp: 규정·법규·계약 조항 원문 검색 (계약 rc2, contracts/mcp-tools.json).
+"""rag-mcp: 규정·법규·계약서 근거 검색을 MCP 도구와 Resource로 공개한다.
 
-- 근로기준법(주 52시간·휴게), 계약법 가이드, 촬영 허가, 촬영 금지 구역 고시, 출연 계약서 조항을 검색한다.
-- 계약서는 온톨로지가 특정한 '현재 버전' docId 범위 안에서만 검색한다(엉뚱한 배우·옛 버전 근거 차단).
-- 원문은 Resource doc://{docId}/{section}으로 읽는다(교안 필수). get_source는 같은 원문을 도구로도 준다.
-- 업무 데이터는 바꾸지 않는다. 모든 도구가 읽기 전용이다.
+업무 데이터는 다루지 않고 문서 색인과 검색만 맡는다.
+계약서는 온톨로지가 특정한 문서 안에서만 찾도록 일반 규정 검색과 도구를 나눴다
+(다른 배우나 옛 버전 계약서가 근거로 섞이지 않게).
 
-실행:  python -m rag_mcp.server        → http://0.0.0.0:9102/mcp
+도구 4개   search_regulation, search_contract_clause (조회) · index_document (쓰기) · delete_document (삭제)
+Resource   rag://documents/{doc_id} (원문, 근거 패널) · rag://index/info (색인 목록, 임베딩 모델)
+
+실행:  python -m rag_mcp.server        → http://0.0.0.0:9102/mcp (Streamable HTTP)
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import Annotated, Literal
 
@@ -18,89 +21,168 @@ from fastmcp.exceptions import ResourceError, ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from .retriever import Retriever, open_retriever
+from rag_mcp.chunking import Document, split_into_chunks
+from rag_mcp.embedding import Embedder
+from rag_mcp.store import Store
+
+logger = logging.getLogger("rag-mcp")
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
-TopK = Annotated[int, Field(ge=1, le=10, description="돌려받을 최대 결과 수")]
-Category = Literal["LABOR_LAW", "CONTRACT_LAW", "FILMING_PERMIT", "NO_FILMING_ZONE"]
+WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=False)
+DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, idempotent_hint=False, open_world_hint=False)
+
+REGULATION_TYPES = ["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY"]
+RegulationType = Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY"]
+DocId = Annotated[str, Field(pattern=r"^[a-z0-9\-]+$", max_length=80)]
 
 
-def create_server(retriever: Retriever | None = None) -> FastMCP:
-    mcp = FastMCP("rag")
-    holder: dict[str, Retriever] = {}
+def format_error(code: str, message: str, retryable: bool) -> str:
+    # Agent Harness가 정규식으로 code와 retryable을 읽으므로 business-mcp와 같은 형식을 쓴다.
+    return f"[{code}] {message} (retryable={'true' if retryable else 'false'})"
 
-    def r() -> Retriever:
-        if "r" not in holder:
-            holder["r"] = retriever or open_retriever()
-        return holder["r"]
 
-    def find(doc_id: str, sec: str):
-        """Chunk를 찾고, 없으면 다시 시도에 쓸 안내 문장을 돌려준다."""
-        c = r().section_text(doc_id, sec)
-        if c is not None:
-            return c
-        secs = r().store.sections(doc_id)
-        if not secs:
-            return f"문서 {doc_id}가 없다. 있는 문서: {', '.join(r().store.doc_ids())}"
-        return f"{doc_id}에 section {sec}이 없다. 있는 section: {', '.join(secs)}"
+def build_server(store: Store, embedder: Embedder) -> FastMCP:
+    """저장소와 임베딩 모델을 주입받아 도구와 Resource를 등록한다."""
+    mcp = FastMCP(
+        "rag-mcp",
+        instructions=(
+            "촬영 관련 규정(근로기준법, 촬영 허가, 비행 금지 구역, 재난과 기상 안전 기준, 예산과 승인 규정)과 "
+            "배우 계약서 조항을 검색합니다. 결과의 chunk_id를 근거 ID로 인용하세요."
+        ),
+    )
+
+    def embed_query(query: str) -> list[float]:
+        try:
+            return embedder.embed([query])[0]
+        except Exception as error:
+            logger.warning("질의 임베딩 실패: %s", error)
+            raise ToolError(format_error("EMBEDDING_UNAVAILABLE", "임베딩 모델을 호출할 수 없습니다. 잠시 뒤 다시 시도하세요.", True)) from error
+
+    def run_search(vector: list[float], k: int, **filters) -> list[dict]:
+        try:
+            rows = store.search(vector, k, **filters)
+        except Exception as error:
+            logger.warning("벡터 검색 실패: %s", error)
+            raise ToolError(format_error("VECTOR_DB_UNAVAILABLE", "벡터 DB 검색에 실패했습니다. 잠시 뒤 다시 시도하세요.", True)) from error
+        return [
+            {
+                "chunk_id": row["chunk_id"],
+                "doc_id": row["doc_id"],
+                "title": row["title"],
+                "doc_type": row["doc_type"],
+                "version": row["version"],
+                "heading": row["heading"],
+                "text": row["text"],
+                "score": round(float(row["score"]), 4),
+            }
+            for row in rows
+        ]
 
     @mcp.tool(annotations=READ_ONLY)
-    def search_regulation(query: str, category: Category | None = None, k: TopK = 3) -> list[dict]:
-        """규정·법규 원문에서 질문과 관련된 조항을 찾는다.
-        category: LABOR_LAW(근로기준법: 주 52시간, 휴게), CONTRACT_LAW(계약·위약 가이드), FILMING_PERMIT(촬영 허가·우천 시 규정),
-        NO_FILMING_ZONE(드론 비행 금지 등 촬영 금지 구역 고시). 비우면 전체에서 찾는다.
-        반환: [{docId, section, title, snippet, score(0~1)}]. 하드 제약의 근거를 확보할 때 쓰고, 근거 ID(docId+section)를 답변에 붙인다."""
-        where = {"type": "regulation", "category": category}
-        return r().search(query, k=k, where=where)
+    def search_regulation(
+        query: Annotated[str, Field(min_length=2, max_length=200, description="찾을 내용, 예: 주 52시간 연장 근로 한도")],
+        k: Annotated[int, Field(ge=1, le=8)] = 4,
+        doc_types: Annotated[
+            list[RegulationType] | None,
+            Field(description="좁힐 문서 종류. LAW 법률, PERMIT 촬영 허가, NO_FLY 비행 금지, SAFETY 재난과 기상, POLICY 예산과 승인"),
+        ] = None,
+    ) -> list[dict]:
+        """법규와 사내 규정에서 질의와 가까운 조항을 찾아 chunk_id, 제목, 조항 제목, 원문, 유사도를 돌려준다.
+        계약서는 포함하지 않는다. 계약서 조항은 search_contract_clause를 쓴다."""
+        types = list(doc_types) if doc_types else REGULATION_TYPES
+        return run_search(embed_query(query), k, doc_types=types)
 
     @mcp.tool(annotations=READ_ONLY)
-    def search_contract_clause(contract_doc_id: str, query: str, k: TopK = 3) -> list[dict]:
-        """출연 계약서 한 건 안에서만 조항을 찾는다. contract_doc_id는 get_entity_context나 find_impacted_entities가 알려 준
-        '현재 버전' 계약서 docId(예: contract-A04-v3)를 그대로 쓴다. 배우 이름이나 옛 버전으로 찾지 않는다.
-        반환: [{docId, section, title, snippet, score}]. 야간 촬영, 1일 최대 시간, 초과 촬영, 촬영 불가 일정 조항 확인에 쓴다."""
-        store = r().store
-        chunks = store.filter({"docId": contract_doc_id})
-        if not chunks or chunks[0].meta.get("type") != "contract":
-            raise ToolError(f"[NO_DOCS] 계약서 {contract_doc_id}가 없다. 있는 계약서: {', '.join(store.doc_ids(type='contract'))}. "
-                            "get_entity_context(ACTOR, 배우ID)로 현재 계약서 docId를 확인하라.")
-        meta = chunks[0].meta
-        if meta.get("status") == "SUPERSEDED":
-            raise ToolError(f"[SUPERSEDED] {contract_doc_id}는 옛 버전이다(v{meta.get('version')}). "
-                            f"현재 버전 {meta.get('supersededBy')}로 다시 검색하라.")
-        return r().search(query, k=k, where={"docId": contract_doc_id})
+    def search_contract_clause(
+        query: Annotated[str, Field(min_length=2, max_length=200, description="찾을 조항 내용, 예: 야간 촬영 제한")],
+        contract_doc_id: Annotated[
+            str, Field(pattern=r"^contract-[a-z0-9\-]+$", description="온톨로지에서 확인한 현재 계약서 문서 ID")
+        ],
+        k: Annotated[int, Field(ge=1, le=5)] = 3,
+    ) -> list[dict]:
+        """지정한 계약서 한 건 안에서만 조항을 찾는다. 다른 배우나 옛 버전 계약서를 근거로 쓰지 않도록
+        get_entity_context로 확인한 계약서 문서 ID(예: contract-actor-a-v3)를 반드시 넘긴다."""
+        if store.get_document(contract_doc_id) is None:
+            available = [d["doc_id"] for d in store.list_documents() if d["doc_type"] == "CONTRACT"]
+            raise ToolError(format_error(
+                "CONTRACT_NOT_FOUND",
+                f"{contract_doc_id} 계약서가 색인에 없습니다. 있는 계약서: {', '.join(available) or '없음'}. "
+                "get_entity_context로 배우의 현재 계약서 ID를 다시 확인하세요.",
+                False,
+            ))
+        return run_search(embed_query(query), k, doc_id=contract_doc_id)
 
-    @mcp.tool(annotations=READ_ONLY)
-    def get_source(doc_id: str, section: str) -> dict:
-        """조항 하나의 원문 전체를 가져온다. 위반의 source나 검색 결과의 docId·section을 그대로 넣는다.
-        반환: {docId, section, title, text}. Resource doc://{docId}/{section}과 같은 내용이다."""
-        c = find(doc_id, section)
-        if isinstance(c, str):
-            raise ToolError(f"[NO_DOCS] {c}")
-        return {"docId": c.docId, "section": c.section, "title": f"{c.title} {c.sectionTitle}", "text": c.text}
+    @mcp.tool(annotations=WRITE)
+    def index_document(
+        doc_id: DocId,
+        title: Annotated[str, Field(min_length=1, max_length=200)],
+        doc_type: Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY", "CONTRACT"],
+        version: Annotated[str, Field(min_length=1, max_length=40)],
+        text: Annotated[str, Field(min_length=20)],
+    ) -> dict:
+        """문서를 조항 단위로 잘라 임베딩하고 저장한다. 같은 doc_id가 있으면 새 내용으로 바꾼다(재색인)."""
+        document = Document(doc_id, title, doc_type, version, text)
+        chunks = split_into_chunks(document)
+        if not chunks:
+            raise ToolError(format_error("EMPTY_DOCUMENT", "본문에 색인할 내용이 없습니다.", False))
+        try:
+            vectors = embedder.embed([f"{title}\n{c.heading}\n{c.text}" for c in chunks])
+        except Exception as error:
+            raise ToolError(format_error("EMBEDDING_UNAVAILABLE", "임베딩 모델을 호출할 수 없습니다.", True)) from error
+        store.upsert(document, chunks, vectors, embedder.model)
+        return {"doc_id": doc_id, "chunks": len(chunks), "embedding_model": embedder.model, "dimension": embedder.dimension}
 
-    @mcp.resource("doc://{doc_id}/{section_id}", mime_type="text/markdown")
-    def read_section(doc_id: str, section_id: str) -> str:
-        """문서 한 조항의 원문. 화면의 근거 패널과 위반 source가 이 주소를 쓴다."""
-        c = find(doc_id, section_id)
-        if isinstance(c, str):
-            raise ResourceError(c)
-        return f"# {c.title}\n## {c.sectionTitle}\n\n{c.text}"
+    @mcp.tool(annotations=DESTRUCTIVE)
+    def delete_document(doc_id: DocId) -> dict:
+        """문서와 chunk를 색인에서 지운다. 되돌릴 수 없다."""
+        if not store.delete(doc_id):
+            raise ToolError(format_error("DOCUMENT_NOT_FOUND", f"{doc_id} 문서가 색인에 없습니다.", False))
+        return {"doc_id": doc_id, "deleted": True}
 
-    @mcp.resource("doc://index", mime_type="application/json")
-    def doc_index() -> str:
-        """색인된 문서·section 목록과 Embedding 모델 정보."""
-        store = r().store
-        docs = []
-        for d in store.doc_ids():
-            meta = store.filter({"docId": d})[0].meta
-            docs.append({"docId": d, "type": meta.get("type"), "category": meta.get("category"),
-                         "status": meta.get("status"), "sections": store.sections(d)})
-        return json.dumps({"embeddingModel": store.meta["embeddingModel"], "dim": store.meta["dim"], "docs": docs}, ensure_ascii=False)
+    @mcp.resource("rag://documents/{doc_id}", mime_type="text/markdown")
+    def read_document(doc_id: str) -> str:
+        """근거 패널이 보여 줄 문서 원문 전체."""
+        document = store.get_document(doc_id)
+        if document is None:
+            raise ResourceError(format_error("DOCUMENT_NOT_FOUND", f"{doc_id} 문서가 색인에 없습니다.", False))
+        return (
+            f"# {document['title']}\n\n문서 ID {doc_id}, 종류 {document['doc_type']}, 버전 {document['version']}\n\n"
+            f"{document['text']}"
+        )
+
+    @mcp.resource("rag://index/info", mime_type="application/json")
+    def index_info() -> str:
+        """색인 문서 목록과 임베딩 모델 이름·차원. 질의도 같은 모델로 임베딩해야 하므로 함께 공개한다."""
+        documents = [{k: v for k, v in d.items() if k != "text"} for d in store.list_documents()]
+        return json.dumps(
+            {"embedding_model": embedder.model, "dimension": embedder.dimension, "documents": documents},
+            ensure_ascii=False,
+            default=str,
+        )
 
     return mcp
 
 
-mcp = create_server()
+def warn_on_model_mismatch(store: Store, embedder: Embedder) -> None:
+    """색인 때와 다른 임베딩 모델로 검색하면 결과가 엉뚱해지므로 시작할 때 알린다. indexer가 다시 색인한다."""
+    stale = [d["doc_id"] for d in store.list_documents() if d.get("embedding_model") not in (None, embedder.model)]
+    if stale:
+        logger.warning("임베딩 모델이 %s와 다른 문서 %d건: %s. rag-indexer를 다시 실행하세요.",
+                       embedder.model, len(stale), ", ".join(stale))
+
+
+def main() -> None:
+    """compose 안에서 Streamable HTTP로 실행한다."""
+    from rag_mcp.embedding import embedder_from_env
+    from rag_mcp.store import store_from_env
+
+    logging.basicConfig(level=logging.INFO)
+    embedder = embedder_from_env()
+    store = store_from_env(embedder.dimension)
+    warn_on_model_mismatch(store, embedder)
+    server = build_server(store, embedder)
+    server.run(transport="http", host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "9102")), path="/mcp")
+
 
 if __name__ == "__main__":
-    mcp.run(transport="http", host=os.environ.get("HOST", "0.0.0.0"), port=int(os.environ.get("PORT", "9102")), path="/mcp")
+    main()

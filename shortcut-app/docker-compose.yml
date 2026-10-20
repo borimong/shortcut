@@ -68,8 +68,10 @@ services:
       rabbitmq: { condition: service_healthy }
       backend: { condition: service_started }
 
+  # MCP 서버 2개는 D 담당 코드(../callsheet-agent/mcp)로 빌드한다.
+  # 도구 이름·인자·오류 형식은 agent/app/harness/tools.py, backend /internal/** 와 맞춰 두었다.
   business-mcp:
-    build: ./business_mcp
+    build: ../callsheet-agent/mcp/business-mcp
     environment:
       <<: *secrets
       BACKEND_INTERNAL_URL: http://backend:8080
@@ -77,16 +79,18 @@ services:
       - backend
 
   rag-mcp:
-    build: ./rag_mcp
+    build: ../callsheet-agent/mcp/rag-mcp
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY를 .env에 넣으세요}
+      EMBEDDING_PROVIDER: openai
+      RAG_STORE: pgvector
       RAG_DB_DSN: postgresql://shortcut:shortcut@postgres:5432/shortcut
     depends_on:
       postgres: { condition: service_healthy }
 
   rag-indexer:
     # 질문과 별개로 규정 문서를 미리 색인하는 일회성 작업이다. rag-mcp가 뜰 때까지 실패하면 다시 시도한다.
-    build: ./rag_mcp
+    build: ../callsheet-agent/mcp/rag-mcp
     command: ["python", "-m", "rag_mcp.indexer"]
     environment:
       RAG_MCP_URL: http://rag-mcp:9102/mcp

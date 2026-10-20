@@ -1,4 +1,3 @@
 -r business-mcp/requirements.txt
 -r rag-mcp/requirements.txt
--r mock-backend/requirements.txt
 pytest
