@@ -375,6 +375,7 @@ class FakeModel:
         self.review_scores = list(review_scores or [90])
         self.review_actions = list(review_actions or ["REWRITE"])
         self.structured_calls: list[str] = []
+        self.impact_prompts: list[str] = []
 
     async def chat(self, ctx: RunContext, messages, tools=None) -> AIMessage:
         ctx.counter["llm_calls"] += 1
@@ -382,6 +383,7 @@ class FakeModel:
         if any(isinstance(m, ToolMessage) for m in messages):
             return AIMessage(content="조사를 마쳤습니다.")
         if "변경 영향 분석" in task:
+            self.impact_prompts.append(str(next(m for m in messages if isinstance(m, HumanMessage)).content))
             return _tool_calls(
                 ("business_find_impacted_entities", {"node_id": "SCENE:S12", "depth": 2}),
                 ("business_get_weather", {"shoot_day_id": 1}),

@@ -184,6 +184,19 @@ def test_backend_down_and_5xx_are_retryable():
     assert "[INTERNAL_ERROR]" in str(error.value) and "retryable=true" in str(error.value)
 
 
+def test_block_and_shoot_day_node_ids_reach_backend():
+    paths = []
+
+    def handler(request):
+        paths.append(dict(request.url.params))
+        return httpx.Response(200, json={"edges": [], "nodes": []})
+
+    server = make_server(handler)
+    call(server, "find_impacted_entities", {"node_id": "BLOCK:1-PM", "depth": 3})
+    call(server, "find_impacted_entities", {"node_id": "SHOOT_DAY:1", "depth": 1})
+    assert paths == [{"nodeId": "BLOCK:1-PM", "depth": "3"}, {"nodeId": "SHOOT_DAY:1", "depth": "1"}]
+
+
 def test_invalid_node_id_is_rejected_before_backend_call():
     calls = []
 

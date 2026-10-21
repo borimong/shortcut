@@ -73,6 +73,13 @@ def test_first_loop_stops_at_approval_and_commits_after_all_approve():
     assert nodes[-2:] == ["commit_plan", "publish"]
 
 
+def test_impact_analysis_names_the_block_node_to_start_from():
+    ctx, _, _, _ = make_context()
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    assert "블록의 노드 ID는 BLOCK:1-PM입니다" in ctx.model.impact_prompts[0]
+
+
 def test_rejection_becomes_constraint_and_next_loop_proposes_one_new_plan():
     ctx, backend, _, _ = make_context()
     graph, store = compile_graph(ctx)

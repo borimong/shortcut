@@ -260,6 +260,14 @@ public class PlanRepository {
                         """)
                 .param("node", "LOCATION:" + locationId)
                 .update();
+        // 4안도 오후 블록의 후보로 이어 블록에서 영향을 볼 때 함께 나오게 한다. 블록 노드가 없는 촬영일이면 건너뛴다.
+        jdbc.sql("""
+                        INSERT INTO ontology_edges (src, relation, dst, created_by)
+                        SELECT node_id, '후보', 'PLAN:4', 'agent' FROM ontology_nodes WHERE node_id = :block
+                        ON CONFLICT DO NOTHING
+                        """)
+                .param("block", "BLOCK:" + shootDayId + "-PM")
+                .update();
     }
 
     public List<ExternalLocation> findExternalLocations() {

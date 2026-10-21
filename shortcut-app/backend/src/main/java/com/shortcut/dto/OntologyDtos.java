@@ -16,7 +16,10 @@ public final class OntologyDtos {
     public record Neighbor(String relation, String direction, OntologyNode node) {
     }
 
-    public record ImpactResponse(String root, List<OntologyNode> nodes, List<EdgeRef> edges) {
+    /**
+     * Agent는 도구 결과를 4000자에서 자르므로 관계를 노드보다 먼저 둔다. 잘려도 먼 노드의 속성만 빠진다.
+     */
+    public record ImpactResponse(String root, List<EdgeRef> edges, List<OntologyNode> nodes) {
     }
 
     public record EdgeRef(String src, String relation, String dst) {

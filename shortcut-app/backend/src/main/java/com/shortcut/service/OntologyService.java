@@ -9,10 +9,12 @@ import com.shortcut.dto.OntologyDtos.ImpactResponse;
 import com.shortcut.dto.OntologyDtos.Neighbor;
 import com.shortcut.dto.OntologyDtos.NodeDetail;
 import com.shortcut.repository.OntologyRepository;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +74,11 @@ public class OntologyService {
         List<EdgeRef> edgeRefs = edges.values().stream()
                 .map(e -> new EdgeRef(e.src(), e.relation(), e.dst()))
                 .toList();
-        return new ImpactResponse(nodeId, ontology.findNodes(visited), edgeRefs);
+        // 찾은 순서(가까운 노드 먼저)를 지켜야 결과가 잘릴 때 변경 지점에서 먼 노드부터 빠진다.
+        Map<String, OntologyNode> found = new HashMap<>();
+        ontology.findNodes(visited).forEach(n -> found.put(n.nodeId(), n));
+        List<OntologyNode> nodes = visited.stream().map(found::get).filter(Objects::nonNull).toList();
+        return new ImpactResponse(nodeId, edgeRefs, nodes);
     }
 
     @Transactional

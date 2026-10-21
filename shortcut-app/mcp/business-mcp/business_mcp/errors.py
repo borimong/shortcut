@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from .backend import BackendError
 
-NODE_ID_HINT = "노드 ID는 TYPE:키 형식입니다. 예: SCENE:S12, ACTOR:1, LOCATION:2, CONTRACT:contract-actor-a-v3."
+NODE_ID_HINT = "노드 ID는 TYPE:키 형식입니다. 예: SCENE:S12, ACTOR:1, LOCATION:2, BLOCK:1-PM, SHOOT_DAY:1, CONTRACT:contract-actor-a-v3."
 
 # code → 모델이 다음에 할 일
 HINTS: dict[str, str] = {

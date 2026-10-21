@@ -230,6 +230,7 @@ async def analyze_impact(state: dict[str, Any], ctx: RunContext) -> dict[str, An
         "impact_analysis",
         event=_json(event),
         block=_json(plan_set["block"]),
+        block_node=f"BLOCK:{state['shoot_day_id']}-{plan_set['block']['code']}",
         current=_json(plan_set["current"]),
         memory="\n".join(state.get("memory_notes") or []) or "없음",
     )

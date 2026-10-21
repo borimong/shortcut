@@ -128,10 +128,13 @@ VALUES (1, '일산 실내 스튜디오', true, '경기 고양시', 25, 380000, '
        (5, '망원 루프탑', false, '서울 마포구', 9, 280000, '["야외", "루프탑", "도심 야경"]')
 ON CONFLICT DO NOTHING;
 
+-- 온톨로지 노드는 업무 테이블 행을 TYPE:키 글자로 가리킨다. 촬영일은 SHOOT_DAY:<id>, 블록은 BLOCK:<촬영일>-<코드>다.
+-- 씬 노드는 Agent가 다시 짜는 오후 블록의 씬만 둔다. 오전 블록은 블록 노드 하나로 장소와 장비만 잇는다.
 INSERT INTO ontology_nodes (node_id, type, label, props)
-VALUES ('SCENE:S12', 'SCENE', 'S12 한강 산책 대화', '{"code": "S12", "block": "PM", "durationMin": 90, "outdoorIntent": true}'),
-       ('SCENE:S13', 'SCENE', 'S13 강변 인서트', '{"code": "S13", "block": "PM", "durationMin": 30, "outdoorIntent": true}'),
-       ('SCENE:S18', 'SCENE', 'S18 작업실 대화', '{"code": "S18", "block": "다음 촬영일", "durationMin": 90}'),
+VALUES ('SCENE:S12', 'SCENE', 'S12 한강 산책 대화', '{"code": "S12", "shootDayId": 1, "block": "PM", "durationMin": 90, "outdoorIntent": true}'),
+       ('SCENE:S13', 'SCENE', 'S13 강변 인서트', '{"code": "S13", "shootDayId": 1, "block": "PM", "durationMin": 30, "outdoorIntent": true}'),
+       ('SCENE:S18', 'SCENE', 'S18 작업실 대화', '{"code": "S18", "shootDayId": 2, "block": "PM", "durationMin": 90}'),
+       ('SCENE:S19', 'SCENE', 'S19 작업실 인서트', '{"code": "S19", "shootDayId": 2, "block": "PM", "durationMin": 30}'),
        ('ACTOR:1', 'ACTOR', '배우 A', '{"availableFrom": "09:00", "availableTo": "16:00", "weeklyHoursUsed": 44, "noNight": true, "maxDailyHours": 10}'),
        ('ACTOR:2', 'ACTOR', '배우 B', '{"availableFrom": "07:00", "availableTo": "22:00", "weeklyHoursUsed": 38}'),
        ('ACTOR:3', 'ACTOR', '배우 C', '{"availableFrom": "06:30", "availableTo": "20:00", "weeklyHoursUsed": 30}'),
@@ -149,11 +152,26 @@ VALUES ('SCENE:S12', 'SCENE', 'S12 한강 산책 대화', '{"code": "S12", "bloc
        ('CONTRACT:contract-actor-c-v2', 'CONTRACT', '배우 C 출연 계약서 v2', '{"docId": "contract-actor-c-v2"}'),
        ('STAFF:manager-a', 'STAFF', '배우 A 매니저', '{"role": "매니저", "phone": "010-2481-7731"}'),
        ('CONSTRAINT:no-night', 'CONSTRAINT', '야간 촬영 불가', '{"rule": "22시 이후 촬영 불가", "ruleRef": "CONTRACT_NIGHT"}'),
-       ('RESERVATION:R-2031', 'RESERVATION', '성수 스튜디오 가예약 R-2031', '{"status": "HELD", "window": "14:00~18:00", "provider": "아워플레이스"}'),
-       ('PLAN:1', 'PLAN', 'PM 1안', '{"optionNo": 1, "time": "13:00~15:00", "equipment": [1, 2, 3]}'),
-       ('PLAN:2', 'PLAN', 'PM 2안', '{"optionNo": 2, "time": "14:00~16:00", "equipment": [1, 4]}'),
-       ('PLAN:3', 'PLAN', 'PM 3안', '{"optionNo": 3, "time": "12:30~14:30", "equipment": [1, 5]}')
+       ('RESERVATION:R-2031', 'RESERVATION', '성수 스튜디오 가예약 R-2031', '{"shootDayId": 1, "status": "HELD", "window": "14:00~18:00", "provider": "아워플레이스"}'),
+       ('RESERVATION:R-2032', 'RESERVATION', '성수 스튜디오 가예약 R-2032', '{"shootDayId": 2, "status": "HELD", "window": "14:00~18:00", "provider": "아워플레이스"}'),
+       ('PLAN:1', 'PLAN', 'PM 1안', '{"shootDayId": 1, "optionNo": 1, "time": "13:00~15:00", "equipment": [1, 2, 3]}'),
+       ('PLAN:2', 'PLAN', 'PM 2안', '{"shootDayId": 1, "optionNo": 2, "time": "14:00~16:00", "equipment": [1, 4]}'),
+       ('PLAN:3', 'PLAN', 'PM 3안', '{"shootDayId": 1, "optionNo": 3, "time": "12:30~14:30", "equipment": [1, 5]}'),
+       ('SHOOT_DAY:1', 'SHOOT_DAY', '1회차 촬영일', '{"shootDayId": 1}'),
+       ('SHOOT_DAY:2', 'SHOOT_DAY', '2회차 촬영일', '{"shootDayId": 2}'),
+       ('BLOCK:1-AM', 'BLOCK', '1회차 오전 블록', '{"shootDayId": 1, "code": "AM"}'),
+       ('BLOCK:1-PM', 'BLOCK', '1회차 오후 블록', '{"shootDayId": 1, "code": "PM"}'),
+       ('BLOCK:2-AM', 'BLOCK', '2회차 오전 블록', '{"shootDayId": 2, "code": "AM"}'),
+       ('BLOCK:2-PM', 'BLOCK', '2회차 오후 블록', '{"shootDayId": 2, "code": "PM"}')
 ON CONFLICT DO NOTHING;
+
+-- 위 INSERT는 이미 있는 노드를 덮지 않으므로, 2회차가 생기기 전에 만든 DB에도 촬영일 표시를 더한다.
+-- S18은 "다음 촬영일"에서 2회차 오후 블록으로 옮겨졌다.
+UPDATE ontology_nodes SET props = props || '{"shootDayId": 1}'
+WHERE node_id IN ('SCENE:S12', 'SCENE:S13', 'RESERVATION:R-2031', 'PLAN:1', 'PLAN:2', 'PLAN:3')
+  AND props ->> 'shootDayId' IS NULL;
+UPDATE ontology_nodes SET props = props || '{"shootDayId": 2, "block": "PM"}'
+WHERE node_id = 'SCENE:S18' AND props ->> 'shootDayId' IS NULL;
 
 INSERT INTO ontology_edges (src, relation, dst, created_by)
 VALUES ('SCENE:S12', '출연', 'ACTOR:1', 'seed'),
@@ -173,4 +191,58 @@ VALUES ('SCENE:S12', '출연', 'ACTOR:1', 'seed'),
        ('PLAN:3', '포함', 'LOCATION:3', 'seed'),
        ('ACTOR:2', '계약', 'CONTRACT:contract-actor-b-v1', 'seed'),
        ('ACTOR:3', '계약', 'CONTRACT:contract-actor-c-v2', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 1/2/3안이 쓰는 장비 (plan_options.equipment_ids)
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('PLAN:1', '사용', 'EQUIPMENT:1', 'seed'),
+       ('PLAN:1', '사용', 'EQUIPMENT:2', 'seed'),
+       ('PLAN:1', '사용', 'EQUIPMENT:3', 'seed'),
+       ('PLAN:2', '사용', 'EQUIPMENT:1', 'seed'),
+       ('PLAN:2', '사용', 'EQUIPMENT:4', 'seed'),
+       ('PLAN:3', '사용', 'EQUIPMENT:1', 'seed'),
+       ('PLAN:3', '사용', 'EQUIPMENT:5', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 씬의 장소와 배우 (scenes.location_id, actor_ids). 장소가 비어 있는 씬은 블록 장소에서 찍는다.
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('SCENE:S13', '촬영지', 'LOCATION:1', 'seed'),
+       ('SCENE:S18', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S19', '출연', 'ACTOR:2', 'seed'),
+       ('SCENE:S19', '촬영지', 'LOCATION:2', 'seed'),
+       ('LOCATION:2', '예약', 'RESERVATION:R-2032', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 촬영일이 블록을, 블록이 씬을 포함한다. 영향 분석이 씬, 블록, 촬영일 순으로 이어진다.
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('SHOOT_DAY:1', '포함', 'BLOCK:1-AM', 'seed'),
+       ('SHOOT_DAY:1', '포함', 'BLOCK:1-PM', 'seed'),
+       ('SHOOT_DAY:2', '포함', 'BLOCK:2-AM', 'seed'),
+       ('SHOOT_DAY:2', '포함', 'BLOCK:2-PM', 'seed'),
+       ('BLOCK:1-PM', '포함', 'SCENE:S12', 'seed'),
+       ('BLOCK:1-PM', '포함', 'SCENE:S13', 'seed'),
+       ('BLOCK:2-PM', '포함', 'SCENE:S18', 'seed'),
+       ('BLOCK:2-PM', '포함', 'SCENE:S19', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 블록의 장소와 장비 (blocks.location_id, equipment_ids의 시드 값)
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('BLOCK:1-AM', '촬영지', 'LOCATION:4', 'seed'),
+       ('BLOCK:1-AM', '사용', 'EQUIPMENT:1', 'seed'),
+       ('BLOCK:1-PM', '촬영지', 'LOCATION:1', 'seed'),
+       ('BLOCK:1-PM', '사용', 'EQUIPMENT:1', 'seed'),
+       ('BLOCK:1-PM', '사용', 'EQUIPMENT:2', 'seed'),
+       ('BLOCK:1-PM', '사용', 'EQUIPMENT:3', 'seed'),
+       ('BLOCK:2-AM', '촬영지', 'LOCATION:4', 'seed'),
+       ('BLOCK:2-AM', '사용', 'EQUIPMENT:1', 'seed'),
+       ('BLOCK:2-PM', '촬영지', 'LOCATION:2', 'seed'),
+       ('BLOCK:2-PM', '사용', 'EQUIPMENT:1', 'seed'),
+       ('BLOCK:2-PM', '사용', 'EQUIPMENT:5', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 블록의 후보안 (plan_options.block_code). 2회차 1/2/3안은 촬영일을 붙인 안 ID를 정한 뒤 넣는다.
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('BLOCK:1-PM', '후보', 'PLAN:1', 'seed'),
+       ('BLOCK:1-PM', '후보', 'PLAN:2', 'seed'),
+       ('BLOCK:1-PM', '후보', 'PLAN:3', 'seed')
 ON CONFLICT DO NOTHING;
