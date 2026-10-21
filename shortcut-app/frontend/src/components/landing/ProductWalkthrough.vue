@@ -11,6 +11,7 @@ import proposalDiff from '@/assets/screens/proposal-diff.webp'
 import proposalApprovals from '@/assets/screens/proposal-approvals.webp'
 import board from '@/assets/screens/board.webp'
 import history from '@/assets/screens/history.webp'
+import { screenSrcset } from '@/assets/screens'
 
 // 실제 처리 순서대로 놓은 화면이다. fit은 액자 비율(1128:700)에 맞추는 방식이다.
 const steps = [
@@ -94,6 +95,8 @@ function onFocusOut(e) {
           v-for="(s, i) in steps"
           :key="s.src"
           :src="s.src"
+          :srcset="screenSrcset(s.src, s.w * 2)"
+          sizes="(min-width: 1200px) 1128px, 100vw"
           :alt="s.alt"
           :width="s.w"
           :height="s.h"

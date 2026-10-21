@@ -1,5 +1,6 @@
 <script setup>
 import { Card } from '@/components/ui/card'
+import { screenSrcset } from '@/assets/screens'
 
 // 실제 앱 화면을 찍은 이미지를 제품 프레임에 담는다. width/height는 CSS 픽셀 기준이라 레이아웃이 밀리지 않는다.
 defineProps({
@@ -8,6 +9,8 @@ defineProps({
   width: { type: Number, required: true },
   height: { type: Number, required: true },
   eager: Boolean,
+  // 화면에서 이미지가 차지하는 너비. 휴대폰에서는 작은 판을 받게 한다.
+  sizes: { type: String, default: '(min-width: 1024px) 50vw, 100vw' },
 })
 </script>
 
@@ -20,6 +23,8 @@ defineProps({
     </div>
     <img
       :src="src"
+      :srcset="screenSrcset(src, width * 2)"
+      :sizes="sizes"
       :alt="alt"
       :width="width"
       :height="height"

@@ -258,7 +258,7 @@ function isInternal(link) {
           <CardTitle>최근 변동 이력</CardTitle>
           <CardAction>
             <Button variant="link" size="sm" as-child>
-              <RouterLink to="/history">전체 보기</RouterLink>
+              <RouterLink to="/history">이력 전체 보기</RouterLink>
             </Button>
           </CardAction>
         </CardHeader>

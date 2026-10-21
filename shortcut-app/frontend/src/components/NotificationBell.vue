@@ -54,13 +54,17 @@ async function readAll() {
         </Badge>
       </Button>
     </PopoverTrigger>
-    <PopoverContent align="end" class="w-[min(360px,calc(100vw-32px))] p-0">
-      <div class="flex items-center justify-between px-4 py-3">
+    <PopoverContent align="end" class="w-[min(360px,calc(100vw-32px))] gap-0 p-0">
+      <div class="flex items-center justify-between px-4 py-2">
         <h2 class="text-sm font-medium">알림</h2>
         <Button variant="link" size="sm" :disabled="store.unreadCount === 0" @click="readAll">모두 읽음</Button>
       </div>
       <Separator />
-      <ScrollArea v-if="store.items.length" class="max-h-[420px]">
+      <!-- 스크롤 영역 안쪽 칸은 높이가 정해져야 스크롤되므로 바깥의 최대 높이를 그대로 물려준다 -->
+      <ScrollArea
+        v-if="store.items.length"
+        class="max-h-[min(420px,60vh)] *:data-[slot=scroll-area-viewport]:max-h-[inherit]"
+      >
         <ul class="flex flex-col p-1">
           <li v-for="n in store.items" :key="n.id">
             <button type="button" :class="cn('grid w-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 rounded-md px-3 py-2.5 text-left text-sm hover:bg-muted', !n.read && 'bg-accent/60')" @click="select(n)">

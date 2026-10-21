@@ -11,7 +11,7 @@ const props = defineProps({
 </script>
 
 <template>
-  <div
+  <h2
     data-slot="card-title"
     :class="
       cn(
@@ -21,5 +21,5 @@ const props = defineProps({
     "
   >
     <slot />
-  </div>
+  </h2>
 </template>

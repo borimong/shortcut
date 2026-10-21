@@ -1,5 +1,5 @@
 <script setup>
-import logoUrl from '@/assets/logo.png'
+import logoUrl from '@/assets/logo.webp'
 import { Separator } from '@/components/ui/separator'
 
 const cols = [
@@ -12,7 +12,7 @@ const cols = [
 <template>
   <footer class="dark bg-background pt-16 pb-10 text-muted-foreground">
     <div class="wrap">
-      <a href="#top" class="flex justify-center" aria-label="ShortCut 처음으로"><img :src="logoUrl" alt="ShortCut" class="h-7 w-auto invert" /></a>
+      <a href="#top" class="flex justify-center" aria-label="ShortCut 처음으로"><img :src="logoUrl" alt="ShortCut" width="86" height="28" class="h-7 w-auto invert" /></a>
       <div class="mx-auto mt-12 grid max-w-[900px] grid-cols-2 gap-8 sm:grid-cols-3">
         <div v-for="c in cols" :key="c.title">
           <p class="mb-3.5 text-[13px] font-bold text-foreground">{{ c.title }}</p>

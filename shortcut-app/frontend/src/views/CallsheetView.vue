@@ -186,7 +186,8 @@ function print() {
         <p class="mt-1 text-muted-foreground">확정된 콜시트를 현장 배포용 한 장으로 정리했습니다.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <Select v-if="versions.length > 1" v-model="selectedVersion">
+        <!-- 버전 목록이 늦게 와도 인쇄 버튼이 밀리지 않도록 선택 상자를 처음부터 둔다 -->
+        <Select v-model="selectedVersion" :disabled="versions.length < 2">
           <SelectTrigger class="w-40" aria-label="콜시트 버전">
             <SelectValue placeholder="버전 선택" />
           </SelectTrigger>
@@ -207,7 +208,8 @@ function print() {
       <CircleAlert />
       <AlertDescription>{{ error.message }} <span class="mono">{{ error.code }}</span></AlertDescription>
     </Alert>
-    <Card v-else-if="loading">
+    <!-- 촬영판을 받은 뒤에는 콜시트 카드가 바로 그려지므로, 로딩 카드가 함께 있다가 사라지며 카드를 밀어 올리지 않게 한다 -->
+    <Card v-else-if="loading && !board">
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon"><Spinner /></EmptyMedia>

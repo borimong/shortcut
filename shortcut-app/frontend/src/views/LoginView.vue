@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { CircleAlert } from '@lucide/vue'
-import logoUrl from '../assets/logo.png'
+import logoUrl from '../assets/logo.webp'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -50,7 +50,7 @@ function quick(account) {
 <template>
   <div class="grid min-h-[calc(100vh-40px)] items-center gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
     <section class="flex flex-col gap-4">
-      <RouterLink to="/" aria-label="소개 페이지로 이동"><img :src="logoUrl" alt="ShortCut" class="h-16 w-auto sm:h-20" /></RouterLink>
+      <RouterLink to="/" aria-label="소개 페이지로 이동"><img :src="logoUrl" alt="ShortCut" width="245" height="80" class="h-16 w-auto sm:h-20" /></RouterLink>
       <p class="text-lg text-muted-foreground">촬영 당일 바뀐 일정을 다시 짜는 도구</p>
     </section>
 

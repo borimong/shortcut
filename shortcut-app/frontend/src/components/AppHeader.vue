@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import logoUrl from '../assets/logo.png'
+import logoUrl from '../assets/logo.webp'
 import NotificationBell from './NotificationBell.vue'
 import { Button } from '@/components/ui/button'
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu'
@@ -34,7 +34,7 @@ function logout() {
   <header class="sticky top-0 z-50 border-b bg-background/90 backdrop-blur print:hidden">
     <div class="wrap flex h-16 items-center gap-6">
       <RouterLink to="/board" aria-label="오늘의 촬영판으로 이동">
-        <img :src="logoUrl" alt="ShortCut" class="h-6 w-auto" />
+        <img :src="logoUrl" alt="ShortCut" width="73" height="24" class="h-6 w-auto" />
       </RouterLink>
       <NavigationMenu class="hidden md:flex">
         <NavigationMenuList>
