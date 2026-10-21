@@ -385,7 +385,7 @@ class FakeModel:
         if "변경 영향 분석" in task:
             self.impact_prompts.append(str(next(m for m in messages if isinstance(m, HumanMessage)).content))
             return _tool_calls(
-                ("business_find_impacted_entities", {"node_id": "SCENE:S12", "depth": 2}),
+                ("business_find_impacted_entities", {"node_id": "SCENE:S12", "depth": 2, "shoot_day_id": 1}),
                 ("business_get_weather", {"shoot_day_id": 1}),
             )
         if "하드 제약 근거 수집" in task:

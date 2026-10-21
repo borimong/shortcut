@@ -1,5 +1,6 @@
 package com.shortcut.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.shortcut.common.ApiException;
 import com.shortcut.domain.OntologyEdge;
 import com.shortcut.domain.OntologyNode;
@@ -10,11 +11,11 @@ import com.shortcut.dto.OntologyDtos.Neighbor;
 import com.shortcut.dto.OntologyDtos.NodeDetail;
 import com.shortcut.repository.OntologyRepository;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,24 +50,48 @@ public class OntologyService {
 
     /**
      * 관계 방향과 상관없이 따라가야 "배우 A가 빠지면 어떤 씬이 영향받나"와 "이 씬에 누가 걸리나"를 함께 답할 수 있다.
+     * 배우와 장비는 촬영일을 넘어 공유되므로, shootDayId를 주면 props의 shootDayId가 다른 노드(다른 촬영일의 블록, 씬, 안,
+     * 예약)는 결과에 넣지도 더 따라가지도 않는다. 촬영일 표시가 없는 배우, 장소, 장비는 그대로 따라간다.
      */
     @Transactional(readOnly = true)
-    public ImpactResponse impact(String nodeId, int depth) {
+    public ImpactResponse impact(String nodeId, int depth, Long shootDayId) {
         if (depth < 1 || depth > MAX_DEPTH) {
             throw ApiException.badRequest("INVALID_DEPTH", "depth는 1에서 3 사이여야 합니다.");
         }
-        find(nodeId);
-        Set<String> visited = new LinkedHashSet<>(List.of(nodeId));
+        // 찾은 순서(가까운 노드 먼저)를 지켜야 결과가 잘릴 때 변경 지점에서 먼 노드부터 빠진다.
+        Map<String, OntologyNode> visited = new LinkedHashMap<>();
+        visited.put(nodeId, find(nodeId));
+        Set<String> otherDays = new HashSet<>();
         Map<Long, OntologyEdge> edges = new LinkedHashMap<>();
         Set<String> frontier = Set.of(nodeId);
         for (int level = 0; level < depth && !frontier.isEmpty(); level++) {
-            Set<String> next = new LinkedHashSet<>();
-            for (OntologyEdge edge : ontology.findEdgesTouching(frontier)) {
-                edges.putIfAbsent(edge.id(), edge);
+            List<OntologyEdge> touching = ontology.findEdgesTouching(frontier);
+            Set<String> discovered = new LinkedHashSet<>();
+            for (OntologyEdge edge : touching) {
                 for (String end : List.of(edge.src(), edge.dst())) {
-                    if (visited.add(end)) {
-                        next.add(end);
+                    if (!visited.containsKey(end) && !otherDays.contains(end)) {
+                        discovered.add(end);
                     }
+                }
+            }
+            Map<String, OntologyNode> fetched = new HashMap<>();
+            ontology.findNodes(discovered).forEach(n -> fetched.put(n.nodeId(), n));
+            Set<String> next = new LinkedHashSet<>();
+            for (String id : discovered) {
+                OntologyNode node = fetched.get(id);
+                if (node == null) {
+                    continue;
+                }
+                if (isOtherDay(node, shootDayId)) {
+                    otherDays.add(id);
+                } else {
+                    visited.put(id, node);
+                    next.add(id);
+                }
+            }
+            for (OntologyEdge edge : touching) {
+                if (!otherDays.contains(edge.src()) && !otherDays.contains(edge.dst())) {
+                    edges.putIfAbsent(edge.id(), edge);
                 }
             }
             frontier = next;
@@ -74,11 +99,12 @@ public class OntologyService {
         List<EdgeRef> edgeRefs = edges.values().stream()
                 .map(e -> new EdgeRef(e.src(), e.relation(), e.dst()))
                 .toList();
-        // 찾은 순서(가까운 노드 먼저)를 지켜야 결과가 잘릴 때 변경 지점에서 먼 노드부터 빠진다.
-        Map<String, OntologyNode> found = new HashMap<>();
-        ontology.findNodes(visited).forEach(n -> found.put(n.nodeId(), n));
-        List<OntologyNode> nodes = visited.stream().map(found::get).filter(Objects::nonNull).toList();
-        return new ImpactResponse(nodeId, edgeRefs, nodes);
+        return new ImpactResponse(nodeId, edgeRefs, List.copyOf(visited.values()));
+    }
+
+    private static boolean isOtherDay(OntologyNode node, Long shootDayId) {
+        JsonNode day = node.props().path("shootDayId");
+        return shootDayId != null && !day.isMissingNode() && day.asLong() != shootDayId;
     }
 
     @Transactional

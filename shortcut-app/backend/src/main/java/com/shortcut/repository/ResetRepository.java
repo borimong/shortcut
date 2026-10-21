@@ -38,9 +38,13 @@ public class ResetRepository {
             "DELETE FROM shoot_day_alternatives WHERE shoot_day_id = :id",
             "DELETE FROM weather_forecasts WHERE location_id >= 100",
             "DELETE FROM reservations WHERE location_id >= 100",
-            "DELETE FROM ontology_edges WHERE dst LIKE 'LOCATION:1__'",
-            "DELETE FROM ontology_nodes WHERE node_id LIKE 'LOCATION:1__' OR node_id = 'PLAN:4'",
+            // Agent가 만든 엣지는 위에서 모두 지웠으므로 이 촬영일의 4안 노드와 업무 행이 사라진 대체 장소 노드만 남는다.
+            "DELETE FROM ontology_nodes WHERE node_id = 'PLAN:' || :id || '-4'",
             "DELETE FROM locations WHERE id >= 100",
+            """
+            DELETE FROM ontology_nodes n
+            WHERE n.type = 'LOCATION' AND NOT EXISTS (SELECT 1 FROM locations l WHERE n.node_id = 'LOCATION:' || l.id)
+            """,
             // 변경 입력이 남긴 장비 고장, 배우 불참, 장소 취소, 강수량 덮어쓰기와 우천 알림 기록을 지운다.
             "DELETE FROM shoot_day_overrides WHERE shoot_day_id = :id",
             "DELETE FROM rain_alerts_sent WHERE shoot_day_id = :id",

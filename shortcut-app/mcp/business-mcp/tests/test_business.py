@@ -194,7 +194,23 @@ def test_block_and_shoot_day_node_ids_reach_backend():
     server = make_server(handler)
     call(server, "find_impacted_entities", {"node_id": "BLOCK:1-PM", "depth": 3})
     call(server, "find_impacted_entities", {"node_id": "SHOOT_DAY:1", "depth": 1})
-    assert paths == [{"nodeId": "BLOCK:1-PM", "depth": "3"}, {"nodeId": "SHOOT_DAY:1", "depth": "1"}]
+    call(server, "find_impacted_entities", {"node_id": "PLAN:2-1", "depth": 1})
+    assert paths == [
+        {"nodeId": "BLOCK:1-PM", "depth": "3"},
+        {"nodeId": "SHOOT_DAY:1", "depth": "1"},
+        {"nodeId": "PLAN:2-1", "depth": "1"},
+    ]
+
+
+def test_shoot_day_id_limits_impact_to_one_shoot_day():
+    paths = []
+
+    def handler(request):
+        paths.append(dict(request.url.params))
+        return httpx.Response(200, json={"edges": [], "nodes": []})
+
+    call(make_server(handler), "find_impacted_entities", {"node_id": "SCENE:S12", "shoot_day_id": 1})
+    assert paths == [{"nodeId": "SCENE:S12", "depth": "2", "shootDayId": "1"}]
 
 
 def test_invalid_node_id_is_rejected_before_backend_call():

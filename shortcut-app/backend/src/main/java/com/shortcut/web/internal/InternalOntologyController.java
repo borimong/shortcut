@@ -32,9 +32,13 @@ public class InternalOntologyController {
         return ontology.node(nodeId);
     }
 
+    /**
+     * shootDayId를 주면 다른 촬영일에 딸린 노드는 빼고 따라간다. 없으면 촬영일을 가리지 않는다.
+     */
     @GetMapping("/impact")
-    public ImpactResponse impact(@RequestParam String nodeId, @RequestParam(defaultValue = "2") int depth) {
-        return ontology.impact(nodeId, depth);
+    public ImpactResponse impact(@RequestParam String nodeId, @RequestParam(defaultValue = "2") int depth,
+                                 @RequestParam(required = false) Long shootDayId) {
+        return ontology.impact(nodeId, depth, shootDayId);
     }
 
     /**
