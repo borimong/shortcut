@@ -135,6 +135,17 @@ SEONGSU = _candidate(
     "16:00",
     0.79,
 )
+SEONGSU_MORNING = _candidate(
+    2,
+    "성수 스튜디오",
+    2,
+    1,
+    [{"id": 1, "name": "카메라 패키지 A"}, {"id": 2, "name": "드론"}, {"id": 3, "name": "반사판"}],
+    3,
+    "10:00",
+    "12:00",
+    0.75,
+)
 PAJU = _candidate(
     3, "파주 세트장", 3, 3, [{"id": 1, "name": "카메라 패키지 A"}, {"id": 5, "name": "짐벌 세트"}], 2, "14:00", "16:00", 0.6
 )
@@ -166,6 +177,12 @@ class FakeBackendState:
     submit_conflicts: int = 0
     registered: list = field(default_factory=list)
     no_feasible: bool = False
+    # 모델이 거절 사유를 좁은 제약으로 바꾼 상황을 흉내 내려고 추가 제약을 무시하고 성수 오전 후보를 넣는다.
+    narrow_constraints: bool = False
+    # 엔진이 상위 후보 몇 개만 돌려주는 상황을 흉내 낸다.
+    top_k: int | None = None
+    # 아워플레이스 검색 결과가 없는 상황
+    no_alternatives: bool = False
 
 
 class FakeMcpClient:
@@ -241,11 +258,17 @@ class FakeMcpClient:
         self.backend.evaluate_calls.append(args)
         if self.backend.no_feasible:
             return {"dataVersion": 1, "weights": args["weights"], "feasibleCount": 0, "candidates": [HANGANG]}
-        excluded = {c.get("location_id") for c in args.get("extra_constraints") or []}
-        ranked = [c for c in (SEONGSU, PAJU) if c["location"]["id"] not in excluded]
+        if self.backend.narrow_constraints:
+            excluded = set()
+            ranked = [SEONGSU, SEONGSU_MORNING, PAJU]
+        else:
+            excluded = {c.get("location_id") for c in args.get("extra_constraints") or []}
+            ranked = [c for c in (SEONGSU, PAJU) if c["location"]["id"] not in excluded]
         ranked += [ILSAN] if self.backend.registered and 101 not in excluded else []
         ranked += [HANGANG]
         ranked = [c for c in ranked if c["hash"] not in (args.get("exclude_hashes") or [])]
+        if self.backend.top_k:
+            ranked = ranked[: self.backend.top_k]
         return {
             "dataVersion": 1,
             "weights": args["weights"],
@@ -290,6 +313,8 @@ class FakeMcpClient:
         return {"registered": registered}
 
     def _search_locations(self, args):
+        if self.backend.no_alternatives:
+            return {"locations": []}
         return {"locations": [{"id": 1, "name": "일산 실내 스튜디오", "distanceKm": 25, "source": "OURPLACE_MOCK"}]}
 
     def _get_proposal(self, args):
