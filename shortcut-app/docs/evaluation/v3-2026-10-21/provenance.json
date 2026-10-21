@@ -1,0 +1,18 @@
+{
+  "evaluated_snapshot_commit": "c869e925e1266010bd0cbb794e1fec2209de94be",
+  "original_base_commit": "dcff8ad",
+  "upstream_integrated_after_evaluation": "f2b1e2b4e0abab52badbd3ae70305bf45aa7673e",
+  "full_agent_evaluation_rerun_after_upstream_merge": false,
+  "agent_result": {
+    "passed": 6,
+    "total": 9
+  },
+  "backend_api_result": {
+    "passed": 11,
+    "total": 11
+  },
+  "scope": "PM_ADAPTER_NOT_FULL_V3_EVALUATION",
+  "model": "gpt-4o-mini",
+  "fallback_model": "gpt-4.1-mini",
+  "embedding_model": "text-embedding-3-small"
+}

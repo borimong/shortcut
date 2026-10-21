@@ -38,3 +38,11 @@
 - [agent-errors.json](agent-errors.json): 중복을 포함한 재시도 오류 기록
 - 원본 실행 로그는 저장소에 포함하지 않았다. 실패 분석에 필요한 오류만 [agent-errors.json](agent-errors.json)에 포함했다.
 - [backend-results.md](backend-results.md): 앞서 수행한 실제 DB·백엔드 검사 11/11 통과 결과
+
+## 평가 버전과 재현
+
+실측 평가 당시 코드와 V3 데이터는 [`c869e92`](https://github.com/borimong/shortcut/commit/c869e925e1266010bd0cbb794e1fec2209de94be)에 보존했다. 이 커밋의 기반 main은 `dcff8ad`였다.
+
+공유 브랜치에는 이후 최신 main `f2b1e2b`도 통합했다. 이 최신 코드에서 Agent 9개 시나리오를 재실행한 결과는 아니며, 위 6/9를 최신 main의 성능으로 해석하면 안 된다. 팀원의 거절 재계획·자체 검토·MCP 경로 통합 변경을 그대로 유지했다. 이 PR이 평가 실패를 해결했다는 의미도 아니다.
+
+과거 평가 조건을 재현하려면 별도 작업 폴더에서 `git checkout c869e925e1266010bd0cbb794e1fec2209de94be` 후 [V3 연결 안내](../../../fixtures/v3/README.md)에 따라 실행한다. 새 API 키는 각자의 `.env`에 설정한다. 모델 응답 특성상 재실행 점수가 동일하다고 보장되지는 않는다. 상세 정보는 [provenance.json](provenance.json)에 있다.
