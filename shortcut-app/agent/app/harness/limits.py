@@ -14,6 +14,7 @@ NO_FEASIBLE_PLAN = "NO_FEASIBLE_PLAN"
 MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
 
 STOP_MESSAGES = {
+    "REJECTION_NEEDS_INFORMATION": "어떤 장비를 제외해야 하는지 확인이 필요합니다",
     LOOP_LIMIT: "재계획 루프 한도에 도달했습니다",
     TOOL_LIMIT: "도구 호출 한도에 도달했습니다",
     TIME_LIMIT: "자동 탐색 시간 한도에 도달했습니다",

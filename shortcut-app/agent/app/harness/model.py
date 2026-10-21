@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, TypeVar
 
-from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
@@ -46,17 +46,25 @@ class ModelGateway:
     async def structured(self, ctx: RunContext, messages: list[BaseMessage], schema: type[SchemaT]) -> SchemaT:
         """정해진 스키마로 답을 받습니다. 판단 결과를 코드가 검사할 수 있게 하려는 용도다."""
 
-        def call(model: Any):
-            # json_schema 엄격 모드는 기본값이 있는 필드를 거부하므로 function_calling 방식으로 받는다.
-            bound = model.with_structured_output(schema, method="function_calling", include_raw=True)
-            return lambda: bound.ainvoke(messages)
+        current = list(messages)
+        for attempt in range(2):
+            def call(model: Any):
+                bound = model.with_structured_output(schema, method="function_calling", include_raw=True)
+                return lambda: bound.ainvoke(current)
 
-        result = await self._recover(ctx, call)
-        raw = result["raw"]
-        add_usage(ctx.counter, _model_name(raw), raw.usage_metadata)
-        if result.get("parsing_error") or result.get("parsed") is None:
-            raise ValueError(f"구조화 응답 해석 실패: {result.get('parsing_error')}")
-        return result["parsed"]
+            result = await self._recover(ctx, call)
+            raw = result["raw"]
+            add_usage(ctx.counter, _model_name(raw), raw.usage_metadata)
+            if not result.get("parsing_error") and result.get("parsed") is not None:
+                return result["parsed"]
+            if attempt == 0:
+                ctx.counter["retries"] += 1
+                current = [*messages, HumanMessage(
+                    f"직전 구조화 응답이 검증에 실패했습니다. 오류: {str(result.get('parsing_error'))[:1200]}. "
+                    f"직전 인자: {str(getattr(raw, 'tool_calls', []))[:2000]}. "
+                    "처음 요청의 범위와 스키마를 지켜 다시 작성하세요. 고르지 않은 요소나 전체 장비를 복사하지 마세요."
+                )]
+        raise ValueError(f"구조화 응답 해석 실패(수정 1회 후): {result.get('parsing_error')}")
 
     async def stream_text(self, ctx: RunContext, messages: list[BaseMessage]) -> str:
         """답변을 토큰 단위로 TOKEN 이벤트로 내보내면서 전체 문장을 모읍니다."""

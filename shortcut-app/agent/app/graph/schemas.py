@@ -91,6 +91,14 @@ class RejectionPlan(BaseModel):
     summary: str = Field(description="무엇을 바꿔 사유를 보완할지 한 문장으로")
 
 
+class RejectionTargets(BaseModel):
+    """자유 형식 제약 대신, 실제 거절 대상과 금액만 추출합니다."""
+
+    equipment_ids: list[int] = Field(default_factory=list, description="문제로 지목한 장비 ID만. 전체 장비 목록을 복사하지 않는다.")
+    max_extra_cost: int | None = Field(default=None, ge=0, description="COST를 선택한 경우에만, 허용하는 최대 추가비 원 단위")
+    summary: str
+
+
 class AlternativeKeywords(BaseModel):
     """4안 탐색에 쓸 검색 조건입니다."""
 

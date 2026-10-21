@@ -15,6 +15,7 @@ import com.shortcut.dto.TaskDtos.TaskCreated;
 import com.shortcut.dto.TaskDtos.TaskEventRequest;
 import com.shortcut.dto.TaskDtos.TaskView;
 import com.shortcut.repository.ProposalRepository;
+import com.shortcut.repository.CallsheetRepository;
 import com.shortcut.repository.TaskRepository;
 import com.shortcut.security.CurrentUser;
 import java.util.List;
@@ -35,15 +36,17 @@ public class TaskService {
     private final TaskRepository tasks;
     private final ProposalRepository proposals;
     private final PlanDataService planData;
+    private final CallsheetRepository callsheets;
     private final OutboxService outbox;
     private final SseHub hub;
     private final JsonColumns json;
 
     public TaskService(TaskRepository tasks, ProposalRepository proposals, PlanDataService planData,
-                       OutboxService outbox, SseHub hub, JsonColumns json) {
+                       OutboxService outbox, SseHub hub, JsonColumns json, CallsheetRepository callsheets) {
         this.tasks = tasks;
         this.proposals = proposals;
         this.planData = planData;
+        this.callsheets = callsheets;
         this.outbox = outbox;
         this.hub = hub;
         this.json = json;
@@ -52,14 +55,16 @@ public class TaskService {
     @Transactional
     public TaskCreated ask(CurrentUser user, AskRequest request) {
         long shootDayId;
+        Long proposalId = request.proposalId();
         if (request.proposalId() != null) {
             Proposal proposal = proposals.find(request.proposalId())
                     .orElseThrow(() -> ApiException.notFound("PROPOSAL_NOT_FOUND", "변경안이 없습니다: " + request.proposalId()));
             shootDayId = proposal.shootDayId();
         } else {
             shootDayId = planData.boardShootDayId();
+            proposalId = callsheets.findLatest(shootDayId).map(c -> c.proposalId()).orElse(null);
         }
-        long id = tasks.insertTask("ASK", request.question().strip(), null, request.proposalId(), shootDayId,
+        long id = tasks.insertTask("ASK", request.question().strip(), null, proposalId, shootDayId,
                 user.username(), UUID.randomUUID().toString(), "ask-");
         outbox.agentStart(find(id));
         return new TaskCreated(id);

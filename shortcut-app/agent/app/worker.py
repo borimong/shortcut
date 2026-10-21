@@ -165,7 +165,7 @@ class TaskRunner:
         }
         if final["kind"] == "ASK":
             evidence = values.get("evidence") or {}
-            cited = [cid for cid in _CITATION.findall(values.get("answer", "")) if cid in evidence] or list(evidence)
+            cited = [cid for cid in _CITATION.findall(values.get("answer", "")) if cid in evidence]
             sources = [
                 {
                     "docId": evidence[c]["doc_id"],

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
@@ -24,12 +25,28 @@ QA_TOOLS = [
 ]
 
 
+CITATION = re.compile(r"\[([a-z0-9\-]+#\d+)\]")
+
+
+def needs_evidence(question: str) -> bool:
+    return any(word in question for word in ("근거", "규정", "계약", "이유", "기준", "왜"))
+
+
+def valid_citations(answer: str, evidence: dict) -> bool:
+    ids = CITATION.findall(answer)
+    return bool(ids) and all(cid in evidence for cid in ids)
+
+
 @harnessed("analyze_impact", "근거 조회")
 async def gather(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """질문에 필요한 업무 데이터와 규정 근거를 모델이 고른 도구로 모읍니다."""
     proposal = f"변경안 ID {state['proposal_id']}" if state.get("proposal_id") else "지정한 변경안 없음"
+    outcomes = []
+    if state.get("proposal_id"):
+        outcomes.append(await ctx.tools.call(ctx, "business_get_proposal", {"proposal_id": state["proposal_id"]}, allowed=QA_TOOLS))
     user = render("qa_gather", question=state["question"], proposal=proposal)
-    outcomes, _ = await run_tool_loop(ctx, render("qa_system"), user, QA_TOOLS, ctx.settings.limits.max_node_tool_rounds)
+    fetched, _ = await run_tool_loop(ctx, render("qa_system"), user, QA_TOOLS, ctx.settings.limits.max_node_tool_rounds)
+    outcomes.extend(fetched)
     evidence: dict[str, dict[str, Any]] = {}
     results = []
     for outcome in outcomes:
@@ -50,6 +67,11 @@ async def gather(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
                         "doc_type": item.get("docType", ""),
                     }
             results.append({"tool": outcome.name, "data": outcome.content})
+    if not evidence and needs_evidence(state["question"]):
+        fallback = await ctx.tools.call(ctx, "rag_search_regulation", {"query": state["question"]}, allowed=QA_TOOLS)
+        if fallback.ok:
+            for hit in fallback.data:
+                evidence[hit["chunk_id"]] = hit
     return {"tool_results": results, "evidence": evidence, "_detail": f"도구 {len(outcomes)}회, 근거 {len(evidence)}건"}
 
 
@@ -70,6 +92,11 @@ async def answer(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         ctx.settings.context_token_budget,
     )
     text = await ctx.model.stream_text(ctx, [SystemMessage(render("qa_system")), HumanMessage(render("qa_answer", context=body))])
+    if evidence and needs_evidence(state["question"]) and not valid_citations(text, evidence):
+        repaired = await ctx.model.chat(ctx, [SystemMessage(render("qa_system")), HumanMessage(
+            render("qa_answer", context=body) + "\n직전 답변의 인용이 누락되었거나 목록에 없습니다. 실제 근거 목록의 대괄호 ID를 해당 문장 끝에 붙여 다시 답하세요."
+        )])
+        text = repaired.content if isinstance(repaired.content, str) and valid_citations(repaired.content, evidence) else "확인한 자료를 답변의 근거로 연결하지 못했습니다. 담당자의 확인이 필요합니다."
     return {"answer": text, "_detail": f"답변 {len(text)}자"}
 
 

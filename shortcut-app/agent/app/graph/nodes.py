@@ -18,6 +18,7 @@ from app.graph.schemas import (
     RejectionPlan,
     WeightAdjustment,
 )
+from app.graph.rejection import RejectionTargetError, resolve_targets
 from app.graph.state import DEFAULT_WEIGHTS, HARD_CONSTRAINTS
 from app.harness.context import Section, fit_sections, summarize_loops
 from app.harness.instructions import render
@@ -698,27 +699,33 @@ async def await_approval(state: dict[str, Any], ctx: RunContext) -> dict[str, An
     if decision["decision"] == "REJECTED":
         candidate = plan["candidate"]
         issues = decision.get("issues") or []
-        rejection = await ctx.model.structured(
-            ctx,
-            [
-                SystemMessage(_system()),
-                HumanMessage(
-                    render(
-                        "rejection_to_constraint",
-                        role=decision.get("role", ""),
-                        reason=decision.get("reason", ""),
-                        issues=", ".join(ISSUE_LABELS.get(i, i) for i in issues) or "선택 없음",
-                        plan=describe(candidate),
-                        location_id=candidate["location"]["id"],
-                        start=candidate["time"]["start"],
-                        end=candidate["time"]["end"],
-                        equipment=_json(candidate["equipment"]["items"]),
-                        extra_cost=candidate["extraCost"],
-                    )
-                ),
-            ],
-            RejectionPlan,
-        )
+        if issues and set(issues) <= {"EQUIPMENT", "COST"}:
+            try:
+                rejection = await resolve_targets(ctx, issues, decision.get("reason", ""), candidate)
+            except RejectionTargetError:
+                return {**update, "stop_condition": "REJECTION_NEEDS_INFORMATION", "_detail": "거절한 장비가 특정되지 않아 확인을 요청합니다"}
+        else:
+            rejection = await ctx.model.structured(
+                ctx,
+                [
+                    SystemMessage(_system()),
+                    HumanMessage(
+                        render(
+                            "rejection_to_constraint",
+                            role=decision.get("role", ""),
+                            reason=decision.get("reason", ""),
+                            issues=", ".join(ISSUE_LABELS.get(i, i) for i in issues) or "선택 없음",
+                            plan=describe(candidate),
+                            location_id=candidate["location"]["id"],
+                            start=candidate["time"]["start"],
+                            end=candidate["time"]["end"],
+                            equipment=_json(candidate["equipment"]["items"]) if "EQUIPMENT" in issues else "대상 아님",
+                            extra_cost=candidate["extraCost"],
+                        )
+                    ),
+                ],
+                RejectionPlan,
+            )
         source = f"REJECTION:{decision.get('role', '')}"
         proposed = [{k: v for k, v in item.model_dump().items() if v is not None} for item in rejection.constraints]
         accepted, dropped = constraints_for_issues(proposed, issues, candidate)

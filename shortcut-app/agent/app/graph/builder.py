@@ -66,6 +66,8 @@ def after_request(state: dict[str, Any]) -> str:
 
 
 def after_approval(state: dict[str, Any]) -> str:
+    if state.get("stop_condition"):
+        return "report_human"
     if state["approvals"]["decision"] == "APPROVED":
         return "commit_plan"
     # 후보를 빼기만 하면 다음 안은 점수가 같거나 낮아지므로, 장소가 문제였으면 대체 장소부터 찾아 후보를 넓힌다.
