@@ -37,25 +37,26 @@ function logout() {
       <RouterLink to="/board" aria-label="오늘의 촬영판으로 이동">
         <img :src="logoUrl" alt="ShortCut" width="110" height="36" class="h-9 w-auto" />
       </RouterLink>
-      <NavigationMenu class="hidden md:flex">
+      <!-- 메뉴가 여섯 개까지 늘어 768px 폭에서는 한 줄에 다 들어가지 않으므로, 한 줄 메뉴는 1024px부터 쓴다 -->
+      <NavigationMenu class="hidden lg:flex">
         <NavigationMenuList>
           <NavigationMenuItem v-for="m in menu" :key="m.to">
             <NavigationMenuLink as-child :active="isActive(m.to)">
-              <RouterLink :to="m.to" :class="cn('px-3 text-sm', isActive(m.to) && 'text-primary')">{{ m.label }}</RouterLink>
+              <RouterLink :to="m.to" :class="cn('px-3 text-sm whitespace-nowrap', isActive(m.to) && 'text-primary')">{{ m.label }}</RouterLink>
             </NavigationMenuLink>
           </NavigationMenuItem>
         </NavigationMenuList>
       </NavigationMenu>
-      <div class="ml-auto flex items-center gap-3">
+      <div class="ml-auto flex shrink-0 items-center gap-3">
         <NotificationBell />
-        <div class="hidden flex-col leading-tight sm:flex">
+        <div class="hidden flex-col leading-tight whitespace-nowrap sm:flex">
           <span class="text-sm font-medium">{{ auth.user?.name }}</span>
           <span class="text-xs text-muted-foreground">{{ auth.user?.title }}</span>
         </div>
         <Button variant="outline" size="sm" @click="logout">로그아웃</Button>
       </div>
     </div>
-    <nav class="wrap flex gap-1 overflow-x-auto pb-2 md:hidden" aria-label="화면 메뉴">
+    <nav class="wrap flex gap-1 overflow-x-auto pb-2 lg:hidden" aria-label="화면 메뉴">
       <Button v-for="m in menu" :key="m.to" as-child size="sm" :variant="isActive(m.to) ? 'secondary' : 'ghost'">
         <RouterLink :to="m.to">{{ m.label }}</RouterLink>
       </Button>
