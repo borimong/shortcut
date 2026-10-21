@@ -4,6 +4,7 @@ import com.shortcut.common.ApiException;
 import com.shortcut.common.JsonColumns;
 import com.shortcut.domain.AiTask;
 import com.shortcut.domain.Actor;
+import com.shortcut.domain.DataOverride;
 import com.shortcut.domain.Equipment;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
@@ -14,19 +15,26 @@ import com.shortcut.dto.TaskDtos.OptionEquipment;
 import com.shortcut.dto.TaskDtos.OptionLocation;
 import com.shortcut.dto.TaskDtos.EventRequest;
 import com.shortcut.dto.TaskDtos.EventResponse;
+import com.shortcut.dto.ResourceDtos.ResourceChange;
+import com.shortcut.dto.ResourceDtos.ResourceChangeRequest;
+import com.shortcut.dto.ResourceDtos.ResourceChangeResult;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.repository.OverrideRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.TaskRepository;
 import com.shortcut.security.CurrentUser;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,15 +53,17 @@ public class EventService {
     private final OutboxService outbox;
     private final OverrideRepository overrides;
     private final PlanDataService planData;
+    private final SupersedeService supersede;
     private final JsonColumns json;
 
     public EventService(PlanRepository plans, TaskRepository tasks, OutboxService outbox, OverrideRepository overrides,
-                        PlanDataService planData, JsonColumns json) {
+                        PlanDataService planData, SupersedeService supersede, JsonColumns json) {
         this.plans = plans;
         this.tasks = tasks;
         this.outbox = outbox;
         this.overrides = overrides;
         this.planData = planData;
+        this.supersede = supersede;
         this.json = json;
     }
 
@@ -90,15 +100,88 @@ public class EventService {
         long eventId = inserted.get();
         if (!applied.isEmpty()) {
             for (Map<String, Object> change : applied) {
-                apply(shootDayId, eventId, change);
+                apply(shootDayId, eventId, change, user.username());
             }
             tasks.updateEventChanges(eventId, json.write(applied));
-            plans.bumpDataVersion(shootDayId);
+            int version = plans.bumpDataVersion(shootDayId);
+            supersede.supersedeOlder(shootDayId, version, summaries(applied));
         }
         long taskId = tasks.insertTask("REPLAN", null, eventId, null, shootDayId, user.username(),
                 UUID.randomUUID().toString(), "event-");
         outbox.agentStart(tasks.findTask(taskId).orElseThrow());
         return new EventResponse(eventId, taskId, null);
+    }
+
+    /**
+     * 자원 현황 패널에서 고친 상태를 저장한다. 변동 이력에 남도록 변경 이벤트를 하나 만들고,
+     * 재계획은 요청한 경우에만 시작한다. 같은 자원에 이미 걸린 상태는 새 상태로 갈아 끼운다.
+     */
+    @Transactional
+    public ResourceChangeResult applyResources(CurrentUser user, ResourceChangeRequest request) {
+        if (!CHANGE_ROLES.contains(user.role())) {
+            throw ApiException.forbidden("자원 상태는 제작 PD와 연출 PD만 바꿀 수 있습니다.");
+        }
+        long shootDayId = request.shootDayId() == null ? DEFAULT_SHOOT_DAY : request.shootDayId();
+        ShootDay shootDay = plans.findShootDay(shootDayId)
+                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId));
+        // 패널을 연 뒤 다른 사람이 먼저 바꿨으면 그 변경을 덮어쓰지 않도록 다시 불러오게 한다.
+        if (request.dataVersion() != shootDay.dataVersion()) {
+            throw versionConflict();
+        }
+        List<ResourceChange> changes = request.changes() == null ? List.of() : request.changes();
+        Set<Long> clears = request.clears() == null ? Set.of() : new LinkedHashSet<>(request.clears());
+        if (changes.isEmpty() && clears.isEmpty()) {
+            throw ApiException.badRequest("NO_CHANGES", "바꿀 내용이 없습니다.");
+        }
+
+        PlanData data = planData.load(shootDayId);
+        Map<Long, DataOverride> active = overrides.find(shootDayId).stream()
+                .collect(Collectors.toMap(DataOverride::id, Function.identity()));
+        List<Map<String, Object>> applied = new ArrayList<>();
+        for (Long id : clears) {
+            DataOverride o = active.get(id);
+            if (o == null) {
+                throw ApiException.badRequest("UNKNOWN_OVERRIDE", "이미 되돌렸거나 없는 상태 기록입니다: " + id);
+            }
+            applied.add(Map.of("kind", "CLEAR", "overrideId", id, "summary", targetName(o, data) + " 정상으로 되돌림"));
+        }
+        for (ResourceChange c : changes) {
+            applied.add(validateResource(c, data, shootDay.shootDate()));
+        }
+
+        // 한 데이터 버전에는 패널 저장을 한 번만 받는다. 동시에 두 번 눌러도 둘 다 반영되지 않게 하려는 키다.
+        String dedupKey = shootDayId + "|RESOURCE|" + shootDay.dataVersion();
+        String detail = summaries(applied);
+        long eventId = tasks.insertEventIfAbsent(shootDayId, eventType(changes), detail, null, shootDay.dataVersion(),
+                        dedupKey, user.username())
+                .orElseThrow(EventService::versionConflict);
+
+        for (Long id : clears) {
+            overrides.clear(id, user.username());
+        }
+        for (Map<String, Object> change : applied) {
+            if ("CLEAR".equals(change.get("kind"))) {
+                continue;
+            }
+            String family = family((String) change.get("kind"));
+            long target = ((Number) change.get("targetId")).longValue();
+            // 같은 자원에 기록이 겹치면 어느 쪽을 되돌려야 하는지 헷갈리므로 이전 기록을 먼저 되돌린다.
+            active.values().stream()
+                    .filter(o -> family.equals(o.kind()) && o.targetId() != null && o.targetId() == target)
+                    .forEach(o -> overrides.clear(o.id(), user.username()));
+            apply(shootDayId, eventId, change, user.username());
+        }
+        tasks.updateEventChanges(eventId, json.write(applied));
+        int version = plans.bumpDataVersion(shootDayId);
+        int superseded = supersede.supersedeOlder(shootDayId, version, detail);
+
+        Long taskId = null;
+        if (request.replan()) {
+            taskId = tasks.insertTask("REPLAN", null, eventId, null, shootDayId, user.username(),
+                    UUID.randomUUID().toString(), "event-");
+            outbox.agentStart(tasks.findTask(taskId).orElseThrow());
+        }
+        return new ResourceChangeResult(eventId, taskId, version, superseded);
     }
 
     @Transactional(readOnly = true)
@@ -181,22 +264,89 @@ public class EventService {
         return out;
     }
 
-    private void apply(long shootDayId, long eventId, Map<String, Object> c) {
+    /**
+     * 패널에서 온 변경 한 건을 검사한다. 변경 입력과 같은 검사(validate)에 수리 여부, 적용 기간, 메모를 더한다.
+     */
+    private Map<String, Object> validateResource(ResourceChange c, PlanData data, LocalDate shootDate) {
+        Map<String, Object> out = validate(new ChangeItem(c.kind(), c.targetId(), c.from(), c.to(),
+                null, null, null, null, null), data);
+        boolean equipment = "EQUIPMENT_UNAVAILABLE".equals(c.kind());
+        if (equipment && "REPAIR".equals(c.status())) {
+            out.put("status", "REPAIR");
+            out.put("summary", ((String) out.get("summary")).replace("(고장)", "(수리 중)"));
+        }
+        if (c.untilDate() != null) {
+            if (!equipment && !"LOCATION_UNAVAILABLE".equals(c.kind())) {
+                throw ApiException.badRequest("UNTIL_NOT_ALLOWED", "적용 기간은 장비와 장소에만 정할 수 있습니다.");
+            }
+            if (c.untilDate().isBefore(shootDate)) {
+                throw ApiException.badRequest("INVALID_UNTIL", "적용 끝 날짜는 이 촬영일보다 빠를 수 없습니다.");
+            }
+            out.put("untilDate", c.untilDate().toString());
+            out.put("summary", out.get("summary") + ", " + c.untilDate() + "까지");
+        }
+        if (!isBlank(c.memo())) {
+            out.put("memo", c.memo().strip());
+        }
+        return out;
+    }
+
+    private void apply(long shootDayId, long eventId, Map<String, Object> c, String username) {
         String kind = (String) c.get("kind");
         Long target = c.get("targetId") == null ? null : ((Number) c.get("targetId")).longValue();
+        LocalDate until = c.get("untilDate") == null ? null : LocalDate.parse((String) c.get("untilDate"));
+        String memo = (String) c.get("memo");
         switch (kind) {
-            case "EQUIPMENT_UNAVAILABLE", "LOCATION_UNAVAILABLE" -> overrides.insert(shootDayId, eventId, kind, target, Map.of());
+            case "EQUIPMENT_UNAVAILABLE" -> overrides.insert(shootDayId, eventId, kind, target,
+                    c.get("status") == null ? Map.of() : Map.of("status", c.get("status")), until, memo, username);
+            case "LOCATION_UNAVAILABLE" -> overrides.insert(shootDayId, eventId, kind, target, Map.of(), until, memo, username);
             case "ACTOR_ABSENT" -> overrides.insert(shootDayId, eventId, "ACTOR_WINDOW", target,
-                    Map.of("from", ABSENT.toString(), "to", ABSENT.toString()));
+                    Map.of("from", ABSENT.toString(), "to", ABSENT.toString()), null, memo, username);
             case "ACTOR_WINDOW" -> overrides.insert(shootDayId, eventId, kind, target,
-                    Map.of("from", c.get("from"), "to", c.get("to")));
+                    Map.of("from", c.get("from"), "to", c.get("to")), null, memo, username);
             case "RAIN_FORECAST" -> overrides.insert(shootDayId, eventId, kind, target,
-                    Map.of("fromHour", c.get("fromHour"), "toHour", c.get("toHour"), "mm", c.get("mm")));
+                    Map.of("fromHour", c.get("fromHour"), "toHour", c.get("toHour"), "mm", c.get("mm")), null, memo, username);
             case "DISASTER_ALERT" -> plans.insertAlert((String) c.get("region"), (String) c.get("alertKind"),
                     LocalTime.parse((String) c.get("from")), LocalTime.parse((String) c.get("to")),
                     c.get("region") + " " + c.get("alertKind"));
             default -> throw new IllegalStateException(kind);
         }
+    }
+
+    private static ApiException versionConflict() {
+        return ApiException.conflict("DATA_VERSION_CONFLICT", "다른 변경이 먼저 저장되었습니다. 새로 불러온 뒤 다시 저장하세요.");
+    }
+
+    private static String summaries(List<Map<String, Object>> applied) {
+        return applied.stream().map(m -> (String) m.get("summary")).collect(Collectors.joining(", "));
+    }
+
+    /** 변동 이력에 보일 변경 유형이다. 여러 종류가 섞이면 처음 것을 쓴다. */
+    private static String eventType(List<ResourceChange> changes) {
+        if (changes.isEmpty()) {
+            return "OTHER";
+        }
+        return switch (changes.get(0).kind()) {
+            case "EQUIPMENT_UNAVAILABLE" -> "EQUIPMENT_FAILURE";
+            case "LOCATION_UNAVAILABLE" -> "LOCATION_CANCEL";
+            default -> "ACTOR_SCHEDULE";
+        };
+    }
+
+    /** 배우 불참도 가용 시간 덮어쓰기(ACTOR_WINDOW)로 저장하므로 같은 묶음으로 본다. */
+    private static String family(String kind) {
+        return "ACTOR_ABSENT".equals(kind) ? "ACTOR_WINDOW" : kind;
+    }
+
+    private static String targetName(DataOverride o, PlanData data) {
+        Long id = o.targetId();
+        String name = switch (o.kind()) {
+            case "EQUIPMENT_UNAVAILABLE" -> id == null || !data.equipment().containsKey(id) ? null : data.equipment().get(id).name();
+            case "LOCATION_UNAVAILABLE", "RAIN_FORECAST" ->
+                    id == null || !data.locations().containsKey(id) ? null : data.locations().get(id).name();
+            default -> id == null || !data.actors().containsKey(id) ? null : data.actors().get(id).name();
+        };
+        return name == null ? "대상 " + id : name;
     }
 
     private static <T> T require(Map<Long, T> rows, Long id, String label) {

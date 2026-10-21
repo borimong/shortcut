@@ -125,6 +125,14 @@ const handlers = {
     result.value = { type: 'NEEDS_HUMAN', ...p }
     log.value.push({ kind: 'mark', tone: 'warning', text: '사람 확인 필요' })
     status.value = 'NEEDS_HUMAN'
+  },
+  // 승인을 기다리는 사이 촬영 데이터가 바뀌어 backend가 이 작업을 닫았다.
+  SUPERSEDED(p) {
+    result.value = { type: 'SUPERSEDED', ...p }
+    // 무효가 된 변경안이므로 승인 대기 카드는 더 보여 주지 않는다.
+    approval.value = null
+    log.value.push({ kind: 'mark', tone: 'warning', text: '다른 변경으로 대체됨' })
+    status.value = 'SUPERSEDED'
   }
 }
 
@@ -290,7 +298,7 @@ function describeViolation(v) {
         v-if="result"
         :class="{
           'ring-destructive/40': result.type === 'FAILED',
-          'ring-warning/60': result.type === 'NEEDS_HUMAN'
+          'ring-warning/60': result.type === 'NEEDS_HUMAN' || result.type === 'SUPERSEDED'
         }"
       >
         <template v-if="result.type === 'DONE'">
@@ -342,6 +350,19 @@ function describeViolation(v) {
             <p class="break-words">{{ result.error }}</p>
             <Button v-if="result.traceUrl" as-child variant="link" class="h-auto px-0">
               <a :href="result.traceUrl" target="_blank" rel="noopener">추적 기록 보기<ExternalLink data-icon="inline-end" /></a>
+            </Button>
+          </CardContent>
+        </template>
+
+        <template v-else-if="result.type === 'SUPERSEDED'">
+          <CardHeader>
+            <CardTitle>다른 변경으로 대체됨</CardTitle>
+            <CardDescription>승인을 기다리는 사이 촬영 데이터가 바뀌어 이 작업을 닫았습니다.</CardDescription>
+          </CardHeader>
+          <CardContent class="flex flex-col items-start gap-3">
+            <p v-if="result.reason" class="break-words">바뀐 내용: {{ result.reason }}</p>
+            <Button v-if="result.proposalId" as-child size="sm" variant="outline">
+              <RouterLink :to="`/proposals/${result.proposalId}`">무효가 된 변경안 보기</RouterLink>
             </Button>
           </CardContent>
         </template>

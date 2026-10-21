@@ -354,6 +354,16 @@ CREATE TABLE IF NOT EXISTS shoot_day_overrides (
 );
 ALTER TABLE change_events ADD COLUMN IF NOT EXISTS changes jsonb NOT NULL DEFAULT '[]';
 
+-- 자원 현황 패널에서 고친 상태의 적용 기간, 사유, 되돌리기 기록이다.
+-- until_date가 있으면 starts_on부터 그날까지 모든 촬영일에 적용하고, 없으면 등록한 촬영일에만 적용한다.
+-- 되돌린 행은 지우지 않고 cleared_at을 채워 이력으로 남긴다.
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS starts_on date;
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS until_date date;
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS memo text;
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS created_by varchar(40);
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS cleared_at timestamptz;
+ALTER TABLE shoot_day_overrides ADD COLUMN IF NOT EXISTS cleared_by varchar(40);
+
 -- 우천 촬영 불가 알림을 같은 장소와 시각에 두 번 보내지 않으려고 보낸 기록을 남긴다.
 CREATE TABLE IF NOT EXISTS rain_alerts_sent (
     shoot_day_id bigint      NOT NULL,

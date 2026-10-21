@@ -1,16 +1,33 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import logoUrl from '../assets/logo.webp'
+import { Boxes } from '@lucide/vue'
 import NotificationBell from './NotificationBell.vue'
+import ResourcePanel from './ResourcePanel.vue'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { NavigationMenu, NavigationMenuItem, NavigationMenuLink, NavigationMenuList } from '@/components/ui/navigation-menu'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '../stores/auth.js'
+import { useNotificationStore } from '../stores/notifications.js'
+import { useResourceStore } from '../stores/resources.js'
 
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
+const resources = useResourceStore()
+const notifications = useNotificationStore()
+const resourcesOpen = ref(false)
+
+// 헤더 배지가 최신이 되도록 처음에 한 번, 그리고 변경이나 확정 알림이 오면 다시 불러온다.
+onMounted(() => resources.load())
+watch(
+  () => notifications.lastNotification,
+  (n) => {
+    if (n && ['CHANGE_NOTICE', 'CALLSHEET', 'DECISION'].includes(n.kind)) resources.load()
+  }
+)
 
 const menu = computed(() =>
   [
@@ -48,6 +65,17 @@ function logout() {
         </NavigationMenuList>
       </NavigationMenu>
       <div class="ml-auto flex shrink-0 items-center gap-3">
+        <Button
+          variant="outline"
+          size="sm"
+          class="gap-2"
+          :aria-label="`자원 현황, 사용 불가 ${resources.unavailableCount}건`"
+          @click="resourcesOpen = true"
+        >
+          <Boxes data-icon="inline-start" />
+          <span class="hidden xl:inline">자원 현황</span>
+          <Badge v-if="resources.unavailableCount" variant="destructive" class="h-5 min-w-5 px-1">{{ resources.unavailableCount }}</Badge>
+        </Button>
         <NotificationBell />
         <div class="hidden flex-col leading-tight whitespace-nowrap sm:flex">
           <span class="text-sm font-medium">{{ auth.user?.name }}</span>
@@ -61,5 +89,6 @@ function logout() {
         <RouterLink :to="m.to">{{ m.label }}</RouterLink>
       </Button>
     </nav>
+    <ResourcePanel v-model:open="resourcesOpen" />
   </header>
 </template>

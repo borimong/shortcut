@@ -99,8 +99,26 @@ export const STATUS = {
   DONE: ['완료', 'ok'],
   FAILED: ['실패', 'bad'],
   NEEDS_HUMAN: ['사람 확인 필요', 'stale'],
+  SUPERSEDED: ['대체됨', 'stale'],
   PASS: ['통과', 'ok'],
   WARN: ['경고', 'stale']
+}
+
+// 자원 현황 패널의 상태 이름과 배지 모양이다. 장비는 OK, BROKEN, REPAIR, 장소는 OK, CANCELLED, 배우는 OK, ABSENT, LIMITED를 쓴다.
+export const RESOURCE_STATUS = {
+  OK: ['정상', 'success'],
+  BROKEN: ['고장', 'destructive'],
+  REPAIR: ['수리 중', 'warning'],
+  CANCELLED: ['취소', 'destructive'],
+  ABSENT: ['불참', 'destructive'],
+  LIMITED: ['시간 제한', 'warning']
+}
+
+// 자원 종류마다 고를 수 있는 상태다.
+export const RESOURCE_OPTIONS = {
+  equipment: ['OK', 'BROKEN', 'REPAIR'],
+  locations: ['OK', 'CANCELLED'],
+  actors: ['OK', 'ABSENT', 'LIMITED']
 }
 
 export const CONSTRAINT_LABELS = {
