@@ -9,6 +9,7 @@ import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader,
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '../api.js'
 import { openStream } from '../sse.js'
 import { useToastStore } from '../stores/toast.js'
@@ -26,6 +27,8 @@ const loop = ref(0)
 const nodes = reactive({})
 const extraNodes = ref([])
 const tools = ref([])
+// 전체 기록 탭에 쓰는 시간순 이벤트 목록. 도구 항목은 tools와 같은 객체라 끝나면 함께 갱신된다.
+const log = ref([])
 const tokenText = ref('')
 const approval = ref(null)
 const result = ref(null)
@@ -42,6 +45,7 @@ function reset() {
   NODE_ORDER.forEach((id) => (nodes[id] = { status: 'pending', loop: 0, detail: '' }))
   extraNodes.value = []
   tools.value = []
+  log.value = []
   tokenText.value = ''
   approval.value = null
   result.value = null
@@ -59,36 +63,47 @@ const handlers = {
     n.loop = p.loop ?? n.loop
     n.label = p.label
     if (p.detail) n.detail = typeof p.detail === 'string' ? p.detail : JSON.stringify(p.detail)
+    log.value.push({ kind: 'node', end: p.phase === 'end', label: NODE_LABELS[p.node] ?? p.label ?? p.node, loop: p.loop, detail: p.phase === 'end' ? n.detail : '' })
     if ((p.loop ?? 0) > loop.value) loop.value = p.loop
     if (!result.value) status.value = 'RUNNING'
   },
   TOOL_START(p) {
-    tools.value.push({ tool: p.tool, server: p.server, args: p.args, done: false })
+    const entry = reactive({ kind: 'tool', tool: p.tool, server: p.server, args: p.args, done: false })
+    tools.value.push(entry)
+    log.value.push(entry)
   },
   TOOL_END(p) {
     const open = [...tools.value].reverse().find((t) => t.tool === p.tool && !t.done)
     const entry = open ?? { tool: p.tool, server: '', args: null }
     Object.assign(entry, { done: true, ok: p.ok, ms: p.ms, preview: p.preview })
-    if (!open) tools.value.push(entry)
+    if (!open) {
+      entry.kind = 'tool'
+      tools.value.push(entry)
+      log.value.push(entry)
+    }
   },
   TOKEN(p) {
     tokenText.value += p.text ?? ''
   },
   APPROVAL_REQUIRED(p) {
     approval.value = p
+    log.value.push({ kind: 'mark', tone: 'info', text: `변경안 ${ver(p.versionNo)} 승인 요청` })
     status.value = 'WAITING_APPROVAL'
   },
   DONE(p) {
     result.value = { type: 'DONE', ...p }
+    log.value.push({ kind: 'mark', tone: 'success', text: '작업 완료' })
     status.value = 'DONE'
   },
   FAILED(p) {
     result.value = { type: 'FAILED', ...p }
+    log.value.push({ kind: 'mark', tone: 'destructive', text: '작업 실패' })
     status.value = 'FAILED'
     for (const n of Object.values(nodes)) if (n.status === 'running') n.status = 'failed'
   },
   NEEDS_HUMAN(p) {
     result.value = { type: 'NEEDS_HUMAN', ...p }
+    log.value.push({ kind: 'mark', tone: 'warning', text: '사람 확인 필요' })
     status.value = 'NEEDS_HUMAN'
   }
 }
@@ -335,81 +350,99 @@ function describeViolation(v) {
       </CardContent>
     </Card>
 
-    <div class="grid items-start gap-5 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>단계 타임라인</CardTitle>
-          <CardAction class="mono text-sm text-muted-foreground">
-            {{ timeline.filter((n) => n.status === 'done').length }}/{{ timeline.length }}
-          </CardAction>
-          <Progress
-            class="col-span-full mt-2 h-1.5"
-            :model-value="timeline.length ? (timeline.filter((n) => n.status === 'done').length / timeline.length) * 100 : 0"
-          />
-        </CardHeader>
-        <CardContent>
-          <ol class="flex flex-col">
-            <li v-for="(n, i) in timeline" :key="n.id" class="relative flex gap-3 pb-5 last:pb-0">
-              <!-- 다음 단계로 이어지는 세로선. 끝난 단계까지는 진하게 칠한다 -->
-              <span
-                v-if="i < timeline.length - 1"
-                aria-hidden="true"
-                class="absolute top-7 bottom-1 left-[11px] w-0.5 rounded-full"
-                :class="n.status === 'done' ? 'bg-primary' : 'bg-border'"
-              ></span>
-              <span
-                class="relative flex size-6 shrink-0 items-center justify-center rounded-full border-2"
-                :class="{
-                  'border-primary bg-primary text-primary-foreground': n.status === 'done',
-                  'border-primary bg-background': n.status === 'running',
-                  'border-destructive bg-destructive text-primary-foreground': n.status === 'failed',
-                  'border-border bg-background text-muted-foreground': n.status === 'pending'
-                }"
-              >
-                <Check v-if="n.status === 'done'" class="size-3.5" />
-                <X v-else-if="n.status === 'failed'" class="size-3.5" />
-                <span v-else-if="n.status === 'running'" class="size-2 animate-pulse rounded-full bg-primary"></span>
-                <span v-else class="mono text-[11px]">{{ i + 1 }}</span>
-              </span>
-              <div class="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span :class="n.status === 'pending' ? 'text-muted-foreground' : 'font-medium'">{{ n.label }}</span>
-                  <Badge v-if="n.loop" variant="secondary">루프 {{ n.loop }}</Badge>
-                  <Badge v-if="n.status === 'running'" variant="info">진행 중</Badge>
-                  <Badge v-else-if="n.status === 'failed'" variant="destructive">중단</Badge>
-                </div>
-                <p v-if="n.detail" class="text-sm break-words text-muted-foreground">{{ n.detail }}</p>
-              </div>
-            </li>
-          </ol>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle>진행 기록</CardTitle>
+        <CardAction class="mono text-sm text-muted-foreground">
+          {{ timeline.filter((n) => n.status === 'done').length }}/{{ timeline.length }}
+        </CardAction>
+        <Progress
+          class="col-span-full mt-2 h-1.5"
+          :model-value="timeline.length ? (timeline.filter((n) => n.status === 'done').length / timeline.length) * 100 : 0"
+        />
+      </CardHeader>
+      <CardContent>
+        <!-- 기본은 단계 변화만 보이고, 도구 호출까지 담긴 시간순 기록은 전체 기록에서 본다 -->
+        <Tabs default-value="steps" class="gap-4">
+          <TabsList>
+            <TabsTrigger value="steps">주요 단계</TabsTrigger>
+            <TabsTrigger value="all">전체 기록 {{ log.length }}건</TabsTrigger>
+          </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>도구 호출 로그</CardTitle>
-          <CardAction class="text-sm text-muted-foreground">{{ tools.length }}건</CardAction>
-        </CardHeader>
-        <CardContent>
-          <ul v-if="tools.length" class="flex max-h-[560px] flex-col gap-2.5 overflow-y-auto">
-            <li v-for="(t, i) in tools" :key="i" class="flex min-w-0 flex-col gap-1">
-              <div class="flex flex-wrap items-center gap-2">
-                <Badge :variant="!t.done ? 'info' : t.ok === false ? 'destructive' : 'success'">
-                  <Spinner v-if="!t.done" data-icon="inline-start" />
-                  {{ !t.done ? '호출 중' : t.ok === false ? '실패' : '완료' }}
-                </Badge>
-                <span class="mono min-w-0 text-sm font-medium break-all">{{ t.tool }}</span>
-                <span v-if="t.server" class="text-sm text-muted-foreground">{{ t.server === 'rag' ? 'RAG' : '업무' }} MCP</span>
-                <span v-if="t.ms !== undefined" class="mono text-sm text-muted-foreground">{{ t.ms }}ms</span>
-              </div>
-              <p v-if="t.args" class="mono truncate text-xs" :title="short(t.args)">{{ short(t.args) }}</p>
-              <p v-if="t.preview" class="truncate text-sm text-muted-foreground" :title="short(t.preview)">{{ short(t.preview) }}</p>
-              <Separator v-if="i < tools.length - 1" class="mt-1.5" />
-            </li>
-          </ul>
-          <p v-else class="text-sm text-muted-foreground">아직 호출한 도구가 없습니다.</p>
-        </CardContent>
-      </Card>
-    </div>
+          <TabsContent value="steps">
+            <ol class="flex flex-col">
+              <li v-for="(n, i) in timeline" :key="n.id" class="relative flex gap-3 pb-5 last:pb-0">
+                <!-- 다음 단계로 이어지는 세로선. 끝난 단계까지는 진하게 칠한다 -->
+                <span
+                  v-if="i < timeline.length - 1"
+                  aria-hidden="true"
+                  class="absolute top-7 bottom-1 left-[11px] w-0.5 rounded-full"
+                  :class="n.status === 'done' ? 'bg-primary' : 'bg-border'"
+                ></span>
+                <span
+                  class="relative flex size-6 shrink-0 items-center justify-center rounded-full border-2"
+                  :class="{
+                    'border-primary bg-primary text-primary-foreground': n.status === 'done',
+                    'border-primary bg-background': n.status === 'running',
+                    'border-destructive bg-destructive text-primary-foreground': n.status === 'failed',
+                    'border-border bg-background text-muted-foreground': n.status === 'pending'
+                  }"
+                >
+                  <Check v-if="n.status === 'done'" class="size-3.5" />
+                  <X v-else-if="n.status === 'failed'" class="size-3.5" />
+                  <span v-else-if="n.status === 'running'" class="size-2 animate-pulse rounded-full bg-primary"></span>
+                  <span v-else class="mono text-[11px]">{{ i + 1 }}</span>
+                </span>
+                <div class="flex min-w-0 flex-1 flex-col gap-1 pt-0.5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span :class="n.status === 'pending' ? 'text-muted-foreground' : 'font-medium'">{{ n.label }}</span>
+                    <Badge v-if="n.loop" variant="secondary">루프 {{ n.loop }}</Badge>
+                    <Badge v-if="n.status === 'running'" variant="info">진행 중</Badge>
+                    <Badge v-else-if="n.status === 'failed'" variant="destructive">중단</Badge>
+                  </div>
+                  <p v-if="n.detail" class="text-sm break-words text-muted-foreground">{{ n.detail }}</p>
+                </div>
+              </li>
+            </ol>
+          </TabsContent>
+
+          <TabsContent value="all">
+            <ol v-if="log.length" class="flex max-h-[640px] flex-col overflow-y-auto">
+              <li
+                v-for="(e, i) in log"
+                :key="i"
+                class="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-2 border-b border-border py-2 last:border-b-0"
+              >
+                <span class="mono pt-0.5 text-xs text-muted-foreground">{{ i + 1 }}</span>
+                <div v-if="e.kind === 'node'" class="flex min-w-0 flex-col gap-0.5">
+                  <div class="flex flex-wrap items-center gap-2 text-sm">
+                    <span :class="e.end ? 'font-medium' : 'text-muted-foreground'">{{ e.label }} {{ e.end ? '완료' : '시작' }}</span>
+                    <span v-if="e.loop" class="text-xs text-muted-foreground">루프 {{ e.loop }}</span>
+                  </div>
+                  <p v-if="e.detail" class="text-sm break-words text-muted-foreground">{{ e.detail }}</p>
+                </div>
+                <div v-else-if="e.kind === 'tool'" class="flex min-w-0 flex-col gap-1">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <Badge :variant="!e.done ? 'info' : e.ok === false ? 'destructive' : 'outline'">
+                      <Spinner v-if="!e.done" data-icon="inline-start" />
+                      {{ !e.done ? '호출 중' : e.ok === false ? '실패' : '도구' }}
+                    </Badge>
+                    <span class="mono min-w-0 text-sm break-all">{{ e.tool }}</span>
+                    <span v-if="e.server" class="text-xs text-muted-foreground">{{ e.server === 'rag' ? 'RAG' : '업무' }} MCP</span>
+                    <span v-if="e.ms !== undefined" class="mono text-xs text-muted-foreground">{{ e.ms }}ms</span>
+                  </div>
+                  <p v-if="e.args" class="mono truncate text-xs" :title="short(e.args)">{{ short(e.args) }}</p>
+                  <p v-if="e.preview" class="truncate text-xs text-muted-foreground" :title="short(e.preview)">{{ short(e.preview) }}</p>
+                </div>
+                <div v-else class="flex items-center">
+                  <Badge :variant="e.tone">{{ e.text }}</Badge>
+                </div>
+              </li>
+            </ol>
+            <p v-else class="text-sm text-muted-foreground">아직 기록이 없습니다.</p>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   </div>
 </template>

@@ -16,6 +16,13 @@ export const DEMO_ACCOUNTS = [
 
 export const ROLE_TITLES = Object.fromEntries(DEMO_ACCOUNTS.map((a) => [a.role, a.title]))
 
+// 승인은 제작부, 연출부, 기술부서 세 곳에서 받는다. 승인 현황 표를 이 순서로 묶는다.
+export const DEPARTMENTS = [
+  { name: '제작부', roles: ['PRODUCER', 'PRODUCTION_MANAGER'] },
+  { name: '연출부', roles: ['DIRECTOR', 'AD1', 'AD2'] },
+  { name: '기술부서', roles: ['DOP', 'SOUND'] }
+]
+
 export const EVENT_TYPES = [
   { value: 'RAIN', label: '우천', hint: '13시 이후 한강 공원 강수확률이 80%로 올라갔습니다.' },
   { value: 'ACTOR_SCHEDULE', label: '배우 일정', hint: '배우 A가 15시까지만 촬영 가능하다고 연락이 왔습니다.' },

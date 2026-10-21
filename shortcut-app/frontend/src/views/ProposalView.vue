@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, signedWon, ver, won } from '../format.js'
-import { CONSTRAINT_LABELS, ISSUE_LABELS, ISSUE_OPTIONS, REVIEW_ACTIONS, REVIEW_LABELS, SCORE_LABELS, SHOOT_DAY_ID } from '../labels.js'
+import { CONSTRAINT_LABELS, DEPARTMENTS, ISSUE_LABELS, ISSUE_OPTIONS, REVIEW_ACTIONS, REVIEW_LABELS, SCORE_LABELS, SHOOT_DAY_ID } from '../labels.js'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -159,6 +159,45 @@ const diffRows = computed(() => {
   ]
 })
 
+// 스트립보드 관례대로 실내/야외와 낮/밤을 띠 색으로 구분한다. 18시 이후 시작은 밤 촬영으로 본다.
+const STRIPS = {
+  'INT-D': { label: '실내 낮', class: 'border-border bg-card text-foreground' },
+  'EXT-D': { label: '야외 낮', class: 'border-transparent bg-strip-ext-day text-foreground' },
+  'INT-N': { label: '실내 밤', class: 'border-transparent bg-strip-int-night text-primary-foreground' },
+  'EXT-N': { label: '야외 밤', class: 'border-transparent bg-strip-ext-night text-primary-foreground' }
+}
+
+function toMinutes(hhmm) {
+  const [h, m] = String(hhmm ?? '').split(':').map(Number)
+  return h * 60 + (m || 0)
+}
+
+const strips = computed(() => {
+  const p = proposal.value
+  if (!p?.original?.start || !p?.proposed?.start) return null
+  const rows = [
+    ['현재 확정', p.original],
+    ['변경안', p.proposed]
+  ].map(([label, plan]) => {
+    const start = toMinutes(plan.start)
+    const end = toMinutes(plan.end)
+    const key = `${plan.location?.indoor ? 'INT' : 'EXT'}-${start >= 18 * 60 ? 'N' : 'D'}`
+    return { label, plan, start, end, strip: STRIPS[key] }
+  })
+  // 두 안을 모두 담고 앞뒤로 한 시간씩 여유를 둔다
+  const lo = Math.floor(Math.min(...rows.map((r) => r.start)) / 60) * 60 - 60
+  const hi = Math.ceil(Math.max(...rows.map((r) => r.end)) / 60) * 60 + 60
+  const place = (start, end) => ({ left: `${((start - lo) / (hi - lo)) * 100}%`, width: `${((end - start) / (hi - lo)) * 100}%` })
+  const hours = []
+  for (let m = lo; m <= hi; m += 60) hours.push({ label: String(m / 60).padStart(2, '0'), left: `${((m - lo) / (hi - lo)) * 100}%` })
+  return {
+    hours,
+    rows: rows.map((r) => ({ ...r, style: place(r.start, r.end) })),
+    ghost: place(rows[0].start, rows[0].end),
+    moved: rows[0].start !== rows[1].start || rows[0].end !== rows[1].end
+  }
+})
+
 const scoreRows = computed(() => {
   const p = proposal.value
   if (!p?.scoreBreakdown) return []
@@ -185,6 +224,37 @@ const progress = computed(() => {
   const p = proposal.value
   if (!p?.requiredCount) return 0
   return Math.round((p.approvedCount / p.requiredCount) * 100)
+})
+
+const APPROVAL_FILTERS = [
+  { value: 'ALL', label: '전체' },
+  { value: 'PENDING', label: '대기' },
+  { value: 'APPROVED', label: '승인' },
+  { value: 'REJECTED', label: '거절' }
+]
+const approvalFilter = ref('ALL')
+
+function countApprovals(status) {
+  const list = proposal.value?.approvals ?? []
+  return status === 'ALL' ? list.length : list.filter((a) => a.status === status).length
+}
+
+// 사람 한 줄, 상태 한 열로 보여 주되 부서별로 묶어 어느 부서가 남았는지 바로 보이게 한다.
+const approvalGroups = computed(() => {
+  const list = proposal.value?.approvals ?? []
+  const known = new Set(DEPARTMENTS.flatMap((d) => d.roles))
+  const groups = [...DEPARTMENTS, { name: '기타', roles: list.map((a) => a.role).filter((r) => !known.has(r)) }]
+  return groups
+    .map((d) => {
+      const members = list.filter((a) => d.roles.includes(a.role))
+      return {
+        name: d.name,
+        total: members.length,
+        approved: members.filter((a) => a.status === 'APPROVED').length,
+        rows: members.filter((a) => approvalFilter.value === 'ALL' || a.status === approvalFilter.value)
+      }
+    })
+    .filter((g) => g.rows.length)
 })
 
 const myPending = computed(() => {
@@ -313,6 +383,47 @@ onBeforeUnmount(() => {
           <CardTitle>원본 대비 변경</CardTitle>
         </CardHeader>
         <CardContent class="flex flex-col gap-4">
+          <div v-if="strips" class="flex flex-col gap-1.5">
+            <div class="grid grid-cols-[4.5rem_minmax(0,1fr)]">
+              <span></span>
+              <div class="mono relative h-4 text-[11px] text-muted-foreground">
+                <!-- 양 끝 눈금은 띠 밖으로 넘치지 않게 안쪽으로 붙인다 -->
+                <span
+                  v-for="(h, k) in strips.hours"
+                  :key="h.label"
+                  :class="cn('absolute whitespace-nowrap', k === 0 ? '' : k === strips.hours.length - 1 ? '-translate-x-full' : '-translate-x-1/2')"
+                  :style="{ left: h.left }"
+                >{{ h.label }}시</span>
+              </div>
+            </div>
+            <div v-for="(r, i) in strips.rows" :key="r.label" class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center">
+              <span class="text-sm text-muted-foreground">{{ r.label }}</span>
+              <div class="relative h-11 rounded-md bg-muted/60">
+                <span
+                  v-for="h in strips.hours"
+                  :key="h.label"
+                  aria-hidden="true"
+                  class="absolute inset-y-0 w-px bg-border"
+                  :style="{ left: h.left }"
+                ></span>
+                <!-- 변경안 줄에 현재 확정 시간을 점선으로 겹쳐 얼마나 옮겼는지 보여 준다 -->
+                <span
+                  v-if="i === 1 && strips.moved"
+                  aria-hidden="true"
+                  class="absolute inset-y-1 rounded border border-dashed border-muted-foreground/60"
+                  :style="strips.ghost"
+                ></span>
+                <div
+                  :class="cn('absolute inset-y-1 flex min-w-0 flex-col justify-center rounded border px-2 leading-tight', r.strip.class)"
+                  :style="r.style"
+                  :title="`${r.strip.label}, ${r.plan.location?.name ?? ''}, ${r.plan.start}~${r.plan.end}`"
+                >
+                  <span class="truncate text-xs font-medium">{{ r.plan.location?.name }}</span>
+                  <span class="truncate text-[11px] opacity-80">{{ r.strip.label }} {{ r.plan.start }}~{{ r.plan.end }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="overflow-hidden rounded-lg border border-border">
             <Table>
               <TableHeader class="bg-muted">
@@ -461,36 +572,59 @@ onBeforeUnmount(() => {
         </CardHeader>
         <CardContent class="flex flex-col gap-4">
           <Progress :model-value="progress" class="h-2" />
+          <ToggleGroup
+            v-model="approvalFilter"
+            type="single"
+            variant="outline"
+            size="sm"
+            class="flex-wrap"
+            @update:model-value="(v) => { if (!v) approvalFilter = 'ALL' }"
+          >
+            <ToggleGroupItem v-for="f in APPROVAL_FILTERS" :key="f.value" :value="f.value">
+              {{ f.label }} <span class="mono text-muted-foreground">{{ countApprovals(f.value) }}</span>
+            </ToggleGroupItem>
+          </ToggleGroup>
           <div class="overflow-hidden rounded-lg border border-border">
             <Table>
               <TableHeader class="bg-muted">
                 <TableRow>
-                  <TableHead>역할</TableHead>
+                  <TableHead>승인자</TableHead>
                   <TableHead>담당 범위</TableHead>
                   <TableHead>상태</TableHead>
-                  <TableHead>처리자</TableHead>
-                  <TableHead>시각</TableHead>
+                  <TableHead>처리 시각</TableHead>
                   <TableHead>거절 사유</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow
-                  v-for="a in proposal.approvals"
-                  :key="a.role"
-                  :class="{ 'bg-accent/60 hover:bg-accent/60': a.role === auth.user?.role }"
-                >
-                  <TableCell>
-                    <span class="font-medium">{{ a.title }}</span>
-                    <span class="mono block text-[11px] text-muted-foreground">{{ a.role }}</span>
-                  </TableCell>
-                  <TableCell>{{ a.scope }}</TableCell>
-                  <TableCell><StatusBadge :status="a.status" /></TableCell>
-                  <TableCell>{{ a.userName ?? '' }}</TableCell>
-                  <TableCell class="mono">{{ dateTime(a.decidedAt) }}</TableCell>
-                  <TableCell class="min-w-45 whitespace-normal">
-                    <Badge v-if="a.issues?.length" variant="destructive">{{ issueText(a.issues) }}</Badge>
-                    {{ a.reason ?? '' }}
-                  </TableCell>
+                <template v-for="g in approvalGroups" :key="g.name">
+                  <TableRow class="hover:bg-transparent">
+                    <TableCell colspan="5" class="bg-muted/40 py-1.5 text-sm">
+                      <span class="font-medium">{{ g.name }}</span>
+                      <span class="ml-2 text-muted-foreground">{{ g.total }}명 중 {{ g.approved }}명 승인</span>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow
+                    v-for="a in g.rows"
+                    :key="a.role"
+                    :class="{ 'bg-accent/60 hover:bg-accent/60': a.role === auth.user?.role }"
+                  >
+                    <TableCell>
+                      <span class="font-medium">{{ a.title }}</span>
+                      <span v-if="a.userName" class="block text-xs text-muted-foreground">{{ a.userName }}</span>
+                    </TableCell>
+                    <TableCell>{{ a.scope }}</TableCell>
+                    <TableCell><StatusBadge :status="a.status" /></TableCell>
+                    <TableCell class="mono" :title="a.decidedAt ? new Date(a.decidedAt).toLocaleString('ko-KR') : ''">
+                      {{ a.decidedAt ? dateTime(a.decidedAt) : '' }}
+                    </TableCell>
+                    <TableCell class="min-w-45 whitespace-normal">
+                      <Badge v-if="a.issues?.length" variant="destructive">{{ issueText(a.issues) }}</Badge>
+                      {{ a.reason ?? '' }}
+                    </TableCell>
+                  </TableRow>
+                </template>
+                <TableRow v-if="!approvalGroups.length" class="hover:bg-transparent">
+                  <TableCell colspan="5" class="py-6 text-center text-muted-foreground">해당하는 승인자가 없습니다.</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
