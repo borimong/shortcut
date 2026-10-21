@@ -1,0 +1,44 @@
+[
+  {
+    "msg": "task_failed",
+    "task_id": 5,
+    "attempt": 1,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 5 [type=too_long, input_value=[{'type': 'EXCLUDE_EQUIPM...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "1ded5203-b9e1-44e1-892e-de7a651506b0"
+  },
+  {
+    "msg": "task_failed",
+    "task_id": 5,
+    "attempt": 2,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 5 [type=too_long, input_value=[{'type': 'EXCLUDE_EQUIPM...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "1ded5203-b9e1-44e1-892e-de7a651506b0"
+  },
+  {
+    "msg": "task_failed",
+    "task_id": 5,
+    "attempt": 3,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 5 [type=too_long, input_value=[{'type': 'EXCLUDE_EQUIPM...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "1ded5203-b9e1-44e1-892e-de7a651506b0"
+  },
+  {
+    "msg": "task_failed",
+    "task_id": 6,
+    "attempt": 1,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 6 [type=too_long, input_value=[{'type': 'MAX_EXTRA_COST...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "d95d3f31-432b-4b5e-8f8c-3854cf376969"
+  },
+  {
+    "msg": "task_failed",
+    "task_id": 6,
+    "attempt": 2,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 6 [type=too_long, input_value=[{'type': 'MAX_EXTRA_COST...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "d95d3f31-432b-4b5e-8f8c-3854cf376969"
+  },
+  {
+    "msg": "task_failed",
+    "task_id": 6,
+    "attempt": 3,
+    "error": "ValueError(\"구조화 응답 해석 실패: 1 validation error for RejectionPlan\\nconstraints\\n  List should have at most 3 items after validation, not 6 [type=too_long, input_value=[{'type': 'MAX_EXTRA_COST...T', 'equipment_id': 12}], input_type=list]\\n    For further information visit https://errors.pydantic.dev/2.14/v/too_long\")",
+    "trace_id": "d95d3f31-432b-4b5e-8f8c-3854cf376969"
+  }
+]

@@ -1,0 +1,122 @@
+[
+  {
+    "cast_id": "CAST-01",
+    "cast_number": 1,
+    "name": "류승룬",
+    "character": "한도윤 / 퇴사를 앞둔 기획자",
+    "phone_display": "010-XXXX-6802",
+    "email": "cast01@crew.example.test",
+    "contract_id": "CONTRACT-01",
+    "costume_notes": "네이비 수트 C01 / 사원증 / 봉투",
+    "makeup_minutes": 30,
+    "wardrobe_minutes": 10,
+    "ready_buffer_minutes": 5,
+    "checkin_minutes": 5,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "max_duty_minutes": 540,
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true,
+    "available_dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "active_contract_version": 3
+  },
+  {
+    "cast_id": "CAST-02",
+    "cast_number": 2,
+    "name": "이하니",
+    "character": "윤서연 / 같은 팀 동료",
+    "phone_display": "010-XXXX-3720",
+    "email": "cast02@crew.example.test",
+    "contract_id": "CONTRACT-02",
+    "costume_notes": "베이지 재킷 C02 / 텀블러",
+    "makeup_minutes": 30,
+    "wardrobe_minutes": 10,
+    "ready_buffer_minutes": 5,
+    "checkin_minutes": 5,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "max_duty_minutes": 540,
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true,
+    "available_dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "active_contract_version": 3
+  },
+  {
+    "cast_id": "CAST-03",
+    "cast_number": 3,
+    "name": "진선구",
+    "character": "최민재 / 후임 기획자",
+    "phone_display": "010-XXXX-6291",
+    "email": "cast03@crew.example.test",
+    "contract_id": "CONTRACT-03",
+    "costume_notes": "그레이 셔츠 C03 / 노트북",
+    "makeup_minutes": 30,
+    "wardrobe_minutes": 10,
+    "ready_buffer_minutes": 5,
+    "checkin_minutes": 5,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "max_duty_minutes": 540,
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true,
+    "available_dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "active_contract_version": 3
+  },
+  {
+    "cast_id": "CAST-04",
+    "cast_number": 4,
+    "name": "김의선",
+    "character": "박정호 / 총무팀장",
+    "phone_display": "010-XXXX-8427",
+    "email": "cast04@crew.example.test",
+    "contract_id": "CONTRACT-04",
+    "costume_notes": "작업복 / 신분증",
+    "makeup_minutes": 30,
+    "wardrobe_minutes": 10,
+    "ready_buffer_minutes": 5,
+    "checkin_minutes": 5,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "max_duty_minutes": 540,
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true,
+    "available_dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "active_contract_version": 3
+  },
+  {
+    "cast_id": "CAST-05",
+    "cast_number": 5,
+    "name": "이동훤",
+    "character": "장우식 / 외주 기사",
+    "phone_display": "010-XXXX-5938",
+    "email": "cast05@crew.example.test",
+    "contract_id": "CONTRACT-05",
+    "costume_notes": "작업복 / 신분증",
+    "makeup_minutes": 30,
+    "wardrobe_minutes": 10,
+    "ready_buffer_minutes": 5,
+    "checkin_minutes": 5,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "max_duty_minutes": 540,
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true,
+    "available_dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "active_contract_version": 3
+  }
+]

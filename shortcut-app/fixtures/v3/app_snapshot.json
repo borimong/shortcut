@@ -1,0 +1,5118 @@
+{
+  "projects": [
+    {
+      "id": 1,
+      "name": "극한업무 · V3 오후 블록 시연",
+      "block_budget_cap": 600000,
+      "crew_weekly_hours_used": 28
+    }
+  ],
+  "shoot_days": [
+    {
+      "id": 1,
+      "project_id": 1,
+      "shoot_date": "2026-10-23",
+      "call_time": "08:00",
+      "data_version": 1,
+      "notice": "V3 연결: 오전 S001~S008 유지 / 오후 S009~S024 재계획. 전일 24씬 재배치·전체 비용 검증은 지원 범위 밖입니다.",
+      "crew_calls": [
+        {
+          "team": "연출팀",
+          "time": "08:00"
+        },
+        {
+          "team": "촬영팀",
+          "time": "08:00"
+        },
+        {
+          "team": "조명팀",
+          "time": "08:00"
+        },
+        {
+          "team": "동시녹음팀",
+          "time": "08:00"
+        },
+        {
+          "team": "미술팀",
+          "time": "08:00"
+        }
+      ]
+    }
+  ],
+  "actors": [
+    {
+      "id": 1,
+      "name": "류승룬",
+      "available_from": "08:00",
+      "available_to": "18:00",
+      "weekly_hours_used": 0.0,
+      "contract_doc_id": "contract-cast-01-v3",
+      "no_night": true,
+      "max_daily_hours": 9.0,
+      "manager_phone": "010-XXXX-6802"
+    },
+    {
+      "id": 2,
+      "name": "이하니",
+      "available_from": "08:00",
+      "available_to": "18:00",
+      "weekly_hours_used": 0.0,
+      "contract_doc_id": "contract-cast-02-v3",
+      "no_night": true,
+      "max_daily_hours": 9.0,
+      "manager_phone": "010-XXXX-3720"
+    },
+    {
+      "id": 3,
+      "name": "진선구",
+      "available_from": "08:00",
+      "available_to": "18:00",
+      "weekly_hours_used": 0.0,
+      "contract_doc_id": "contract-cast-03-v3",
+      "no_night": true,
+      "max_daily_hours": 9.0,
+      "manager_phone": "010-XXXX-6291"
+    },
+    {
+      "id": 4,
+      "name": "김의선",
+      "available_from": "08:00",
+      "available_to": "18:00",
+      "weekly_hours_used": 0.0,
+      "contract_doc_id": "contract-cast-04-v3",
+      "no_night": true,
+      "max_daily_hours": 9.0,
+      "manager_phone": "010-XXXX-8427"
+    },
+    {
+      "id": 5,
+      "name": "이동훤",
+      "available_from": "08:00",
+      "available_to": "18:00",
+      "weekly_hours_used": 0.0,
+      "contract_doc_id": "contract-cast-05-v3",
+      "no_night": true,
+      "max_daily_hours": 9.0,
+      "manager_phone": "010-XXXX-5938"
+    }
+  ],
+  "ontology_nodes": [
+    {
+      "node_id": "ACTOR:1",
+      "type": "ACTOR",
+      "label": "류승룬",
+      "props": {
+        "cast_id": "CAST-01",
+        "cast_number": 1,
+        "name": "류승룬",
+        "character": "한도윤 / 퇴사를 앞둔 기획자",
+        "phone_display": "010-XXXX-6802",
+        "email": "cast01@crew.example.test",
+        "contract_id": "CONTRACT-01",
+        "costume_notes": "네이비 수트 C01 / 사원증 / 봉투",
+        "makeup_minutes": 30,
+        "wardrobe_minutes": 10,
+        "ready_buffer_minutes": 5,
+        "checkin_minutes": 5,
+        "previous_release": "2026-10-22T19:00:00+09:00",
+        "max_duty_minutes": 540,
+        "minimum_overnight_rest_minutes": 660,
+        "is_synthetic": true,
+        "available_dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "active_contract_version": 3,
+        "contractDocId": "contract-cast-01-v3",
+        "calendar": {
+          "cast_id": "CAST-01",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 1080,
+          "status": "CONFIRMED",
+          "previous_release_at": "2026-10-22T19:00:00+09:00",
+          "max_duty_minutes": 540,
+          "minimum_overnight_rest_minutes": 660,
+          "source_doc_id": "CAST-CALENDAR-CAST-01",
+          "version": 1,
+          "updated_at": "2026-10-22T18:00:00+09:00"
+        }
+      }
+    },
+    {
+      "node_id": "CONTRACT:contract-cast-01-v3",
+      "type": "CONTRACT",
+      "label": "류승룬 계약서",
+      "props": {
+        "docId": "contract-cast-01-v3",
+        "sourceDocId": "CONTRACT-CAST-01-V3"
+      }
+    },
+    {
+      "node_id": "ACTOR:2",
+      "type": "ACTOR",
+      "label": "이하니",
+      "props": {
+        "cast_id": "CAST-02",
+        "cast_number": 2,
+        "name": "이하니",
+        "character": "윤서연 / 같은 팀 동료",
+        "phone_display": "010-XXXX-3720",
+        "email": "cast02@crew.example.test",
+        "contract_id": "CONTRACT-02",
+        "costume_notes": "베이지 재킷 C02 / 텀블러",
+        "makeup_minutes": 30,
+        "wardrobe_minutes": 10,
+        "ready_buffer_minutes": 5,
+        "checkin_minutes": 5,
+        "previous_release": "2026-10-22T19:00:00+09:00",
+        "max_duty_minutes": 540,
+        "minimum_overnight_rest_minutes": 660,
+        "is_synthetic": true,
+        "available_dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "active_contract_version": 3,
+        "contractDocId": "contract-cast-02-v3",
+        "calendar": {
+          "cast_id": "CAST-02",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 1080,
+          "status": "CONFIRMED",
+          "previous_release_at": "2026-10-22T19:00:00+09:00",
+          "max_duty_minutes": 540,
+          "minimum_overnight_rest_minutes": 660,
+          "source_doc_id": "CAST-CALENDAR-CAST-02",
+          "version": 1,
+          "updated_at": "2026-10-22T18:00:00+09:00"
+        }
+      }
+    },
+    {
+      "node_id": "CONTRACT:contract-cast-02-v3",
+      "type": "CONTRACT",
+      "label": "이하니 계약서",
+      "props": {
+        "docId": "contract-cast-02-v3",
+        "sourceDocId": "CONTRACT-CAST-02-V3"
+      }
+    },
+    {
+      "node_id": "ACTOR:3",
+      "type": "ACTOR",
+      "label": "진선구",
+      "props": {
+        "cast_id": "CAST-03",
+        "cast_number": 3,
+        "name": "진선구",
+        "character": "최민재 / 후임 기획자",
+        "phone_display": "010-XXXX-6291",
+        "email": "cast03@crew.example.test",
+        "contract_id": "CONTRACT-03",
+        "costume_notes": "그레이 셔츠 C03 / 노트북",
+        "makeup_minutes": 30,
+        "wardrobe_minutes": 10,
+        "ready_buffer_minutes": 5,
+        "checkin_minutes": 5,
+        "previous_release": "2026-10-22T19:00:00+09:00",
+        "max_duty_minutes": 540,
+        "minimum_overnight_rest_minutes": 660,
+        "is_synthetic": true,
+        "available_dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "active_contract_version": 3,
+        "contractDocId": "contract-cast-03-v3",
+        "calendar": {
+          "cast_id": "CAST-03",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 1080,
+          "status": "CONFIRMED",
+          "previous_release_at": "2026-10-22T19:00:00+09:00",
+          "max_duty_minutes": 540,
+          "minimum_overnight_rest_minutes": 660,
+          "source_doc_id": "CAST-CALENDAR-CAST-03",
+          "version": 1,
+          "updated_at": "2026-10-22T18:00:00+09:00"
+        }
+      }
+    },
+    {
+      "node_id": "CONTRACT:contract-cast-03-v3",
+      "type": "CONTRACT",
+      "label": "진선구 계약서",
+      "props": {
+        "docId": "contract-cast-03-v3",
+        "sourceDocId": "CONTRACT-CAST-03-V3"
+      }
+    },
+    {
+      "node_id": "ACTOR:4",
+      "type": "ACTOR",
+      "label": "김의선",
+      "props": {
+        "cast_id": "CAST-04",
+        "cast_number": 4,
+        "name": "김의선",
+        "character": "박정호 / 총무팀장",
+        "phone_display": "010-XXXX-8427",
+        "email": "cast04@crew.example.test",
+        "contract_id": "CONTRACT-04",
+        "costume_notes": "작업복 / 신분증",
+        "makeup_minutes": 30,
+        "wardrobe_minutes": 10,
+        "ready_buffer_minutes": 5,
+        "checkin_minutes": 5,
+        "previous_release": "2026-10-22T19:00:00+09:00",
+        "max_duty_minutes": 540,
+        "minimum_overnight_rest_minutes": 660,
+        "is_synthetic": true,
+        "available_dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "active_contract_version": 3,
+        "contractDocId": "contract-cast-04-v3",
+        "calendar": {
+          "cast_id": "CAST-04",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 1080,
+          "status": "CONFIRMED",
+          "previous_release_at": "2026-10-22T19:00:00+09:00",
+          "max_duty_minutes": 540,
+          "minimum_overnight_rest_minutes": 660,
+          "source_doc_id": "CAST-CALENDAR-CAST-01",
+          "version": 1,
+          "updated_at": "2026-10-22T18:00:00+09:00"
+        }
+      }
+    },
+    {
+      "node_id": "CONTRACT:contract-cast-04-v3",
+      "type": "CONTRACT",
+      "label": "김의선 계약서",
+      "props": {
+        "docId": "contract-cast-04-v3",
+        "sourceDocId": "CONTRACT-CAST-04-V3"
+      }
+    },
+    {
+      "node_id": "ACTOR:5",
+      "type": "ACTOR",
+      "label": "이동훤",
+      "props": {
+        "cast_id": "CAST-05",
+        "cast_number": 5,
+        "name": "이동훤",
+        "character": "장우식 / 외주 기사",
+        "phone_display": "010-XXXX-5938",
+        "email": "cast05@crew.example.test",
+        "contract_id": "CONTRACT-05",
+        "costume_notes": "작업복 / 신분증",
+        "makeup_minutes": 30,
+        "wardrobe_minutes": 10,
+        "ready_buffer_minutes": 5,
+        "checkin_minutes": 5,
+        "previous_release": "2026-10-22T19:00:00+09:00",
+        "max_duty_minutes": 540,
+        "minimum_overnight_rest_minutes": 660,
+        "is_synthetic": true,
+        "available_dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "active_contract_version": 3,
+        "contractDocId": "contract-cast-05-v3",
+        "calendar": {
+          "cast_id": "CAST-05",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 1080,
+          "status": "CONFIRMED",
+          "previous_release_at": "2026-10-22T19:00:00+09:00",
+          "max_duty_minutes": 540,
+          "minimum_overnight_rest_minutes": 660,
+          "source_doc_id": "CAST-CALENDAR-CAST-01",
+          "version": 1,
+          "updated_at": "2026-10-22T18:00:00+09:00"
+        }
+      }
+    },
+    {
+      "node_id": "CONTRACT:contract-cast-05-v3",
+      "type": "CONTRACT",
+      "label": "이동훤 계약서",
+      "props": {
+        "docId": "contract-cast-05-v3",
+        "sourceDocId": "CONTRACT-CAST-05-V3"
+      }
+    },
+    {
+      "node_id": "LOCATION:1",
+      "type": "LOCATION",
+      "label": "새봄오피스 앞마당",
+      "props": {
+        "location_id": "LOC-EXT",
+        "name": "새봄오피스 앞마당",
+        "kind": "EXT",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR"
+        ],
+        "rain_protected": false,
+        "filming_prohibited": false,
+        "max_wind_mps": 8,
+        "synthetic_coordinate_km": [
+          0,
+          0
+        ],
+        "prep_stations": 2,
+        "address": "가상시 새봄구 촬영로 10, 1층 앞마당 (가상 주소)",
+        "phone_display": "02-XXXX-6465",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 0,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 240000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 240000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-EXT",
+        "notes": "등록된 가상 사용조건만 적용",
+        "contact_name": "김은솔 (가상 장소담당)",
+        "basecamp": "동측 대기 텐트 / 분장 2석 / 의상 행거",
+        "parking": "동측 P1 제작차량 3대 / 보행로 비우기",
+        "safety_notes": "젖은 노면과 전원 케이블 확인 / 일반 보행자 우선 / 도로 통제 없음",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 88,
+        "reservation_state": "HELD_ORIGINAL_DATE",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:2",
+      "type": "LOCATION",
+      "label": "새봄스튜디오 사무실 세트",
+      "props": {
+        "location_id": "LOC-INT",
+        "name": "새봄스튜디오 사무실 세트",
+        "kind": "INT",
+        "appearance_tags": [
+          "OFFICE_INTERIOR"
+        ],
+        "rain_protected": true,
+        "filming_prohibited": false,
+        "max_wind_mps": 20,
+        "synthetic_coordinate_km": [
+          8,
+          0
+        ],
+        "prep_stations": 2,
+        "address": "가상시 새봄구 스튜디오길 25, 2층 A세트 (가상 주소)",
+        "phone_display": "02-XXXX-5280",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 0,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 320000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 320000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-INT",
+        "notes": "등록된 가상 사용조건만 적용",
+        "contact_name": "최윤호 (가상 장소담당)",
+        "basecamp": "2층 라운지 / 분장 2석 / 식사 공간",
+        "parking": "후문 P2 / 하역 10분 이내 / 승강기 공동 사용",
+        "safety_notes": "비상구 적치 금지 / 바닥 보호 매트 / 세트 소품 위치 사진 기록",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 80,
+        "reservation_state": "HELD_ORIGINAL_DATE",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:3",
+      "type": "LOCATION",
+      "label": "보송비즈센터 지붕 통로",
+      "props": {
+        "location_id": "LOC-COVER",
+        "name": "보송비즈센터 지붕 통로",
+        "kind": "EXT_COVERED",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR"
+        ],
+        "rain_protected": true,
+        "filming_prohibited": false,
+        "max_wind_mps": 8,
+        "synthetic_coordinate_km": [
+          4,
+          0
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 43 (가상 주소)",
+        "phone_display": "02-XXXX-8264",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 280000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 280000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 280000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-COVER",
+        "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 70,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:4",
+      "type": "LOCATION",
+      "label": "모노스튜디오 사무실 세트",
+      "props": {
+        "location_id": "LOC-STUDIO",
+        "name": "모노스튜디오 사무실 세트",
+        "kind": "INT",
+        "appearance_tags": [
+          "OFFICE_INTERIOR"
+        ],
+        "rain_protected": true,
+        "filming_prohibited": false,
+        "max_wind_mps": 20,
+        "synthetic_coordinate_km": [
+          4,
+          5
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 56 (가상 주소)",
+        "phone_display": "02-XXXX-3597",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 180000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 180000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 180000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-STUDIO",
+        "notes": "등록된 가상 사용조건만 적용",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 85,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:5",
+      "type": "LOCATION",
+      "label": "강변 업무광장",
+      "props": {
+        "location_id": "LOC-PLAZA",
+        "name": "강변 업무광장",
+        "kind": "EXT",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR"
+        ],
+        "rain_protected": false,
+        "filming_prohibited": false,
+        "max_wind_mps": 8,
+        "synthetic_coordinate_km": [
+          18,
+          5
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 69 (가상 주소)",
+        "phone_display": "02-XXXX-9146",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "PENDING_APPROVAL",
+            "permit_status": "PENDING",
+            "incremental_fee_krw": 130000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "PENDING_APPROVAL",
+            "permit_status": "PENDING",
+            "incremental_fee_krw": 130000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "PENDING_APPROVAL",
+            "permit_status": "PENDING",
+            "incremental_fee_krw": 130000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-PLAZA",
+        "notes": "등록된 가상 사용조건만 적용",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 86,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:6",
+      "type": "LOCATION",
+      "label": "하루오피스 복합 세트",
+      "props": {
+        "location_id": "LOC-HUB",
+        "name": "하루오피스 복합 세트",
+        "kind": "MIXED",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR",
+          "OFFICE_INTERIOR"
+        ],
+        "rain_protected": true,
+        "filming_prohibited": false,
+        "max_wind_mps": 20,
+        "synthetic_coordinate_km": [
+          6,
+          4
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 82 (가상 주소)",
+        "phone_display": "02-XXXX-5728",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 450000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 450000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 450000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-HUB",
+        "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 99,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:7",
+      "type": "LOCATION",
+      "label": "파주 비즈파크 외관",
+      "props": {
+        "location_id": "LOC-FAR",
+        "name": "파주 비즈파크 외관",
+        "kind": "EXT",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR"
+        ],
+        "rain_protected": false,
+        "filming_prohibited": false,
+        "max_wind_mps": 8,
+        "synthetic_coordinate_km": [
+          40,
+          18
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 95 (가상 주소)",
+        "phone_display": "02-XXXX-2439",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 110000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 110000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1020,
+            "booking_status": "CONFIRMED",
+            "permit_status": "APPROVED",
+            "incremental_fee_krw": 110000,
+            "approval_roles": [],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-FAR",
+        "notes": "등록된 가상 사용조건만 적용",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 82,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "LOCATION:8",
+      "type": "LOCATION",
+      "label": "출입 제한 업무동 세트",
+      "props": {
+        "location_id": "LOC-RESTRICTED",
+        "name": "출입 제한 업무동 세트",
+        "kind": "MIXED",
+        "appearance_tags": [
+          "OFFICE_EXTERIOR",
+          "OFFICE_INTERIOR"
+        ],
+        "rain_protected": true,
+        "filming_prohibited": true,
+        "max_wind_mps": 20,
+        "synthetic_coordinate_km": [
+          2,
+          2
+        ],
+        "prep_stations": 2,
+        "address": "가상시 촬영구 후보길 108 (가상 주소)",
+        "phone_display": "02-XXXX-7613",
+        "availability": [
+          {
+            "date": "2026-10-23",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "PROHIBITED",
+            "permit_status": "DENIED",
+            "incremental_fee_krw": 10000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-24",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "PROHIBITED",
+            "permit_status": "DENIED",
+            "incremental_fee_krw": 10000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          },
+          {
+            "date": "2026-10-25",
+            "access_start_min": 480,
+            "access_end_min": 1080,
+            "shoot_start_min": 540,
+            "shoot_end_min": 1080,
+            "booking_status": "PROHIBITED",
+            "permit_status": "DENIED",
+            "incremental_fee_krw": 10000,
+            "approval_roles": [
+              "LOCATION_MANAGER"
+            ],
+            "quote_valid_until": "2026-10-22T21:00:00+09:00"
+          }
+        ],
+        "source_doc_id": "LOCATION-LOC-RESTRICTED",
+        "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "creative_fit_score": 95,
+        "reservation_state": "NOT_BOOKED",
+        "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:1",
+      "type": "EQUIPMENT",
+      "label": "시네마 카메라 A세트",
+      "props": {
+        "offer_id": "CAM-BASE",
+        "kind": "CAMERA",
+        "name": "시네마 카메라 A세트",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "CAM_4K",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 0,
+          "2026-10-24": 170000,
+          "2026-10-25": 170000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-CAM-BASE",
+        "contents": "바디 / 24·35·50·85mm 렌즈 / 배터리 / 삼각대",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": "EQ-CAM",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 95,
+        "reservation_state": "HELD_ORIGINAL_DATE"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:2",
+      "type": "EQUIPMENT",
+      "label": "호환 카메라 B 패키지",
+      "props": {
+        "offer_id": "CAM-B",
+        "kind": "CAMERA",
+        "name": "호환 카메라 B 패키지",
+        "vendor": "렌즈팩토리",
+        "quantity": 1,
+        "compatibility_group": "CAM_4K",
+        "delivered_ready_min": 480,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 160000,
+          "2026-10-24": 160000,
+          "2026-10-25": 160000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-CAM-B",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 98,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:3",
+      "type": "EQUIPMENT",
+      "label": "카메라 C 당일 긴급 패키지",
+      "props": {
+        "offer_id": "CAM-C",
+        "kind": "CAMERA",
+        "name": "카메라 C 당일 긴급 패키지",
+        "vendor": "퀵필름",
+        "quantity": 1,
+        "compatibility_group": "CAM_4K",
+        "delivered_ready_min": 780,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "PENDING_APPROVAL",
+        "approval_roles": [
+          "RENTAL_MANAGER"
+        ],
+        "incremental_fee_by_date": {
+          "2026-10-23": 80000,
+          "2026-10-24": 80000,
+          "2026-10-25": 80000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-CAM-C",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 70,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:4",
+      "type": "EQUIPMENT",
+      "label": "LED 조명 패키지",
+      "props": {
+        "offer_id": "LIGHT-BASE",
+        "kind": "LIGHT",
+        "name": "LED 조명 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "LED_2",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 0,
+          "2026-10-24": 90000,
+          "2026-10-25": 90000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-LIGHT-BASE",
+        "contents": "LED 2대 / 스탠드 / 디퓨저 / 전원 릴",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": "EQ-LED",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 95,
+        "reservation_state": "HELD_ORIGINAL_DATE"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:5",
+      "type": "EQUIPMENT",
+      "label": "호환 LED 2등 패키지",
+      "props": {
+        "offer_id": "LIGHT-B",
+        "kind": "LIGHT",
+        "name": "호환 LED 2등 패키지",
+        "vendor": "라이트박스",
+        "quantity": 1,
+        "compatibility_group": "LED_2",
+        "delivered_ready_min": 480,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 90000,
+          "2026-10-24": 90000,
+          "2026-10-25": 90000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-LIGHT-B",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 98,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:6",
+      "type": "EQUIPMENT",
+      "label": "추가 LED 패키지",
+      "props": {
+        "offer_id": "LIGHT-C",
+        "kind": "LIGHT",
+        "name": "추가 LED 패키지",
+        "vendor": "퀵필름",
+        "quantity": 1,
+        "compatibility_group": "LED_2",
+        "delivered_ready_min": 480,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "PENDING_APPROVAL",
+        "approval_roles": [
+          "RENTAL_MANAGER"
+        ],
+        "incremental_fee_by_date": {
+          "2026-10-23": 60000,
+          "2026-10-24": 60000,
+          "2026-10-25": 60000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-LIGHT-C",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 70,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:7",
+      "type": "EQUIPMENT",
+      "label": "동시녹음 패키지",
+      "props": {
+        "offer_id": "SOUND-BASE",
+        "kind": "SOUND",
+        "name": "동시녹음 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "AUDIO_3CH",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 0,
+          "2026-10-24": 60000,
+          "2026-10-25": 60000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-SOUND-BASE",
+        "contents": "레코더 / 붐 / 무선 마이크 3채널",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": "EQ-SND",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 95,
+        "reservation_state": "HELD_ORIGINAL_DATE"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:8",
+      "type": "EQUIPMENT",
+      "label": "호환 녹음 3채널 패키지",
+      "props": {
+        "offer_id": "SOUND-B",
+        "kind": "SOUND",
+        "name": "호환 녹음 3채널 패키지",
+        "vendor": "사운드카트",
+        "quantity": 1,
+        "compatibility_group": "AUDIO_3CH",
+        "delivered_ready_min": 480,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 60000,
+          "2026-10-24": 60000,
+          "2026-10-25": 60000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-SOUND-B",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 98,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:9",
+      "type": "EQUIPMENT",
+      "label": "비호환 녹음 1채널 패키지",
+      "props": {
+        "offer_id": "SOUND-C",
+        "kind": "SOUND",
+        "name": "비호환 녹음 1채널 패키지",
+        "vendor": "퀵필름",
+        "quantity": 1,
+        "compatibility_group": "AUDIO_1CH",
+        "delivered_ready_min": 480,
+        "rental_end_min": 1140,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 30000,
+          "2026-10-24": 30000,
+          "2026-10-25": 30000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-SOUND-C",
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 70,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:10",
+      "type": "EQUIPMENT",
+      "label": "기존 카메라 지지·리그 패키지",
+      "props": {
+        "offer_id": "GRIP-BASE",
+        "kind": "GRIP",
+        "name": "기존 카메라 지지·리그 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "GRIP_STABLE",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 0,
+          "2026-10-24": 35000,
+          "2026-10-25": 35000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-GRIP-BASE",
+        "contents": "안전 점검된 가상 GRIP 패키지",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": null,
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 95,
+        "reservation_state": "HELD_ORIGINAL_DATE"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:11",
+      "type": "EQUIPMENT",
+      "label": "대체 카메라 지지·리그 패키지",
+      "props": {
+        "offer_id": "GRIP-B",
+        "kind": "GRIP",
+        "name": "대체 카메라 지지·리그 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "GRIP_STABLE",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 35000,
+          "2026-10-24": 35000,
+          "2026-10-25": 35000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-GRIP-B",
+        "contents": "안전 점검된 가상 GRIP 패키지",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": null,
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 98,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:12",
+      "type": "EQUIPMENT",
+      "label": "기존 분전·전원 패키지",
+      "props": {
+        "offer_id": "POWER-BASE",
+        "kind": "POWER",
+        "name": "기존 분전·전원 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "POWER_3KW",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 0,
+          "2026-10-24": 45000,
+          "2026-10-25": 45000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-POWER-BASE",
+        "contents": "안전 점검된 가상 POWER 패키지",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": null,
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 95,
+        "reservation_state": "HELD_ORIGINAL_DATE"
+      }
+    },
+    {
+      "node_id": "EQUIPMENT:13",
+      "type": "EQUIPMENT",
+      "label": "대체 분전·전원 패키지",
+      "props": {
+        "offer_id": "POWER-B",
+        "kind": "POWER",
+        "name": "대체 분전·전원 패키지",
+        "vendor": "프레임렌탈",
+        "quantity": 1,
+        "compatibility_group": "POWER_3KW",
+        "delivered_ready_min": 450,
+        "rental_end_min": 1110,
+        "return_buffer_min": 60,
+        "dates": [
+          "2026-10-23",
+          "2026-10-24",
+          "2026-10-25"
+        ],
+        "booking_status": "CONFIRMED",
+        "approval_roles": [],
+        "incremental_fee_by_date": {
+          "2026-10-23": 45000,
+          "2026-10-24": 45000,
+          "2026-10-25": 45000
+        },
+        "quote_valid_until": "2026-10-22T21:00:00+09:00",
+        "source_doc_id": "QUOTE-POWER-B",
+        "contents": "안전 점검된 가상 POWER 패키지",
+        "phone_display": "02-XXXX-5392",
+        "original_equipment_id": null,
+        "version": 1,
+        "updated_at": "2026-10-22T18:00:00+09:00",
+        "reliability_score": 98,
+        "reservation_state": "NOT_BOOKED"
+      }
+    },
+    {
+      "node_id": "SCENE:S001",
+      "type": "SCENE",
+      "label": "경비실 앞",
+      "props": {
+        "scene_id": "S001",
+        "scene_number": 1,
+        "title": "경비실 앞",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "사원증",
+          "봉투",
+          "텀블러"
+        ],
+        "synopsis": "경비실 앞에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S001",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U01"
+      }
+    },
+    {
+      "node_id": "SCENE:S002",
+      "type": "SCENE",
+      "label": "주차장 인사",
+      "props": {
+        "scene_id": "S002",
+        "scene_number": 2,
+        "title": "주차장 인사",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "사원증",
+          "봉투",
+          "텀블러"
+        ],
+        "synopsis": "주차장 인사에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S002",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S001"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U01"
+      }
+    },
+    {
+      "node_id": "SCENE:S003",
+      "type": "SCENE",
+      "label": "정문 계단",
+      "props": {
+        "scene_id": "S003",
+        "scene_number": 3,
+        "title": "정문 계단",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "사원증",
+          "봉투",
+          "텀블러"
+        ],
+        "synopsis": "정문 계단에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S003",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S002"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U01"
+      }
+    },
+    {
+      "node_id": "SCENE:S004",
+      "type": "SCENE",
+      "label": "외부 출입구",
+      "props": {
+        "scene_id": "S004",
+        "scene_number": 4,
+        "title": "외부 출입구",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "사원증",
+          "봉투",
+          "텀블러"
+        ],
+        "synopsis": "외부 출입구에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S004",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S003"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U01"
+      }
+    },
+    {
+      "node_id": "SCENE:S005",
+      "type": "SCENE",
+      "label": "동측 마당",
+      "props": {
+        "scene_id": "S005",
+        "scene_number": 5,
+        "title": "동측 마당",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "사원증",
+          "노트북 가방"
+        ],
+        "synopsis": "동측 마당에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S005",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U02"
+      }
+    },
+    {
+      "node_id": "SCENE:S006",
+      "type": "SCENE",
+      "label": "명함 교환",
+      "props": {
+        "scene_id": "S006",
+        "scene_number": 6,
+        "title": "명함 교환",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "사원증",
+          "노트북 가방"
+        ],
+        "synopsis": "명함 교환에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S006",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S005"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U02"
+      }
+    },
+    {
+      "node_id": "SCENE:S007",
+      "type": "SCENE",
+      "label": "택배 카트",
+      "props": {
+        "scene_id": "S007",
+        "scene_number": 7,
+        "title": "택배 카트",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "사원증",
+          "노트북 가방"
+        ],
+        "synopsis": "택배 카트에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S007",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S006"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U02"
+      }
+    },
+    {
+      "node_id": "SCENE:S008",
+      "type": "SCENE",
+      "label": "건물 입구",
+      "props": {
+        "scene_id": "S008",
+        "scene_number": 8,
+        "title": "건물 입구",
+        "int_ext": "EXT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "사원증",
+          "노트북 가방"
+        ],
+        "synopsis": "건물 입구에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+        "requires_dry_weather": true,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S008",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S007"
+        ],
+        "appearance_required": "OFFICE_EXTERIOR",
+        "eligible_location_ids": [
+          "LOC-EXT",
+          "LOC-COVER",
+          "LOC-PLAZA",
+          "LOC-HUB",
+          "LOC-FAR",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-EXT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U02"
+      }
+    },
+    {
+      "node_id": "SCENE:S009",
+      "type": "SCENE",
+      "label": "사무실 첫인사",
+      "props": {
+        "scene_id": "S009",
+        "scene_number": 9,
+        "title": "사무실 첫인사",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "회의 자료",
+          "텀블러"
+        ],
+        "synopsis": "사무실 첫인사에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S009",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U03"
+      }
+    },
+    {
+      "node_id": "SCENE:S010",
+      "type": "SCENE",
+      "label": "회의 자료",
+      "props": {
+        "scene_id": "S010",
+        "scene_number": 10,
+        "title": "회의 자료",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "회의 자료",
+          "텀블러"
+        ],
+        "synopsis": "회의 자료에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S010",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S009"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U03"
+      }
+    },
+    {
+      "node_id": "SCENE:S011",
+      "type": "SCENE",
+      "label": "발표 모니터",
+      "props": {
+        "scene_id": "S011",
+        "scene_number": 11,
+        "title": "발표 모니터",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02"
+        ],
+        "props": [
+          "회의 자료",
+          "텀블러"
+        ],
+        "synopsis": "발표 모니터에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S011",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S010"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U03"
+      }
+    },
+    {
+      "node_id": "SCENE:S012",
+      "type": "SCENE",
+      "label": "총무팀 방문",
+      "props": {
+        "scene_id": "S012",
+        "scene_number": 12,
+        "title": "총무팀 방문",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02",
+          "CAST-04"
+        ],
+        "props": [
+          "회의 자료",
+          "텀블러"
+        ],
+        "synopsis": "총무팀 방문에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S012",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S011"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U03"
+      }
+    },
+    {
+      "node_id": "SCENE:S013",
+      "type": "SCENE",
+      "label": "복도 분기점",
+      "props": {
+        "scene_id": "S013",
+        "scene_number": 13,
+        "title": "복도 분기점",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북 가방",
+          "사원증"
+        ],
+        "synopsis": "복도 분기점에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S013",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U04"
+      }
+    },
+    {
+      "node_id": "SCENE:S014",
+      "type": "SCENE",
+      "label": "복사실",
+      "props": {
+        "scene_id": "S014",
+        "scene_number": 14,
+        "title": "복사실",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북 가방",
+          "사원증"
+        ],
+        "synopsis": "복사실에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S014",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S013"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U04"
+      }
+    },
+    {
+      "node_id": "SCENE:S015",
+      "type": "SCENE",
+      "label": "직원 게시판",
+      "props": {
+        "scene_id": "S015",
+        "scene_number": 15,
+        "title": "직원 게시판",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북 가방",
+          "사원증"
+        ],
+        "synopsis": "직원 게시판에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S015",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S014"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U04"
+      }
+    },
+    {
+      "node_id": "SCENE:S016",
+      "type": "SCENE",
+      "label": "외주 기사 호출",
+      "props": {
+        "scene_id": "S016",
+        "scene_number": 16,
+        "title": "외주 기사 호출",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-02",
+          "CAST-03",
+          "CAST-05"
+        ],
+        "props": [
+          "노트북 가방",
+          "사원증"
+        ],
+        "synopsis": "외주 기사 호출에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S016",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S015"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U04"
+      }
+    },
+    {
+      "node_id": "SCENE:S017",
+      "type": "SCENE",
+      "label": "업무 파일",
+      "props": {
+        "scene_id": "S017",
+        "scene_number": 17,
+        "title": "업무 파일",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북",
+          "인계 메모"
+        ],
+        "synopsis": "업무 파일에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S017",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U05"
+      }
+    },
+    {
+      "node_id": "SCENE:S018",
+      "type": "SCENE",
+      "label": "인계 체크",
+      "props": {
+        "scene_id": "S018",
+        "scene_number": 18,
+        "title": "인계 체크",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북",
+          "인계 메모"
+        ],
+        "synopsis": "인계 체크에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S018",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S017"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U05"
+      }
+    },
+    {
+      "node_id": "SCENE:S019",
+      "type": "SCENE",
+      "label": "서랍 정리",
+      "props": {
+        "scene_id": "S019",
+        "scene_number": 19,
+        "title": "서랍 정리",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03"
+        ],
+        "props": [
+          "노트북",
+          "인계 메모"
+        ],
+        "synopsis": "서랍 정리에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S019",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S018"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U05"
+      }
+    },
+    {
+      "node_id": "SCENE:S020",
+      "type": "SCENE",
+      "label": "총무 확인",
+      "props": {
+        "scene_id": "S020",
+        "scene_number": 20,
+        "title": "총무 확인",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-03",
+          "CAST-04"
+        ],
+        "props": [
+          "노트북",
+          "인계 메모"
+        ],
+        "synopsis": "총무 확인에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S020",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S019"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U05"
+      }
+    },
+    {
+      "node_id": "SCENE:S021",
+      "type": "SCENE",
+      "label": "빈 책상",
+      "props": {
+        "scene_id": "S021",
+        "scene_number": 21,
+        "title": "빈 책상",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 20,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "봉투",
+          "사원증",
+          "텀블러"
+        ],
+        "synopsis": "빈 책상에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S021",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U06"
+      }
+    },
+    {
+      "node_id": "SCENE:S022",
+      "type": "SCENE",
+      "label": "동료 메시지",
+      "props": {
+        "scene_id": "S022",
+        "scene_number": 22,
+        "title": "동료 메시지",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 3,
+        "duration_minutes": 10,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "봉투",
+          "사원증",
+          "텀블러"
+        ],
+        "synopsis": "동료 메시지에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S022",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S021"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U06"
+      }
+    },
+    {
+      "node_id": "SCENE:S023",
+      "type": "SCENE",
+      "label": "봉투 전달",
+      "props": {
+        "scene_id": "S023",
+        "scene_number": 23,
+        "title": "봉투 전달",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02",
+          "CAST-03"
+        ],
+        "props": [
+          "봉투",
+          "사원증",
+          "텀블러"
+        ],
+        "synopsis": "봉투 전달에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S023",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S022"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U06"
+      }
+    },
+    {
+      "node_id": "SCENE:S024",
+      "type": "SCENE",
+      "label": "마지막 인사",
+      "props": {
+        "scene_id": "S024",
+        "scene_number": 24,
+        "title": "마지막 인사",
+        "int_ext": "INT",
+        "story_time": "DAY",
+        "script_eighths": 2,
+        "duration_minutes": 15,
+        "cast_ids": [
+          "CAST-01",
+          "CAST-02",
+          "CAST-03",
+          "CAST-05"
+        ],
+        "props": [
+          "봉투",
+          "사원증",
+          "텀블러"
+        ],
+        "synopsis": "마지막 인사에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+        "requires_dry_weather": false,
+        "source_doc_id": "SCRIPT-V3",
+        "source_clause": "S024",
+        "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+        "hard_predecessor_scene_ids": [
+          "S023"
+        ],
+        "appearance_required": "OFFICE_INTERIOR",
+        "eligible_location_ids": [
+          "LOC-INT",
+          "LOC-STUDIO",
+          "LOC-HUB",
+          "LOC-RESTRICTED"
+        ],
+        "original_location_id": "LOC-INT",
+        "original_equipment_ids": [
+          "EQ-CAM",
+          "EQ-SND",
+          "EQ-LED"
+        ],
+        "required_equipment_groups": [
+          "CAM_4K",
+          "LED_2",
+          "AUDIO_3CH"
+        ],
+        "unit_id": "U06"
+      }
+    },
+    {
+      "node_id": "PLAN:1",
+      "type": "PLAN",
+      "label": "V3 오후 어댑터 1안",
+      "props": {
+        "adapter": true,
+        "locationId": "LOC-INT",
+        "sourceFullDayPlan": false
+      }
+    },
+    {
+      "node_id": "PLAN:2",
+      "type": "PLAN",
+      "label": "V3 오후 어댑터 2안",
+      "props": {
+        "adapter": true,
+        "locationId": "LOC-STUDIO",
+        "sourceFullDayPlan": false
+      }
+    },
+    {
+      "node_id": "PLAN:3",
+      "type": "PLAN",
+      "label": "V3 오후 어댑터 3안",
+      "props": {
+        "adapter": true,
+        "locationId": "LOC-HUB",
+        "sourceFullDayPlan": false
+      }
+    },
+    {
+      "node_id": "PROJECT:1",
+      "type": "PROJECT",
+      "label": "극한업무",
+      "props": {
+        "source": {
+          "project_id": "PRJ-LASTDAY",
+          "title": "극한업무",
+          "schema_version": "3.0-notion",
+          "timezone": "Asia/Seoul",
+          "original_date": "2026-10-23",
+          "planning_dates": [
+            "2026-10-23",
+            "2026-10-24",
+            "2026-10-25"
+          ],
+          "unit_count": 1,
+          "meal_min": [
+            720,
+            780
+          ],
+          "latest_wrap_min": 1080,
+          "initial_prep_min": 60,
+          "wrap_min": 30,
+          "crew_start_min": 480,
+          "max_continuous_duty_min": 300,
+          "actor_prep_min": 45,
+          "ready_buffer_min": 5,
+          "default_change_budget_cap_krw": 600000,
+          "budget_definition": "원본 당일 장소·장비비는 선지급되어0원. 새 장소·장비·협의비와 미선지급 이동비를 합산한 한도이며 제작 전체 예산이 아님.",
+          "is_synthetic": true,
+          "scene_group_rule": "야외2씬은 같은 후보 장소, 실내4씬은 같은 후보 장소를 사용한다. 복합 장소는 두 그룹 모두 배정 가능.",
+          "solver_boundary": "한 날짜에 24씬 전체 촬영. 4씬씩 6묶음의 내부 순서·연속 촬영을 고정한다. 다일 분할·촬영 삭제·대역 교체는 제외.",
+          "planning_scope": "one shooting day per proposal; six contiguous planning units / 24 scenes",
+          "episode_id": "EP-01",
+          "legal_effective_date": "2026-10-23"
+        },
+        "adapterScope": "fixed AM; replan PM only",
+        "notSupported": [
+          "whole-day reordering",
+          "full V3 cost/score/approval semantics",
+          "external fourth location",
+          "safety stop workflow"
+        ]
+      }
+    }
+  ],
+  "ontology_edges": [
+    {
+      "src": "ACTOR:1",
+      "relation": "계약",
+      "dst": "CONTRACT:contract-cast-01-v3",
+      "created_by": "seed"
+    },
+    {
+      "src": "ACTOR:2",
+      "relation": "계약",
+      "dst": "CONTRACT:contract-cast-02-v3",
+      "created_by": "seed"
+    },
+    {
+      "src": "ACTOR:3",
+      "relation": "계약",
+      "dst": "CONTRACT:contract-cast-03-v3",
+      "created_by": "seed"
+    },
+    {
+      "src": "ACTOR:4",
+      "relation": "계약",
+      "dst": "CONTRACT:contract-cast-04-v3",
+      "created_by": "seed"
+    },
+    {
+      "src": "ACTOR:5",
+      "relation": "계약",
+      "dst": "CONTRACT:contract-cast-05-v3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S001",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S002",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S003",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S004",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S005",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S006",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S007",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "촬영지",
+      "dst": "LOCATION:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S008",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S009",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S010",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S011",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "출연",
+      "dst": "ACTOR:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S012",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S013",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S014",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S015",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "출연",
+      "dst": "ACTOR:5",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S016",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S017",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S018",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S019",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "출연",
+      "dst": "ACTOR:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S020",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S021",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S022",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S023",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "출연",
+      "dst": "ACTOR:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "출연",
+      "dst": "ACTOR:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "출연",
+      "dst": "ACTOR:3",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "출연",
+      "dst": "ACTOR:5",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "촬영지",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "사용",
+      "dst": "EQUIPMENT:1",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "사용",
+      "dst": "EQUIPMENT:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "사용",
+      "dst": "EQUIPMENT:7",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "사용",
+      "dst": "EQUIPMENT:10",
+      "created_by": "seed"
+    },
+    {
+      "src": "SCENE:S024",
+      "relation": "사용",
+      "dst": "EQUIPMENT:12",
+      "created_by": "seed"
+    },
+    {
+      "src": "PLAN:1",
+      "relation": "포함",
+      "dst": "LOCATION:2",
+      "created_by": "seed"
+    },
+    {
+      "src": "PLAN:2",
+      "relation": "포함",
+      "dst": "LOCATION:4",
+      "created_by": "seed"
+    },
+    {
+      "src": "PLAN:3",
+      "relation": "포함",
+      "dst": "LOCATION:6",
+      "created_by": "seed"
+    }
+  ],
+  "locations": [
+    {
+      "id": 1,
+      "name": "새봄오피스 앞마당",
+      "address": "가상시 새봄구 촬영로 10, 1층 앞마당 (가상 주소)",
+      "indoor": false,
+      "region": "V3-LOC-EXT",
+      "open_from": "09:00",
+      "open_to": "17:00",
+      "permit_from": "09:00",
+      "permit_to": "17:00",
+      "cost": 0,
+      "no_fly_zone": false,
+      "fit": 0.88,
+      "distance_km": 0.0,
+      "note": "등록된 가상 사용조건만 적용 / V3 원본 ID: LOC-EXT"
+    },
+    {
+      "id": 2,
+      "name": "새봄스튜디오 사무실 세트",
+      "address": "가상시 새봄구 스튜디오길 25, 2층 A세트 (가상 주소)",
+      "indoor": true,
+      "region": "V3-LOC-INT",
+      "open_from": "09:00",
+      "open_to": "18:00",
+      "permit_from": "09:00",
+      "permit_to": "18:00",
+      "cost": 0,
+      "no_fly_zone": false,
+      "fit": 0.8,
+      "distance_km": 8.0,
+      "note": "등록된 가상 사용조건만 적용 / V3 원본 ID: LOC-INT"
+    },
+    {
+      "id": 3,
+      "name": "보송비즈센터 지붕 통로",
+      "address": "가상시 촬영구 후보길 43 (가상 주소)",
+      "indoor": false,
+      "region": "V3-LOC-COVER",
+      "open_from": "09:00",
+      "open_to": "18:00",
+      "permit_from": "09:00",
+      "permit_to": "18:00",
+      "cost": 280000,
+      "no_fly_zone": false,
+      "fit": 0.7,
+      "distance_km": 4.0,
+      "note": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님. / V3 원본 ID: LOC-COVER"
+    },
+    {
+      "id": 4,
+      "name": "모노스튜디오 사무실 세트",
+      "address": "가상시 촬영구 후보길 56 (가상 주소)",
+      "indoor": true,
+      "region": "V3-LOC-STUDIO",
+      "open_from": "09:00",
+      "open_to": "18:00",
+      "permit_from": "09:00",
+      "permit_to": "18:00",
+      "cost": 180000,
+      "no_fly_zone": false,
+      "fit": 0.85,
+      "distance_km": 6.4,
+      "note": "등록된 가상 사용조건만 적용 / V3 원본 ID: LOC-STUDIO"
+    },
+    {
+      "id": 5,
+      "name": "강변 업무광장",
+      "address": "가상시 촬영구 후보길 69 (가상 주소)",
+      "indoor": false,
+      "region": "V3-LOC-PLAZA",
+      "open_from": "09:00",
+      "open_to": "17:00",
+      "permit_from": "09:00",
+      "permit_to": "17:00",
+      "cost": 130000,
+      "no_fly_zone": false,
+      "fit": 0.86,
+      "distance_km": 18.7,
+      "note": "등록된 가상 사용조건만 적용 / V3 원본 ID: LOC-PLAZA"
+    },
+    {
+      "id": 6,
+      "name": "하루오피스 복합 세트",
+      "address": "가상시 촬영구 후보길 82 (가상 주소)",
+      "indoor": true,
+      "region": "V3-LOC-HUB",
+      "open_from": "09:00",
+      "open_to": "18:00",
+      "permit_from": "09:00",
+      "permit_to": "18:00",
+      "cost": 450000,
+      "no_fly_zone": false,
+      "fit": 0.99,
+      "distance_km": 7.2,
+      "note": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님. / V3 원본 ID: LOC-HUB"
+    },
+    {
+      "id": 7,
+      "name": "파주 비즈파크 외관",
+      "address": "가상시 촬영구 후보길 95 (가상 주소)",
+      "indoor": false,
+      "region": "V3-LOC-FAR",
+      "open_from": "09:00",
+      "open_to": "17:00",
+      "permit_from": "09:00",
+      "permit_to": "17:00",
+      "cost": 110000,
+      "no_fly_zone": false,
+      "fit": 0.82,
+      "distance_km": 43.9,
+      "note": "등록된 가상 사용조건만 적용 / V3 원본 ID: LOC-FAR"
+    },
+    {
+      "id": 8,
+      "name": "출입 제한 업무동 세트",
+      "address": "가상시 촬영구 후보길 108 (가상 주소)",
+      "indoor": true,
+      "region": "V3-LOC-RESTRICTED",
+      "open_from": "09:00",
+      "open_to": "18:00",
+      "permit_from": "09:00",
+      "permit_to": "18:00",
+      "cost": 10000,
+      "no_fly_zone": false,
+      "fit": 0.95,
+      "distance_km": 2.8,
+      "note": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님. / V3 원본 ID: LOC-RESTRICTED"
+    }
+  ],
+  "equipment": [
+    {
+      "id": 1,
+      "name": "시네마 카메라 A세트",
+      "available": true,
+      "drone": false,
+      "cost": 0
+    },
+    {
+      "id": 2,
+      "name": "호환 카메라 B 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 160000
+    },
+    {
+      "id": 3,
+      "name": "카메라 C 당일 긴급 패키지",
+      "available": false,
+      "drone": false,
+      "cost": 80000
+    },
+    {
+      "id": 4,
+      "name": "LED 조명 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 0
+    },
+    {
+      "id": 5,
+      "name": "호환 LED 2등 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 90000
+    },
+    {
+      "id": 6,
+      "name": "추가 LED 패키지",
+      "available": false,
+      "drone": false,
+      "cost": 60000
+    },
+    {
+      "id": 7,
+      "name": "동시녹음 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 0
+    },
+    {
+      "id": 8,
+      "name": "호환 녹음 3채널 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 60000
+    },
+    {
+      "id": 9,
+      "name": "비호환 녹음 1채널 패키지",
+      "available": false,
+      "drone": false,
+      "cost": 30000
+    },
+    {
+      "id": 10,
+      "name": "기존 카메라 지지·리그 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 0
+    },
+    {
+      "id": 11,
+      "name": "대체 카메라 지지·리그 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 35000
+    },
+    {
+      "id": 12,
+      "name": "기존 분전·전원 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 0
+    },
+    {
+      "id": 13,
+      "name": "대체 분전·전원 패키지",
+      "available": true,
+      "drone": false,
+      "cost": 45000
+    }
+  ],
+  "blocks": [
+    {
+      "shoot_day_id": 1,
+      "code": "AM",
+      "start_time": "09:00",
+      "end_time": "11:00",
+      "duration_min": 120,
+      "location_id": 1,
+      "equipment_ids": [
+        1,
+        4,
+        7,
+        10,
+        12
+      ]
+    },
+    {
+      "shoot_day_id": 1,
+      "code": "PM",
+      "start_time": "13:00",
+      "end_time": "17:00",
+      "duration_min": 240,
+      "location_id": 2,
+      "equipment_ids": [
+        1,
+        4,
+        7,
+        10,
+        12
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "code": "S001",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "경비실 앞",
+      "duration_min": 10,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 1
+    },
+    {
+      "code": "S002",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "주차장 인사",
+      "duration_min": 20,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 2
+    },
+    {
+      "code": "S003",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "정문 계단",
+      "duration_min": 15,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 3
+    },
+    {
+      "code": "S004",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "외부 출입구",
+      "duration_min": 15,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 4
+    },
+    {
+      "code": "S005",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "동측 마당",
+      "duration_min": 15,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 5
+    },
+    {
+      "code": "S006",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "명함 교환",
+      "duration_min": 10,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 6
+    },
+    {
+      "code": "S007",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "택배 카트",
+      "duration_min": 20,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 7
+    },
+    {
+      "code": "S008",
+      "shoot_day_id": 1,
+      "block_code": "AM",
+      "title": "건물 입구",
+      "duration_min": 15,
+      "outdoor_intent": true,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 8
+    },
+    {
+      "code": "S009",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "사무실 첫인사",
+      "duration_min": 20,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 9
+    },
+    {
+      "code": "S010",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "회의 자료",
+      "duration_min": 10,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 10
+    },
+    {
+      "code": "S011",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "발표 모니터",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2
+      ],
+      "sort": 11
+    },
+    {
+      "code": "S012",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "총무팀 방문",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2,
+        4
+      ],
+      "sort": 12
+    },
+    {
+      "code": "S013",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "복도 분기점",
+      "duration_min": 10,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        2,
+        3
+      ],
+      "sort": 13
+    },
+    {
+      "code": "S014",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "복사실",
+      "duration_min": 20,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        2,
+        3
+      ],
+      "sort": 14
+    },
+    {
+      "code": "S015",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "직원 게시판",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        2,
+        3
+      ],
+      "sort": 15
+    },
+    {
+      "code": "S016",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "외주 기사 호출",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        2,
+        3,
+        5
+      ],
+      "sort": 16
+    },
+    {
+      "code": "S017",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "업무 파일",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 17
+    },
+    {
+      "code": "S018",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "인계 체크",
+      "duration_min": 10,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 18
+    },
+    {
+      "code": "S019",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "서랍 정리",
+      "duration_min": 20,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3
+      ],
+      "sort": 19
+    },
+    {
+      "code": "S020",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "총무 확인",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        3,
+        4
+      ],
+      "sort": 20
+    },
+    {
+      "code": "S021",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "빈 책상",
+      "duration_min": 20,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2,
+        3
+      ],
+      "sort": 21
+    },
+    {
+      "code": "S022",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "동료 메시지",
+      "duration_min": 10,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2,
+        3
+      ],
+      "sort": 22
+    },
+    {
+      "code": "S023",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "봉투 전달",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2,
+        3
+      ],
+      "sort": 23
+    },
+    {
+      "code": "S024",
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "title": "마지막 인사",
+      "duration_min": 15,
+      "outdoor_intent": false,
+      "location_id": null,
+      "actor_ids": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "sort": 24
+    }
+  ],
+  "plan_options": [
+    {
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "option_no": 1,
+      "location_id": 2,
+      "equipment_ids": [
+        1,
+        4,
+        7,
+        10,
+        12
+      ],
+      "equipment_fit": 1,
+      "start_time": "13:00",
+      "end_time": "17:00"
+    },
+    {
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "option_no": 2,
+      "location_id": 4,
+      "equipment_ids": [
+        2,
+        4,
+        7,
+        10,
+        12
+      ],
+      "equipment_fit": 1,
+      "start_time": "13:00",
+      "end_time": "17:00"
+    },
+    {
+      "shoot_day_id": 1,
+      "block_code": "PM",
+      "option_no": 3,
+      "location_id": 6,
+      "equipment_ids": [
+        1,
+        5,
+        7,
+        10,
+        12
+      ],
+      "equipment_fit": 1,
+      "start_time": "13:00",
+      "end_time": "17:00"
+    }
+  ],
+  "callsheet_versions": [
+    {
+      "shoot_day_id": 1,
+      "version_no": 1,
+      "proposal_id": null,
+      "pm_location_id": 2,
+      "pm_equipment_ids": [
+        1,
+        4,
+        7,
+        10,
+        12
+      ],
+      "pm_start": "13:00",
+      "pm_end": "17:00",
+      "pm_cost": 0
+    }
+  ],
+  "weather_forecasts": [
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 1,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 3,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 4,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 5,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 6,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 7,
+      "hour": 18,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 8,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 9,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 10,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 11,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 12,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 13,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 14,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 15,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 16,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 17,
+      "precip_prob": 0
+    },
+    {
+      "shoot_day_id": 1,
+      "location_id": 8,
+      "hour": 18,
+      "precip_prob": 0
+    }
+  ],
+  "reservations": [
+    {
+      "id": "V3-LOC-INT",
+      "shoot_day_id": 1,
+      "location_id": 2,
+      "start_time": "08:00",
+      "end_time": "18:00",
+      "status": "HELD",
+      "provider": "OURPLACE"
+    }
+  ]
+}

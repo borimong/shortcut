@@ -1,0 +1,86 @@
+[
+  {
+    "reservation_id": "RES-LOC-EXT",
+    "resource_id": "LOC-EXT",
+    "resource_type": "LOCATION",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-LOC-EXT",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 40000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-LOC-INT",
+    "resource_id": "LOC-INT",
+    "resource_type": "LOCATION",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-LOC-INT",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 60000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-CAM-BASE",
+    "resource_id": "CAM-BASE",
+    "resource_type": "EQUIPMENT",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-CAM-BASE",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 20000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-LIGHT-BASE",
+    "resource_id": "LIGHT-BASE",
+    "resource_type": "EQUIPMENT",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-LIGHT-BASE",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 20000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-SOUND-BASE",
+    "resource_id": "SOUND-BASE",
+    "resource_type": "EQUIPMENT",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-SOUND-BASE",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 20000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-GRIP-BASE",
+    "resource_id": "GRIP-BASE",
+    "resource_type": "EQUIPMENT",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-GRIP-BASE",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 20000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  },
+  {
+    "reservation_id": "RES-POWER-BASE",
+    "resource_id": "POWER-BASE",
+    "resource_type": "EQUIPMENT",
+    "date": "2026-10-23",
+    "contract_id": "RESOURCE-CONTRACT-POWER-BASE",
+    "status": "CONFIRMED_SYNTHETIC",
+    "free_cancel_until": "2026-10-22T17:00:00+09:00",
+    "late_cancel_fee_krw": 20000,
+    "supplier_failure_fee_waived": true,
+    "version": 1
+  }
+]

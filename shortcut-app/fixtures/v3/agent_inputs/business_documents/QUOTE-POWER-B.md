@@ -1,0 +1,3 @@
+# 대체 분전·전원 패키지 견적
+
+{"offer_id": "POWER-B", "kind": "POWER", "name": "대체 분전·전원 패키지", "vendor": "프레임렌탈", "quantity": 1, "compatibility_group": "POWER_3KW", "delivered_ready_min": 450, "rental_end_min": 1110, "return_buffer_min": 60, "dates": ["2026-10-23", "2026-10-24", "2026-10-25"], "booking_status": "CONFIRMED", "approval_roles": [], "incremental_fee_by_date": {"2026-10-23": 45000, "2026-10-24": 45000, "2026-10-25": 45000}, "quote_valid_until": "2026-10-22T21:00:00+09:00", "source_doc_id": "QUOTE-POWER-B", "contents": "안전 점검된 가상 POWER 패키지", "phone_display": "02-XXXX-5392", "original_equipment_id": null, "version": 1, "updated_at": "2026-10-22T18:00:00+09:00", "reliability_score": 98, "reservation_state": "NOT_BOOKED"}

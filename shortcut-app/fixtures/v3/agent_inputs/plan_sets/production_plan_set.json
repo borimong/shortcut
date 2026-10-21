@@ -1,0 +1,73 @@
+{
+  "plan_set_id": "PLANSET-EP01-D01",
+  "version": 1,
+  "prepared_at": "2026-10-22T16:00:00+09:00",
+  "plans": [
+    {
+      "plan_id": "PLAN-1",
+      "name": "원래 장소·장비 계획",
+      "outdoor_location_id": "LOC-EXT",
+      "indoor_location_id": "LOC-INT",
+      "equipment_offer_ids": [
+        "CAM-BASE",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-BASE",
+        "POWER-BASE"
+      ],
+      "unit_order": [
+        "U01",
+        "U02",
+        "U03",
+        "U04",
+        "U05",
+        "U06"
+      ],
+      "booking_status": "BASE_HELD"
+    },
+    {
+      "plan_id": "PLAN-2",
+      "name": "우천 대비 지붕 통로",
+      "outdoor_location_id": "LOC-COVER",
+      "indoor_location_id": "LOC-INT",
+      "equipment_offer_ids": [
+        "CAM-BASE",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-B",
+        "POWER-BASE"
+      ],
+      "unit_order": [
+        "U01",
+        "U02",
+        "U03",
+        "U04",
+        "U05",
+        "U06"
+      ],
+      "booking_status": "CONTINGENCY_NOT_BOOKED"
+    },
+    {
+      "plan_id": "PLAN-3",
+      "name": "복합세트·실내 우선",
+      "outdoor_location_id": "LOC-HUB",
+      "indoor_location_id": "LOC-HUB",
+      "equipment_offer_ids": [
+        "CAM-B",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-BASE",
+        "POWER-B"
+      ],
+      "unit_order": [
+        "U03",
+        "U04",
+        "U05",
+        "U06",
+        "U01",
+        "U02"
+      ],
+      "booking_status": "CONTINGENCY_NOT_BOOKED"
+    }
+  ]
+}

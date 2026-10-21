@@ -1,0 +1,68 @@
+{
+  "source_sha256": "52baed92139603963d98985c0a0598bdec40a544279fc69cf084bde34e804e48",
+  "source_version": "3.0-notion",
+  "date": "2026-10-23",
+  "ids": {
+    "cast": {
+      "CAST-01": 1,
+      "CAST-02": 2,
+      "CAST-03": 3,
+      "CAST-04": 4,
+      "CAST-05": 5
+    },
+    "locations": {
+      "LOC-EXT": 1,
+      "LOC-INT": 2,
+      "LOC-COVER": 3,
+      "LOC-STUDIO": 4,
+      "LOC-PLAZA": 5,
+      "LOC-HUB": 6,
+      "LOC-FAR": 7,
+      "LOC-RESTRICTED": 8
+    },
+    "equipment_offers": {
+      "CAM-BASE": 1,
+      "CAM-B": 2,
+      "CAM-C": 3,
+      "LIGHT-BASE": 4,
+      "LIGHT-B": 5,
+      "LIGHT-C": 6,
+      "SOUND-BASE": 7,
+      "SOUND-B": 8,
+      "SOUND-C": 9,
+      "GRIP-BASE": 10,
+      "GRIP-B": 11,
+      "POWER-BASE": 12,
+      "POWER-B": 13
+    }
+  },
+  "changing_scenes": [
+    "S009",
+    "S010",
+    "S011",
+    "S012",
+    "S013",
+    "S014",
+    "S015",
+    "S016",
+    "S017",
+    "S018",
+    "S019",
+    "S020",
+    "S021",
+    "S022",
+    "S023",
+    "S024"
+  ],
+  "fixed_scenes": [
+    "S001",
+    "S002",
+    "S003",
+    "S004",
+    "S005",
+    "S006",
+    "S007",
+    "S008"
+  ],
+  "scope": "PM_ADAPTER_NOT_FULL_V3_EVALUATION"
+}

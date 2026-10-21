@@ -1,0 +1,482 @@
+[
+  {
+    "person_id": "CREW-01",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-01-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-01-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-01-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-01-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-02",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-02-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-02-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-02-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-02-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-03",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-03-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-03-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-03-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-03-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-04",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-04-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-04-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-04-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-04-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-05",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-05-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-05-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-05-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-05-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-06",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-06-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-06-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-06-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-06-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-07",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-07-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-07-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-07-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-07-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-08",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-08-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-08-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-08-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-08-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-09",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-09-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-09-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-09-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-09-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-10",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-10-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-10-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-10-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-10-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-11",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-11-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-11-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-11-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-11-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-12",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-12-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-12-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-12-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-12-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-13",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-13-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-13-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-13-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-13-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-14",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-14-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-14-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-14-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-14-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-15",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-15-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-15-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-15-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-15-22"
+      }
+    ]
+  },
+  {
+    "person_id": "CREW-16",
+    "week_starts_on": "MONDAY",
+    "days": [
+      {
+        "date": "2026-10-19",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-16-19"
+      },
+      {
+        "date": "2026-10-20",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-16-20"
+      },
+      {
+        "date": "2026-10-21",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-16-21"
+      },
+      {
+        "date": "2026-10-22",
+        "work_min": 420,
+        "kind": "ACTUAL",
+        "source_id": "TIMECARD-CREW-16-22"
+      }
+    ]
+  }
+]

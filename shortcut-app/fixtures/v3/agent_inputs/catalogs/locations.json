@@ -1,0 +1,528 @@
+[
+  {
+    "location_id": "LOC-EXT",
+    "name": "새봄오피스 앞마당",
+    "kind": "EXT",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR"
+    ],
+    "rain_protected": false,
+    "filming_prohibited": false,
+    "max_wind_mps": 8,
+    "synthetic_coordinate_km": [
+      0,
+      0
+    ],
+    "prep_stations": 2,
+    "address": "가상시 새봄구 촬영로 10, 1층 앞마당 (가상 주소)",
+    "phone_display": "02-XXXX-6465",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 0,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 240000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 240000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-EXT",
+    "notes": "등록된 가상 사용조건만 적용",
+    "contact_name": "김은솔 (가상 장소담당)",
+    "basecamp": "동측 대기 텐트 / 분장 2석 / 의상 행거",
+    "parking": "동측 P1 제작차량 3대 / 보행로 비우기",
+    "safety_notes": "젖은 노면과 전원 케이블 확인 / 일반 보행자 우선 / 도로 통제 없음",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 88,
+    "reservation_state": "HELD_ORIGINAL_DATE",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-INT",
+    "name": "새봄스튜디오 사무실 세트",
+    "kind": "INT",
+    "appearance_tags": [
+      "OFFICE_INTERIOR"
+    ],
+    "rain_protected": true,
+    "filming_prohibited": false,
+    "max_wind_mps": 20,
+    "synthetic_coordinate_km": [
+      8,
+      0
+    ],
+    "prep_stations": 2,
+    "address": "가상시 새봄구 스튜디오길 25, 2층 A세트 (가상 주소)",
+    "phone_display": "02-XXXX-5280",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 0,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 320000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 320000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-INT",
+    "notes": "등록된 가상 사용조건만 적용",
+    "contact_name": "최윤호 (가상 장소담당)",
+    "basecamp": "2층 라운지 / 분장 2석 / 식사 공간",
+    "parking": "후문 P2 / 하역 10분 이내 / 승강기 공동 사용",
+    "safety_notes": "비상구 적치 금지 / 바닥 보호 매트 / 세트 소품 위치 사진 기록",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 80,
+    "reservation_state": "HELD_ORIGINAL_DATE",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-COVER",
+    "name": "보송비즈센터 지붕 통로",
+    "kind": "EXT_COVERED",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR"
+    ],
+    "rain_protected": true,
+    "filming_prohibited": false,
+    "max_wind_mps": 8,
+    "synthetic_coordinate_km": [
+      4,
+      0
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 43 (가상 주소)",
+    "phone_display": "02-XXXX-8264",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 280000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 280000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 280000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-COVER",
+    "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 70,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-STUDIO",
+    "name": "모노스튜디오 사무실 세트",
+    "kind": "INT",
+    "appearance_tags": [
+      "OFFICE_INTERIOR"
+    ],
+    "rain_protected": true,
+    "filming_prohibited": false,
+    "max_wind_mps": 20,
+    "synthetic_coordinate_km": [
+      4,
+      5
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 56 (가상 주소)",
+    "phone_display": "02-XXXX-3597",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 180000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 180000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 180000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-STUDIO",
+    "notes": "등록된 가상 사용조건만 적용",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 85,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-PLAZA",
+    "name": "강변 업무광장",
+    "kind": "EXT",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR"
+    ],
+    "rain_protected": false,
+    "filming_prohibited": false,
+    "max_wind_mps": 8,
+    "synthetic_coordinate_km": [
+      18,
+      5
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 69 (가상 주소)",
+    "phone_display": "02-XXXX-9146",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "PENDING_APPROVAL",
+        "permit_status": "PENDING",
+        "incremental_fee_krw": 130000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "PENDING_APPROVAL",
+        "permit_status": "PENDING",
+        "incremental_fee_krw": 130000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "PENDING_APPROVAL",
+        "permit_status": "PENDING",
+        "incremental_fee_krw": 130000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-PLAZA",
+    "notes": "등록된 가상 사용조건만 적용",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 86,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-HUB",
+    "name": "하루오피스 복합 세트",
+    "kind": "MIXED",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR",
+      "OFFICE_INTERIOR"
+    ],
+    "rain_protected": true,
+    "filming_prohibited": false,
+    "max_wind_mps": 20,
+    "synthetic_coordinate_km": [
+      6,
+      4
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 82 (가상 주소)",
+    "phone_display": "02-XXXX-5728",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 450000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 450000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 450000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-HUB",
+    "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 99,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-FAR",
+    "name": "파주 비즈파크 외관",
+    "kind": "EXT",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR"
+    ],
+    "rain_protected": false,
+    "filming_prohibited": false,
+    "max_wind_mps": 8,
+    "synthetic_coordinate_km": [
+      40,
+      18
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 95 (가상 주소)",
+    "phone_display": "02-XXXX-2439",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 110000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 110000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1020,
+        "booking_status": "CONFIRMED",
+        "permit_status": "APPROVED",
+        "incremental_fee_krw": 110000,
+        "approval_roles": [],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-FAR",
+    "notes": "등록된 가상 사용조건만 적용",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 82,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  },
+  {
+    "location_id": "LOC-RESTRICTED",
+    "name": "출입 제한 업무동 세트",
+    "kind": "MIXED",
+    "appearance_tags": [
+      "OFFICE_EXTERIOR",
+      "OFFICE_INTERIOR"
+    ],
+    "rain_protected": true,
+    "filming_prohibited": true,
+    "max_wind_mps": 20,
+    "synthetic_coordinate_km": [
+      2,
+      2
+    ],
+    "prep_stations": 2,
+    "address": "가상시 촬영구 후보길 108 (가상 주소)",
+    "phone_display": "02-XXXX-7613",
+    "availability": [
+      {
+        "date": "2026-10-23",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "PROHIBITED",
+        "permit_status": "DENIED",
+        "incremental_fee_krw": 10000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-24",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "PROHIBITED",
+        "permit_status": "DENIED",
+        "incremental_fee_krw": 10000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      },
+      {
+        "date": "2026-10-25",
+        "access_start_min": 480,
+        "access_end_min": 1080,
+        "shoot_start_min": 540,
+        "shoot_end_min": 1080,
+        "booking_status": "PROHIBITED",
+        "permit_status": "DENIED",
+        "incremental_fee_krw": 10000,
+        "approval_roles": [
+          "LOCATION_MANAGER"
+        ],
+        "quote_valid_until": "2026-10-22T21:00:00+09:00"
+      }
+    ],
+    "source_doc_id": "LOCATION-LOC-RESTRICTED",
+    "notes": "지붕 통로와 복합세트의 외관 구역은 건조 노면 연출이 사전 허용된 가상 장소. 실제 장소 호환성 판단 아님.",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "creative_fit_score": 95,
+    "reservation_state": "NOT_BOOKED",
+    "booking_status_semantics": "legacy field: confirmed offer/availability, not a completed replacement booking"
+  }
+]

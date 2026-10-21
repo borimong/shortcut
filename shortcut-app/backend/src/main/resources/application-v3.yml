@@ -1,0 +1,7 @@
+spring:
+  sql:
+    init:
+      data-locations: file:/fixtures/v3/data.sql
+shortcut:
+  dataset: V3
+  fixture-date: "2026-10-23"

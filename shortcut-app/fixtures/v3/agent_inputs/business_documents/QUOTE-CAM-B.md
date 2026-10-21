@@ -1,0 +1,3 @@
+# 호환 카메라 B 패키지 견적
+
+{"offer_id": "CAM-B", "kind": "CAMERA", "name": "호환 카메라 B 패키지", "vendor": "렌즈팩토리", "quantity": 1, "compatibility_group": "CAM_4K", "delivered_ready_min": 480, "rental_end_min": 1140, "return_buffer_min": 60, "dates": ["2026-10-23", "2026-10-24", "2026-10-25"], "booking_status": "CONFIRMED", "approval_roles": [], "incremental_fee_by_date": {"2026-10-23": 160000, "2026-10-24": 160000, "2026-10-25": 160000}, "quote_valid_until": "2026-10-22T21:00:00+09:00", "source_doc_id": "QUOTE-CAM-B", "version": 1, "updated_at": "2026-10-22T18:00:00+09:00", "reliability_score": 98, "reservation_state": "NOT_BOOKED"}

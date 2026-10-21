@@ -1,0 +1,404 @@
+[
+  {
+    "offer_id": "CAM-BASE",
+    "kind": "CAMERA",
+    "name": "시네마 카메라 A세트",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "CAM_4K",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 0,
+      "2026-10-24": 170000,
+      "2026-10-25": 170000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-CAM-BASE",
+    "contents": "바디 / 24·35·50·85mm 렌즈 / 배터리 / 삼각대",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": "EQ-CAM",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 95,
+    "reservation_state": "HELD_ORIGINAL_DATE"
+  },
+  {
+    "offer_id": "CAM-B",
+    "kind": "CAMERA",
+    "name": "호환 카메라 B 패키지",
+    "vendor": "렌즈팩토리",
+    "quantity": 1,
+    "compatibility_group": "CAM_4K",
+    "delivered_ready_min": 480,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 160000,
+      "2026-10-24": 160000,
+      "2026-10-25": 160000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-CAM-B",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 98,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "CAM-C",
+    "kind": "CAMERA",
+    "name": "카메라 C 당일 긴급 패키지",
+    "vendor": "퀵필름",
+    "quantity": 1,
+    "compatibility_group": "CAM_4K",
+    "delivered_ready_min": 780,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "PENDING_APPROVAL",
+    "approval_roles": [
+      "RENTAL_MANAGER"
+    ],
+    "incremental_fee_by_date": {
+      "2026-10-23": 80000,
+      "2026-10-24": 80000,
+      "2026-10-25": 80000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-CAM-C",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 70,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "LIGHT-BASE",
+    "kind": "LIGHT",
+    "name": "LED 조명 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "LED_2",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 0,
+      "2026-10-24": 90000,
+      "2026-10-25": 90000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-LIGHT-BASE",
+    "contents": "LED 2대 / 스탠드 / 디퓨저 / 전원 릴",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": "EQ-LED",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 95,
+    "reservation_state": "HELD_ORIGINAL_DATE"
+  },
+  {
+    "offer_id": "LIGHT-B",
+    "kind": "LIGHT",
+    "name": "호환 LED 2등 패키지",
+    "vendor": "라이트박스",
+    "quantity": 1,
+    "compatibility_group": "LED_2",
+    "delivered_ready_min": 480,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 90000,
+      "2026-10-24": 90000,
+      "2026-10-25": 90000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-LIGHT-B",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 98,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "LIGHT-C",
+    "kind": "LIGHT",
+    "name": "추가 LED 패키지",
+    "vendor": "퀵필름",
+    "quantity": 1,
+    "compatibility_group": "LED_2",
+    "delivered_ready_min": 480,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "PENDING_APPROVAL",
+    "approval_roles": [
+      "RENTAL_MANAGER"
+    ],
+    "incremental_fee_by_date": {
+      "2026-10-23": 60000,
+      "2026-10-24": 60000,
+      "2026-10-25": 60000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-LIGHT-C",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 70,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "SOUND-BASE",
+    "kind": "SOUND",
+    "name": "동시녹음 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "AUDIO_3CH",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 0,
+      "2026-10-24": 60000,
+      "2026-10-25": 60000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-SOUND-BASE",
+    "contents": "레코더 / 붐 / 무선 마이크 3채널",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": "EQ-SND",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 95,
+    "reservation_state": "HELD_ORIGINAL_DATE"
+  },
+  {
+    "offer_id": "SOUND-B",
+    "kind": "SOUND",
+    "name": "호환 녹음 3채널 패키지",
+    "vendor": "사운드카트",
+    "quantity": 1,
+    "compatibility_group": "AUDIO_3CH",
+    "delivered_ready_min": 480,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 60000,
+      "2026-10-24": 60000,
+      "2026-10-25": 60000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-SOUND-B",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 98,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "SOUND-C",
+    "kind": "SOUND",
+    "name": "비호환 녹음 1채널 패키지",
+    "vendor": "퀵필름",
+    "quantity": 1,
+    "compatibility_group": "AUDIO_1CH",
+    "delivered_ready_min": 480,
+    "rental_end_min": 1140,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 30000,
+      "2026-10-24": 30000,
+      "2026-10-25": 30000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-SOUND-C",
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 70,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "GRIP-BASE",
+    "kind": "GRIP",
+    "name": "기존 카메라 지지·리그 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "GRIP_STABLE",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 0,
+      "2026-10-24": 35000,
+      "2026-10-25": 35000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-GRIP-BASE",
+    "contents": "안전 점검된 가상 GRIP 패키지",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": null,
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 95,
+    "reservation_state": "HELD_ORIGINAL_DATE"
+  },
+  {
+    "offer_id": "GRIP-B",
+    "kind": "GRIP",
+    "name": "대체 카메라 지지·리그 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "GRIP_STABLE",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 35000,
+      "2026-10-24": 35000,
+      "2026-10-25": 35000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-GRIP-B",
+    "contents": "안전 점검된 가상 GRIP 패키지",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": null,
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 98,
+    "reservation_state": "NOT_BOOKED"
+  },
+  {
+    "offer_id": "POWER-BASE",
+    "kind": "POWER",
+    "name": "기존 분전·전원 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "POWER_3KW",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 0,
+      "2026-10-24": 45000,
+      "2026-10-25": 45000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-POWER-BASE",
+    "contents": "안전 점검된 가상 POWER 패키지",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": null,
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 95,
+    "reservation_state": "HELD_ORIGINAL_DATE"
+  },
+  {
+    "offer_id": "POWER-B",
+    "kind": "POWER",
+    "name": "대체 분전·전원 패키지",
+    "vendor": "프레임렌탈",
+    "quantity": 1,
+    "compatibility_group": "POWER_3KW",
+    "delivered_ready_min": 450,
+    "rental_end_min": 1110,
+    "return_buffer_min": 60,
+    "dates": [
+      "2026-10-23",
+      "2026-10-24",
+      "2026-10-25"
+    ],
+    "booking_status": "CONFIRMED",
+    "approval_roles": [],
+    "incremental_fee_by_date": {
+      "2026-10-23": 45000,
+      "2026-10-24": 45000,
+      "2026-10-25": 45000
+    },
+    "quote_valid_until": "2026-10-22T21:00:00+09:00",
+    "source_doc_id": "QUOTE-POWER-B",
+    "contents": "안전 점검된 가상 POWER 패키지",
+    "phone_display": "02-XXXX-5392",
+    "original_equipment_id": null,
+    "version": 1,
+    "updated_at": "2026-10-22T18:00:00+09:00",
+    "reliability_score": 98,
+    "reservation_state": "NOT_BOOKED"
+  }
+]
