@@ -1,6 +1,8 @@
 package com.shortcut.repository;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.beans.factory.annotation.Value;
+import java.time.LocalDate;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -43,9 +45,11 @@ public class ResetRepository {
     };
 
     private final JdbcClient jdbc;
+    private final String fixtureDate;
 
-    public ResetRepository(JdbcClient jdbc) {
+    public ResetRepository(JdbcClient jdbc, @Value("${shortcut.fixture-date:}") String fixtureDate) {
         this.jdbc = jdbc;
+        this.fixtureDate = fixtureDate;
     }
 
     public void reset(long shootDayId) {
@@ -55,6 +59,14 @@ public class ResetRepository {
                 spec = spec.param("id", shootDayId);
             }
             spec.update();
+        }
+        if (!fixtureDate.isBlank()) {
+            jdbc.sql("UPDATE actors a SET available_from=s.available_from, available_to=s.available_to, weekly_hours_used=s.weekly_hours_used FROM v3_actor_seed s WHERE a.id=s.id").update();
+            jdbc.sql("UPDATE locations a SET open_from=s.open_from, open_to=s.open_to FROM v3_location_seed s WHERE a.id=s.id").update();
+            jdbc.sql("UPDATE equipment a SET available=s.available FROM v3_equipment_seed s WHERE a.id=s.id").update();
+            jdbc.sql("UPDATE weather_forecasts a SET precip_prob=s.precip_prob FROM v3_weather_seed s WHERE a.shoot_day_id=s.shoot_day_id AND a.location_id=s.location_id AND a.hour=s.hour").update();
+            jdbc.sql("UPDATE shoot_days SET shoot_date = :date WHERE id = :id")
+                    .param("date", LocalDate.parse(fixtureDate)).param("id", shootDayId).update();
         }
     }
 }

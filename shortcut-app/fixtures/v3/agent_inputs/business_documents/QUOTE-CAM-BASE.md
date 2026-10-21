@@ -1,0 +1,3 @@
+# 시네마 카메라 A세트 견적
+
+{"offer_id": "CAM-BASE", "kind": "CAMERA", "name": "시네마 카메라 A세트", "vendor": "프레임렌탈", "quantity": 1, "compatibility_group": "CAM_4K", "delivered_ready_min": 450, "rental_end_min": 1110, "return_buffer_min": 60, "dates": ["2026-10-23", "2026-10-24", "2026-10-25"], "booking_status": "CONFIRMED", "approval_roles": [], "incremental_fee_by_date": {"2026-10-23": 0, "2026-10-24": 170000, "2026-10-25": 170000}, "quote_valid_until": "2026-10-22T21:00:00+09:00", "source_doc_id": "QUOTE-CAM-BASE", "contents": "바디 / 24·35·50·85mm 렌즈 / 배터리 / 삼각대", "phone_display": "02-XXXX-5392", "original_equipment_id": "EQ-CAM", "version": 1, "updated_at": "2026-10-22T18:00:00+09:00", "reliability_score": 95, "reservation_state": "HELD_ORIGINAL_DATE"}

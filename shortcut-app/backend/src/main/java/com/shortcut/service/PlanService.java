@@ -15,6 +15,8 @@ import com.shortcut.engine.EvaluationResult;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.PlanEngine;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import org.springframework.beans.factory.ObjectProvider;
 import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -31,10 +33,12 @@ public class PlanService {
 
     private final PlanDataService planData;
     private final PlanEngine engine;
+    private final V3PlanBoundary v3;
 
-    public PlanService(PlanDataService planData, PlanEngine engine) {
+    public PlanService(PlanDataService planData, PlanEngine engine, ObjectProvider<V3PlanBoundary> v3) {
         this.planData = planData;
         this.engine = engine;
+        this.v3 = v3.getIfAvailable();
     }
 
     public EvaluateResponse evaluate(EvaluateRequest request) {
@@ -43,6 +47,7 @@ public class PlanService {
         Set<String> excluded = request.excludeHashes() == null ? Set.of() : Set.copyOf(request.excludeHashes());
         List<CandidateResult> remaining = result.candidates().stream()
                 .filter(candidate -> !excluded.contains(candidate.hash()))
+                .filter(candidate -> v3 == null || v3.check(candidate.location().id(), candidate.equipment().stream().map(e -> e.id()).toList(), candidate.start(), candidate.end()).isEmpty())
                 .toList();
         long feasibleCount = remaining.stream().filter(CandidateResult::feasible).count();
         List<CandidateView> top = remaining.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
@@ -61,7 +66,11 @@ public class PlanService {
 
     public CheckResult check(PlanData data, long locationId, List<Long> equipmentIds,
                              LocalTime start, LocalTime end, List<ExtraConstraint> extras) {
-        return engine.check(data.toInput(), locationId, equipmentIds, start, end, extras);
+        CheckResult result = engine.check(data.toInput(), locationId, equipmentIds, start, end, extras);
+        if (v3 == null) return result;
+        var violations = new ArrayList<>(result.violations());
+        violations.addAll(v3.check(locationId, equipmentIds, start, end));
+        return new CheckResult(violations, result.warnings());
     }
 
     private static CandidateView view(CandidateResult c) {

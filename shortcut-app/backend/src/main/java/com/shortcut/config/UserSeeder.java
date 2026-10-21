@@ -2,6 +2,8 @@ package com.shortcut.config;
 
 import com.shortcut.repository.UserRepository;
 import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,20 +28,23 @@ public class UserSeeder implements CommandLineRunner {
             new SeedUser("sound", "배수아", "SOUND", "TECH", "동시녹음팀장 (소음)", null),
             new SeedUser("crew", "임채원", "CREW", "DIRECTING", "연출부원 (열람만)", null));
 
+    private final boolean v3;
     private final UserRepository users;
     private final PasswordEncoder passwordEncoder;
 
-    public UserSeeder(UserRepository users, PasswordEncoder passwordEncoder) {
+    public UserSeeder(UserRepository users, PasswordEncoder passwordEncoder, @Value("${shortcut.dataset:legacy}") String dataset) {
+        this.v3 = "V3".equals(dataset);
         this.users = users;
         this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
+        Map<String, String> names = Map.of("pd", "문태오", "manager", "임수빈", "director", "오지훈", "ad1", "정하린", "ad2", "이서후", "dop", "최도현", "sound", "조시온", "crew", "백지안");
         for (SeedUser seed : USERS) {
             if (!users.exists(seed.username())) {
-                users.insertIfAbsent(seed.username(), passwordEncoder.encode(DEMO_PASSWORD), seed.name(), seed.role(),
-                        seed.dept(), seed.title(), seed.phone());
+                users.insertIfAbsent(seed.username(), passwordEncoder.encode(DEMO_PASSWORD), v3 ? names.get(seed.username()) : seed.name(), seed.role(),
+                        seed.dept(), v3 && seed.username().equals("dop") ? "장비 책임자" : seed.title(), v3 ? null : seed.phone());
             }
         }
     }

@@ -1,0 +1,3 @@
+# 호환 LED 2등 패키지 견적
+
+{"offer_id": "LIGHT-B", "kind": "LIGHT", "name": "호환 LED 2등 패키지", "vendor": "라이트박스", "quantity": 1, "compatibility_group": "LED_2", "delivered_ready_min": 480, "rental_end_min": 1140, "return_buffer_min": 60, "dates": ["2026-10-23", "2026-10-24", "2026-10-25"], "booking_status": "CONFIRMED", "approval_roles": [], "incremental_fee_by_date": {"2026-10-23": 90000, "2026-10-24": 90000, "2026-10-25": 90000}, "quote_valid_until": "2026-10-22T21:00:00+09:00", "source_doc_id": "QUOTE-LIGHT-B", "version": 1, "updated_at": "2026-10-22T18:00:00+09:00", "reliability_score": 98, "reservation_state": "NOT_BOOKED"}

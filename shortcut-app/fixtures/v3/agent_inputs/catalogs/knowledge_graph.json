@@ -1,0 +1,3204 @@
+{
+  "nodes": [
+    {
+      "id": "CAST-01",
+      "type": "CAST"
+    },
+    {
+      "id": "CAST-02",
+      "type": "CAST"
+    },
+    {
+      "id": "CAST-03",
+      "type": "CAST"
+    },
+    {
+      "id": "CAST-04",
+      "type": "CAST"
+    },
+    {
+      "id": "CAST-05",
+      "type": "CAST"
+    },
+    {
+      "id": "CREW-01",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-02",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-03",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-04",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-05",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-06",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-07",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-08",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-09",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-10",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-11",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-12",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-13",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-14",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-15",
+      "type": "STAFF"
+    },
+    {
+      "id": "CREW-16",
+      "type": "STAFF"
+    },
+    {
+      "id": "S001",
+      "type": "SCENE"
+    },
+    {
+      "id": "S002",
+      "type": "SCENE"
+    },
+    {
+      "id": "S003",
+      "type": "SCENE"
+    },
+    {
+      "id": "S004",
+      "type": "SCENE"
+    },
+    {
+      "id": "S005",
+      "type": "SCENE"
+    },
+    {
+      "id": "S006",
+      "type": "SCENE"
+    },
+    {
+      "id": "S007",
+      "type": "SCENE"
+    },
+    {
+      "id": "S008",
+      "type": "SCENE"
+    },
+    {
+      "id": "S009",
+      "type": "SCENE"
+    },
+    {
+      "id": "S010",
+      "type": "SCENE"
+    },
+    {
+      "id": "S011",
+      "type": "SCENE"
+    },
+    {
+      "id": "S012",
+      "type": "SCENE"
+    },
+    {
+      "id": "S013",
+      "type": "SCENE"
+    },
+    {
+      "id": "S014",
+      "type": "SCENE"
+    },
+    {
+      "id": "S015",
+      "type": "SCENE"
+    },
+    {
+      "id": "S016",
+      "type": "SCENE"
+    },
+    {
+      "id": "S017",
+      "type": "SCENE"
+    },
+    {
+      "id": "S018",
+      "type": "SCENE"
+    },
+    {
+      "id": "S019",
+      "type": "SCENE"
+    },
+    {
+      "id": "S020",
+      "type": "SCENE"
+    },
+    {
+      "id": "S021",
+      "type": "SCENE"
+    },
+    {
+      "id": "S022",
+      "type": "SCENE"
+    },
+    {
+      "id": "S023",
+      "type": "SCENE"
+    },
+    {
+      "id": "S024",
+      "type": "SCENE"
+    },
+    {
+      "id": "U01",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "U02",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "U03",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "U04",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "U05",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "U06",
+      "type": "PLANNING_UNIT"
+    },
+    {
+      "id": "LOC-EXT",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-INT",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-COVER",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-STUDIO",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-PLAZA",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-HUB",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-FAR",
+      "type": "LOCATION"
+    },
+    {
+      "id": "LOC-RESTRICTED",
+      "type": "LOCATION"
+    },
+    {
+      "id": "CAM-BASE",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "CAM-B",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "CAM-C",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "LIGHT-BASE",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "LIGHT-B",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "LIGHT-C",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "SOUND-BASE",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "SOUND-B",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "SOUND-C",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "GRIP-BASE",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "GRIP-B",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "POWER-BASE",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "POWER-B",
+      "type": "EQUIPMENT"
+    },
+    {
+      "id": "RES-LOC-EXT",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-LOC-INT",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-CAM-BASE",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-LIGHT-BASE",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-SOUND-BASE",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-GRIP-BASE",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "RES-POWER-BASE",
+      "type": "RESERVATION"
+    },
+    {
+      "id": "CONTRACT-CAST-01-v1",
+      "type": "CONTRACT",
+      "version": 1
+    },
+    {
+      "id": "CONTRACT-CAST-01-v3",
+      "type": "CONTRACT",
+      "version": 3
+    },
+    {
+      "id": "MANAGER-CAST-01",
+      "type": "MANAGER"
+    },
+    {
+      "id": "CONTRACT-CAST-02-v1",
+      "type": "CONTRACT",
+      "version": 1
+    },
+    {
+      "id": "CONTRACT-CAST-02-v3",
+      "type": "CONTRACT",
+      "version": 3
+    },
+    {
+      "id": "MANAGER-CAST-02",
+      "type": "MANAGER"
+    },
+    {
+      "id": "CONTRACT-CAST-03-v1",
+      "type": "CONTRACT",
+      "version": 1
+    },
+    {
+      "id": "CONTRACT-CAST-03-v3",
+      "type": "CONTRACT",
+      "version": 3
+    },
+    {
+      "id": "MANAGER-CAST-03",
+      "type": "MANAGER"
+    },
+    {
+      "id": "CONTRACT-CAST-04-v1",
+      "type": "CONTRACT",
+      "version": 1
+    },
+    {
+      "id": "CONTRACT-CAST-04-v3",
+      "type": "CONTRACT",
+      "version": 3
+    },
+    {
+      "id": "MANAGER-CAST-04",
+      "type": "MANAGER"
+    },
+    {
+      "id": "CONTRACT-CAST-05-v1",
+      "type": "CONTRACT",
+      "version": 1
+    },
+    {
+      "id": "CONTRACT-CAST-05-v3",
+      "type": "CONTRACT",
+      "version": 3
+    },
+    {
+      "id": "MANAGER-CAST-05",
+      "type": "MANAGER"
+    },
+    {
+      "id": "CAL-CAST-01-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CAST-01-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CAST-01-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CAST-02-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CAST-02-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CAST-02-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CAST-03-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CAST-03-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CAST-03-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CAST-04-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CAST-04-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CAST-04-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CAST-05-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CAST-05-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CAST-05-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-01-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-01-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-01-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-02-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-02-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-02-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-03-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-03-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-03-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-04-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-04-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-04-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-05-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-05-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-05-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-06-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-06-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-06-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-07-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-07-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-07-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-08-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-08-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-08-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-09-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-09-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-09-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-10-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-10-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-10-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-11-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-11-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-11-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-12-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-12-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-12-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-13-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-13-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-13-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-14-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-14-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-14-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-15-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-15-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-15-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "CAL-CREW-16-2026-10-23",
+      "type": "CALENDAR",
+      "date": "2026-10-23"
+    },
+    {
+      "id": "CAL-CREW-16-2026-10-24",
+      "type": "CALENDAR",
+      "date": "2026-10-24"
+    },
+    {
+      "id": "CAL-CREW-16-2026-10-25",
+      "type": "CALENDAR",
+      "date": "2026-10-25"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-LOC-EXT",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-LOC-INT",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-CAM-BASE",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-LIGHT-BASE",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-SOUND-BASE",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-GRIP-BASE",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "RESOURCE-CONTRACT-POWER-BASE",
+      "type": "CONTRACT"
+    },
+    {
+      "id": "PLAN-1",
+      "type": "PLAN"
+    },
+    {
+      "id": "PLAN-2",
+      "type": "PLAN"
+    },
+    {
+      "id": "PLAN-3",
+      "type": "PLAN"
+    },
+    {
+      "id": "APPROVER-USER-DIRECTOR",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-DIRECTOR"
+    },
+    {
+      "id": "APPROVER-USER-AD1",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-AD1"
+    },
+    {
+      "id": "APPROVER-USER-AD2",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-AD2"
+    },
+    {
+      "id": "APPROVER-USER-SOUND",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-SOUND"
+    },
+    {
+      "id": "APPROVER-USER-EQUIPMENT",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-EQUIPMENT"
+    },
+    {
+      "id": "APPROVER-USER-BUDGET",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-BUDGET"
+    },
+    {
+      "id": "APPROVER-USER-SAFETY",
+      "type": "APPROVAL_SEAT",
+      "user_id": "USER-SAFETY"
+    },
+    {
+      "id": "LAW-LSA-50",
+      "type": "REGULATION"
+    },
+    {
+      "id": "LAW-LSA-53",
+      "type": "REGULATION"
+    },
+    {
+      "id": "LAW-LSA-54",
+      "type": "REGULATION"
+    }
+  ],
+  "edges": [
+    {
+      "from": "CAST-01",
+      "relation": "HISTORICAL_CONTRACT",
+      "to": "CONTRACT-CAST-01-v1"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "ACTIVE_CONTRACT",
+      "to": "CONTRACT-CAST-01-v3"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "MANAGED_BY",
+      "to": "MANAGER-CAST-01"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "HISTORICAL_CONTRACT",
+      "to": "CONTRACT-CAST-02-v1"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "ACTIVE_CONTRACT",
+      "to": "CONTRACT-CAST-02-v3"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "MANAGED_BY",
+      "to": "MANAGER-CAST-02"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "HISTORICAL_CONTRACT",
+      "to": "CONTRACT-CAST-03-v1"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "ACTIVE_CONTRACT",
+      "to": "CONTRACT-CAST-03-v3"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "MANAGED_BY",
+      "to": "MANAGER-CAST-03"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "HISTORICAL_CONTRACT",
+      "to": "CONTRACT-CAST-04-v1"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "ACTIVE_CONTRACT",
+      "to": "CONTRACT-CAST-04-v3"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "MANAGED_BY",
+      "to": "MANAGER-CAST-04"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "HISTORICAL_CONTRACT",
+      "to": "CONTRACT-CAST-05-v1"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "ACTIVE_CONTRACT",
+      "to": "CONTRACT-CAST-05-v3"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "MANAGED_BY",
+      "to": "MANAGER-CAST-05"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-01-2026-10-23"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-01-2026-10-24"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-01-2026-10-25"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-02-2026-10-23"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-02-2026-10-24"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-02-2026-10-25"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-03-2026-10-23"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-03-2026-10-24"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-03-2026-10-25"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-04-2026-10-23"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-04-2026-10-24"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-04-2026-10-25"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-05-2026-10-23"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-05-2026-10-24"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CAST-05-2026-10-25"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-01-2026-10-23"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-01-2026-10-24"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-01-2026-10-25"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-02-2026-10-23"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-02-2026-10-24"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-02-2026-10-25"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-03-2026-10-23"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-03-2026-10-24"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-03-2026-10-25"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-04-2026-10-23"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-04-2026-10-24"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-04-2026-10-25"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-05-2026-10-23"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-05-2026-10-24"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-05-2026-10-25"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-06-2026-10-23"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-06-2026-10-24"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-06-2026-10-25"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-07-2026-10-23"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-07-2026-10-24"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-07-2026-10-25"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-08-2026-10-23"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-08-2026-10-24"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-08-2026-10-25"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-09-2026-10-23"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-09-2026-10-24"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-09-2026-10-25"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-10-2026-10-23"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-10-2026-10-24"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-10-2026-10-25"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-11-2026-10-23"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-11-2026-10-24"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-11-2026-10-25"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-12-2026-10-23"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-12-2026-10-24"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-12-2026-10-25"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-13-2026-10-23"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-13-2026-10-24"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-13-2026-10-25"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-14-2026-10-23"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-14-2026-10-24"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-14-2026-10-25"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-15-2026-10-23"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-15-2026-10-24"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-15-2026-10-25"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-16-2026-10-23"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-16-2026-10-24"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "HAS_CALENDAR",
+      "to": "CAL-CREW-16-2026-10-25"
+    },
+    {
+      "from": "S001",
+      "relation": "IN_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S001"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S001"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S001",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S001",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S001",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S001",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S001",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S001",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S002",
+      "relation": "IN_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S002"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S002"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S002",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S002",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S002",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S002",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S002",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S002",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S003",
+      "relation": "IN_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S003"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S003"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S003",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S003",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S003",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S003",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S003",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S003",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S004",
+      "relation": "IN_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S004"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S004"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S004",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S004",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S004",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S004",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S004",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S004",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S005",
+      "relation": "IN_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S005"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S005"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S005",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S005",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S005",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S005",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S005",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S005",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S006",
+      "relation": "IN_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S006"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S006"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S006",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S006",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S006",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S006",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S006",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S006",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S007",
+      "relation": "IN_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S007"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S007"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S007",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S007",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S007",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S007",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S007",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S007",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S008",
+      "relation": "IN_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S008"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S008"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-PLAZA"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-FAR"
+    },
+    {
+      "from": "S008",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S008",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S008",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S008",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S008",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S008",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S009",
+      "relation": "IN_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S009"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S009"
+    },
+    {
+      "from": "S009",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S009",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S009",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S009",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S009",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S009",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S009",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S009",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S009",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S010",
+      "relation": "IN_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S010"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S010"
+    },
+    {
+      "from": "S010",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S010",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S010",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S010",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S010",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S010",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S010",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S010",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S010",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S011",
+      "relation": "IN_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S011"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S011"
+    },
+    {
+      "from": "S011",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S011",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S011",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S011",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S011",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S011",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S011",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S011",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S011",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S012",
+      "relation": "IN_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S012"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S012"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "APPEARS_IN",
+      "to": "S012"
+    },
+    {
+      "from": "S012",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S012",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S012",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S012",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S012",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S012",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S012",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S012",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S012",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S013",
+      "relation": "IN_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S013"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S013"
+    },
+    {
+      "from": "S013",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S013",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S013",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S013",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S013",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S013",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S013",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S013",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S013",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S014",
+      "relation": "IN_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S014"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S014"
+    },
+    {
+      "from": "S014",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S014",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S014",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S014",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S014",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S014",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S014",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S014",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S014",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S015",
+      "relation": "IN_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S015"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S015"
+    },
+    {
+      "from": "S015",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S015",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S015",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S015",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S015",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S015",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S015",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S015",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S015",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S016",
+      "relation": "IN_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S016"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S016"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "APPEARS_IN",
+      "to": "S016"
+    },
+    {
+      "from": "S016",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S016",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S016",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S016",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S016",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S016",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S016",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S016",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S016",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S017",
+      "relation": "IN_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S017"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S017"
+    },
+    {
+      "from": "S017",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S017",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S017",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S017",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S017",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S017",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S017",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S017",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S017",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S018",
+      "relation": "IN_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S018"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S018"
+    },
+    {
+      "from": "S018",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S018",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S018",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S018",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S018",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S018",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S018",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S018",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S018",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S019",
+      "relation": "IN_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S019"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S019"
+    },
+    {
+      "from": "S019",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S019",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S019",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S019",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S019",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S019",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S019",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S019",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S019",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S020",
+      "relation": "IN_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S020"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S020"
+    },
+    {
+      "from": "CAST-04",
+      "relation": "APPEARS_IN",
+      "to": "S020"
+    },
+    {
+      "from": "S020",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S020",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S020",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S020",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S020",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S020",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S020",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S020",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S020",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S021",
+      "relation": "IN_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S021"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S021"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S021"
+    },
+    {
+      "from": "S021",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S021",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S021",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S021",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S021",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S021",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S021",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S021",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S021",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S022",
+      "relation": "IN_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S022"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S022"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S022"
+    },
+    {
+      "from": "S022",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S022",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S022",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S022",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S022",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S022",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S022",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S022",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S022",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S023",
+      "relation": "IN_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S023"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S023"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S023"
+    },
+    {
+      "from": "S023",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S023",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S023",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S023",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S023",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S023",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S023",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S023",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S023",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "S024",
+      "relation": "IN_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "CAST-01",
+      "relation": "APPEARS_IN",
+      "to": "S024"
+    },
+    {
+      "from": "CAST-02",
+      "relation": "APPEARS_IN",
+      "to": "S024"
+    },
+    {
+      "from": "CAST-03",
+      "relation": "APPEARS_IN",
+      "to": "S024"
+    },
+    {
+      "from": "CAST-05",
+      "relation": "APPEARS_IN",
+      "to": "S024"
+    },
+    {
+      "from": "S024",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "S024",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-STUDIO"
+    },
+    {
+      "from": "S024",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "S024",
+      "relation": "APPEARANCE_COMPATIBLE",
+      "to": "LOC-RESTRICTED"
+    },
+    {
+      "from": "S024",
+      "relation": "BASE_EQUIPMENT",
+      "to": "CAM-BASE"
+    },
+    {
+      "from": "S024",
+      "relation": "BASE_EQUIPMENT",
+      "to": "LIGHT-BASE"
+    },
+    {
+      "from": "S024",
+      "relation": "BASE_EQUIPMENT",
+      "to": "SOUND-BASE"
+    },
+    {
+      "from": "S024",
+      "relation": "BASE_EQUIPMENT",
+      "to": "GRIP-BASE"
+    },
+    {
+      "from": "S024",
+      "relation": "BASE_EQUIPMENT",
+      "to": "POWER-BASE"
+    },
+    {
+      "from": "LOC-EXT",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-LOC-EXT"
+    },
+    {
+      "from": "RES-LOC-EXT",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-LOC-EXT"
+    },
+    {
+      "from": "LOC-INT",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-LOC-INT"
+    },
+    {
+      "from": "RES-LOC-INT",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-LOC-INT"
+    },
+    {
+      "from": "CAM-BASE",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-CAM-BASE"
+    },
+    {
+      "from": "RES-CAM-BASE",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-CAM-BASE"
+    },
+    {
+      "from": "LIGHT-BASE",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-LIGHT-BASE"
+    },
+    {
+      "from": "RES-LIGHT-BASE",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-LIGHT-BASE"
+    },
+    {
+      "from": "SOUND-BASE",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-SOUND-BASE"
+    },
+    {
+      "from": "RES-SOUND-BASE",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-SOUND-BASE"
+    },
+    {
+      "from": "GRIP-BASE",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-GRIP-BASE"
+    },
+    {
+      "from": "RES-GRIP-BASE",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-GRIP-BASE"
+    },
+    {
+      "from": "POWER-BASE",
+      "relation": "HAS_RESERVATION",
+      "to": "RES-POWER-BASE"
+    },
+    {
+      "from": "RES-POWER-BASE",
+      "relation": "GOVERNED_BY",
+      "to": "RESOURCE-CONTRACT-POWER-BASE"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "USES_LOCATION",
+      "to": "LOC-EXT"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "USES_LOCATION",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "PLAN-1",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "USES_LOCATION",
+      "to": "LOC-COVER"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "USES_LOCATION",
+      "to": "LOC-INT"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "PLAN-2",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "USES_LOCATION",
+      "to": "LOC-HUB"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U03"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U04"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U05"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U06"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U01"
+    },
+    {
+      "from": "PLAN-3",
+      "relation": "SCHEDULES_UNIT",
+      "to": "U02"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-DIRECTOR"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-AD1"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-AD2"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-SOUND"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-EQUIPMENT"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-BUDGET"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "HOLDS_APPROVAL_SEAT",
+      "to": "APPROVER-USER-SAFETY"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-01",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-02",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-03",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-04",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-05",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-06",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-07",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-08",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-09",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-10",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-11",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-12",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-13",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-14",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-15",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-50"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-53"
+    },
+    {
+      "from": "CREW-16",
+      "relation": "FIXTURE_RULE_APPLIES",
+      "to": "LAW-LSA-54"
+    }
+  ]
+}

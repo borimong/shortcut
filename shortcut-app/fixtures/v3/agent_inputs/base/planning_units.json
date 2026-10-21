@@ -1,0 +1,295 @@
+[
+  {
+    "scene_id": "U01",
+    "scene_number": 1,
+    "title": "출근길 대화",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 10,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "사원증",
+      "봉투",
+      "텀블러"
+    ],
+    "synopsis": "도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S01",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S001",
+      "S002",
+      "S003",
+      "S004"
+    ],
+    "source_original_scene_id": "S01"
+  },
+  {
+    "scene_id": "U02",
+    "scene_number": 2,
+    "title": "건물 앞 만남",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 8,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "사원증",
+      "노트북 가방"
+    ],
+    "synopsis": "민재가 도윤에게 첫 업무 인계를 부탁한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S02",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S005",
+      "S006",
+      "S007",
+      "S008"
+    ],
+    "source_original_scene_id": "S02"
+  },
+  {
+    "scene_id": "U03",
+    "scene_number": 3,
+    "title": "아침 회의",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 12,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "회의 자료",
+      "텀블러"
+    ],
+    "synopsis": "서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S03",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S009",
+      "S010",
+      "S011",
+      "S012"
+    ],
+    "source_original_scene_id": "S03"
+  },
+  {
+    "scene_id": "U04",
+    "scene_number": 4,
+    "title": "복도에서의 질문",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 6,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북 가방",
+      "사원증"
+    ],
+    "synopsis": "민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S04",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S013",
+      "S014",
+      "S015",
+      "S016"
+    ],
+    "source_original_scene_id": "S04"
+  },
+  {
+    "scene_id": "U05",
+    "scene_number": 5,
+    "title": "업무 인계",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 10,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북",
+      "인계 메모"
+    ],
+    "synopsis": "도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S05",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S017",
+      "S018",
+      "S019",
+      "S020"
+    ],
+    "source_original_scene_id": "S05"
+  },
+  {
+    "scene_id": "U06",
+    "scene_number": 6,
+    "title": "마지막 인사",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 16,
+    "duration_minutes": 60,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "봉투",
+      "사원증",
+      "텀블러"
+    ],
+    "synopsis": "세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S06",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "member_scene_ids": [
+      "S021",
+      "S022",
+      "S023",
+      "S024"
+    ],
+    "source_original_scene_id": "S06"
+  }
+]

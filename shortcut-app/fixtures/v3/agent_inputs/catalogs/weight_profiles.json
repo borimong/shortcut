@@ -1,0 +1,24 @@
+{
+  "COST_FIRST": {
+    "authorized_by": "USER-DIRECTOR",
+    "weights": {
+      "place": 0.15,
+      "equipment": 0.1,
+      "weather": 0.1,
+      "budget": 0.4,
+      "time": 0.1,
+      "distance": 0.15
+    }
+  },
+  "PLACE_FIRST": {
+    "authorized_by": "USER-DIRECTOR",
+    "weights": {
+      "place": 0.55,
+      "equipment": 0.1,
+      "weather": 0.1,
+      "budget": 0.05,
+      "time": 0.1,
+      "distance": 0.1
+    }
+  }
+}

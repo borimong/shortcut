@@ -1,0 +1,9 @@
+{
+  "project_cap_krw": 8000000,
+  "project_spent_krw": 6000000,
+  "episode_cap_krw": 3300000,
+  "episode_spent_krw": 1400000,
+  "baseline_committed_krw": 650000,
+  "currency": "KRW",
+  "definition": "spent excludes baseline commitment; spent + baseline commitment + change cost must stay under each cap; sunk baseline cost not charged twice"
+}

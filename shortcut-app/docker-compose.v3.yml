@@ -1,0 +1,18 @@
+# Use with docker-compose.yml and project name shortcut-v3. Existing DB stays separate.
+services:
+  rabbitmq:
+    ports: !override
+      - "127.0.0.1:15673:15672"
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: api,v3
+    volumes:
+      - ./fixtures/v3:/fixtures/v3:ro
+  rag-indexer:
+    environment:
+      RAG_CORPUS_DIR: /v3-corpus
+    volumes:
+      - ./fixtures/v3/corpus:/v3-corpus:ro
+  agent:
+    environment:
+      MAX_LOOPS: ${MAX_LOOPS:-5}

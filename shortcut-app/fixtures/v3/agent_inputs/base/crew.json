@@ -1,0 +1,290 @@
+[
+  {
+    "crew_id": "CREW-01",
+    "department": "연출",
+    "role": "감독",
+    "name": "오지훈",
+    "phone_display": "010-XXXX-5591",
+    "email": "crew01@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-02",
+    "department": "연출",
+    "role": "조감독",
+    "name": "정하린",
+    "phone_display": "010-XXXX-9784",
+    "email": "crew02@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-03",
+    "department": "제작",
+    "role": "제작실장",
+    "name": "문태오",
+    "phone_display": "010-XXXX-5528",
+    "email": "crew03@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-04",
+    "department": "제작",
+    "role": "제작진행",
+    "name": "임수빈",
+    "phone_display": "010-XXXX-4114",
+    "email": "crew04@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-05",
+    "department": "촬영",
+    "role": "촬영감독",
+    "name": "강현우",
+    "phone_display": "010-XXXX-6945",
+    "email": "crew05@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-06",
+    "department": "촬영",
+    "role": "포커스풀러",
+    "name": "백지안",
+    "phone_display": "010-XXXX-4556",
+    "email": "crew06@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-07",
+    "department": "조명",
+    "role": "조명감독",
+    "name": "신준서",
+    "phone_display": "010-XXXX-4261",
+    "email": "crew07@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-08",
+    "department": "조명",
+    "role": "조명팀원",
+    "name": "유나린",
+    "phone_display": "010-XXXX-4259",
+    "email": "crew08@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-09",
+    "department": "동시녹음",
+    "role": "음향감독",
+    "name": "조시온",
+    "phone_display": "010-XXXX-9930",
+    "email": "crew09@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-10",
+    "department": "미술",
+    "role": "미술감독",
+    "name": "한지유",
+    "phone_display": "010-XXXX-3476",
+    "email": "crew10@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-11",
+    "department": "의상",
+    "role": "의상담당",
+    "name": "차수아",
+    "phone_display": "010-XXXX-2049",
+    "email": "crew11@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-12",
+    "department": "분장",
+    "role": "분장담당 1",
+    "name": "배예린",
+    "phone_display": "010-XXXX-4392",
+    "email": "crew12@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-13",
+    "department": "분장",
+    "role": "분장담당 2",
+    "name": "서이안",
+    "phone_display": "010-XXXX-3027",
+    "email": "crew13@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-14",
+    "department": "안전",
+    "role": "현장안전담당",
+    "name": "송우진",
+    "phone_display": "010-XXXX-7172",
+    "email": "crew14@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-15",
+    "department": "연출",
+    "role": "조감독 2",
+    "name": "이서후",
+    "phone_display": "010-XXXX-7562",
+    "email": "crew15@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  },
+  {
+    "crew_id": "CREW-16",
+    "department": "촬영",
+    "role": "장비감독",
+    "name": "최도현",
+    "phone_display": "010-XXXX-3819",
+    "email": "crew16@crew.example.test",
+    "availability": [
+      {
+        "start": "2026-10-23T08:00:00+09:00",
+        "end": "2026-10-23T18:00:00+09:00"
+      }
+    ],
+    "max_duty_minutes": 600,
+    "previous_release": "2026-10-22T19:00:00+09:00",
+    "minimum_overnight_rest_minutes": 660,
+    "is_synthetic": true
+  }
+]

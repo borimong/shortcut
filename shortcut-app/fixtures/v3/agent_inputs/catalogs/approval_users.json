@@ -1,0 +1,81 @@
+[
+  {
+    "user_id": "USER-DIRECTOR",
+    "person_id": "CREW-01",
+    "roles": [
+      "DIRECTOR"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-AD1",
+    "person_id": "CREW-02",
+    "roles": [
+      "ASSISTANT_DIRECTOR"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-AD2",
+    "person_id": "CREW-15",
+    "roles": [
+      "ASSISTANT_DIRECTOR"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-SOUND",
+    "person_id": "CREW-09",
+    "roles": [
+      "SOUND_DIRECTOR"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-EQUIPMENT",
+    "person_id": "CREW-16",
+    "roles": [
+      "EQUIPMENT_DIRECTOR"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-BUDGET",
+    "person_id": "CREW-03",
+    "roles": [
+      "BUDGET_AUTHORITY",
+      "PRODUCER"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-SAFETY",
+    "person_id": "CREW-14",
+    "roles": [
+      "SAFETY_OFFICER"
+    ],
+    "project_ids": [
+      "PRJ-LASTDAY"
+    ]
+  },
+  {
+    "user_id": "USER-OUTSIDER",
+    "person_id": null,
+    "roles": [
+      "VIEWER"
+    ],
+    "project_ids": []
+  }
+]

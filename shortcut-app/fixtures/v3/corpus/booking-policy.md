@@ -1,0 +1,10 @@
+---
+doc_id: booking-policy
+title: 아워플레이스와 예약 상태
+doc_type: POLICY
+version: v1
+---
+
+# 아워플레이스와 예약 상태
+
+아워플레이스 실 API는 이 데이터에서 검증·호출하지 않는다. provider=OURPLACE_MOCK 표시는 연동 adapter용 가상 매핑일 뿐 실제 게시물·업체·예약이 아니다. CONFIRMED 견적/가용 상태와 HELD 원본 예약은 다르다. 내부 전원 승인 뒤 새 예약은 담당자 확인 대기, 담당자 완료 영수증 뒤에만 확정·웹 공지·종 알림을 허용한다. 임의 실제 URL이나 booking id를 생성하지 않는다.

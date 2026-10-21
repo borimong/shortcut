@@ -1,0 +1,3 @@
+# 비호환 녹음 1채널 패키지 견적
+
+{"offer_id": "SOUND-C", "kind": "SOUND", "name": "비호환 녹음 1채널 패키지", "vendor": "퀵필름", "quantity": 1, "compatibility_group": "AUDIO_1CH", "delivered_ready_min": 480, "rental_end_min": 1140, "return_buffer_min": 60, "dates": ["2026-10-23", "2026-10-24", "2026-10-25"], "booking_status": "CONFIRMED", "approval_roles": [], "incremental_fee_by_date": {"2026-10-23": 30000, "2026-10-24": 30000, "2026-10-25": 30000}, "quote_valid_until": "2026-10-22T21:00:00+09:00", "source_doc_id": "QUOTE-SOUND-C", "version": 1, "updated_at": "2026-10-22T18:00:00+09:00", "reliability_score": 70, "reservation_state": "NOT_BOOKED"}

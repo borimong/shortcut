@@ -1,0 +1,1918 @@
+[
+  {
+    "plan_id": "PLAN-1",
+    "status": "PREPARED_BEFORE_EVENT",
+    "plan": {
+      "shoot_date": "2026-10-23",
+      "outdoor_location_id": "LOC-EXT",
+      "indoor_location_id": "LOC-INT",
+      "equipment_offer_ids": [
+        "CAM-BASE",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-BASE",
+        "POWER-BASE"
+      ],
+      "scene_order": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S008",
+        "S009",
+        "S010",
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S023",
+        "S024"
+      ],
+      "crew_call_min": 480,
+      "wrap_end_min": 1050,
+      "blocks": [
+        {
+          "kind": "PREP",
+          "start_min": 480,
+          "end_min": 540,
+          "location_id": "LOC-EXT"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S001",
+          "start_min": 540,
+          "end_min": 550,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S002",
+          "start_min": 550,
+          "end_min": 570,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S003",
+          "start_min": 570,
+          "end_min": 585,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S004",
+          "start_min": 585,
+          "end_min": 600,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S005",
+          "start_min": 600,
+          "end_min": 615,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S006",
+          "start_min": 615,
+          "end_min": 625,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S007",
+          "start_min": 625,
+          "end_min": 645,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S008",
+          "start_min": 645,
+          "end_min": 660,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "MOVE",
+          "start_min": 660,
+          "end_min": 690,
+          "location_id": "LOC-INT",
+          "from_location_id": "LOC-EXT"
+        },
+        {
+          "kind": "SETUP",
+          "start_min": 690,
+          "end_min": 720,
+          "location_id": "LOC-INT"
+        },
+        {
+          "kind": "MEAL",
+          "start_min": 720,
+          "end_min": 780,
+          "location_id": "LOC-INT"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S009",
+          "start_min": 780,
+          "end_min": 800,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S010",
+          "start_min": 800,
+          "end_min": 810,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S011",
+          "start_min": 810,
+          "end_min": 825,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S012",
+          "start_min": 825,
+          "end_min": 840,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S013",
+          "start_min": 840,
+          "end_min": 850,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S014",
+          "start_min": 850,
+          "end_min": 870,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S015",
+          "start_min": 870,
+          "end_min": 885,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S016",
+          "start_min": 885,
+          "end_min": 900,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S017",
+          "start_min": 900,
+          "end_min": 915,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S018",
+          "start_min": 915,
+          "end_min": 925,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S019",
+          "start_min": 925,
+          "end_min": 945,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S020",
+          "start_min": 945,
+          "end_min": 960,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S021",
+          "start_min": 960,
+          "end_min": 980,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S022",
+          "start_min": 980,
+          "end_min": 990,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S023",
+          "start_min": 990,
+          "end_min": 1005,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S024",
+          "start_min": 1005,
+          "end_min": 1020,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "WRAP",
+          "start_min": 1020,
+          "end_min": 1050,
+          "location_id": "LOC-INT"
+        }
+      ],
+      "cast_calls": [
+        {
+          "cast_id": "CAST-01",
+          "report_location_id": "LOC-EXT",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-02",
+          "report_location_id": "LOC-EXT",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-03",
+          "report_location_id": "LOC-EXT",
+          "report_min": 550,
+          "makeup_start_min": 555,
+          "makeup_end_min": 585,
+          "wardrobe_end_min": 595,
+          "ready_min": 595,
+          "first_shot_min": 600,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-04",
+          "report_location_id": "LOC-INT",
+          "report_min": 675,
+          "makeup_start_min": 680,
+          "makeup_end_min": 710,
+          "wardrobe_end_min": 720,
+          "ready_min": 720,
+          "first_shot_min": 825,
+          "release_min": 960
+        },
+        {
+          "cast_id": "CAST-05",
+          "report_location_id": "LOC-INT",
+          "report_min": 835,
+          "makeup_start_min": 840,
+          "makeup_end_min": 870,
+          "wardrobe_end_min": 880,
+          "ready_min": 880,
+          "first_shot_min": 885,
+          "release_min": 1020
+        }
+      ],
+      "incremental_cost_krw": 20000,
+      "move_distance_km": 8.0,
+      "conditions": [],
+      "calendar_variant": "CONFIRMED",
+      "must_not_execute_before_conditions_confirmed": true,
+      "unit_order": [
+        "U01",
+        "U02",
+        "U03",
+        "U04",
+        "U05",
+        "U06"
+      ],
+      "cost_breakdown_krw": {
+        "locations": 0,
+        "equipment": 0,
+        "transport": 20000,
+        "negotiation": 0,
+        "cancellation": 0
+      },
+      "cancellation_items": [],
+      "booking_actions": [],
+      "required_approver_ids": [
+        "USER-AD1",
+        "USER-AD2",
+        "USER-BUDGET",
+        "USER-DIRECTOR"
+      ],
+      "source_elements": {
+        "outdoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-1"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "indoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-1",
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "equipment_offer_ids": {
+          "source_plan_ids": [
+            "PLAN-1"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "unit_order": {
+          "source_plan_ids": [
+            "PLAN-1",
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        }
+      },
+      "contract_refs": [
+        {
+          "person_id": "CAST-01",
+          "contract_id": "CONTRACT-01",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-01-v3"
+        },
+        {
+          "person_id": "CAST-02",
+          "contract_id": "CONTRACT-02",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-02-v3"
+        },
+        {
+          "person_id": "CAST-03",
+          "contract_id": "CONTRACT-03",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-03-v3"
+        },
+        {
+          "person_id": "CAST-04",
+          "contract_id": "CONTRACT-04",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-04-v3"
+        },
+        {
+          "person_id": "CAST-05",
+          "contract_id": "CONTRACT-05",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-05-v3"
+        }
+      ],
+      "hard_checks": {
+        "contracts": {
+          "status": "PASS",
+          "source_ids": [
+            "CONTRACT-CAST-01-v3",
+            "CONTRACT-CAST-02-v3",
+            "CONTRACT-CAST-03-v3",
+            "CONTRACT-CAST-04-v3",
+            "CONTRACT-CAST-05-v3",
+            "RESOURCE-CONTRACT-LOC-EXT",
+            "RESOURCE-CONTRACT-LOC-INT",
+            "RESOURCE-CONTRACT-CAM-BASE",
+            "RESOURCE-CONTRACT-LIGHT-BASE",
+            "RESOURCE-CONTRACT-SOUND-BASE",
+            "RESOURCE-CONTRACT-GRIP-BASE",
+            "RESOURCE-CONTRACT-POWER-BASE"
+          ]
+        },
+        "schedule": {
+          "status": "PASS",
+          "source_ids": [
+            "PLAN-RULES",
+            "LABOR-SCOPE"
+          ]
+        },
+        "regulations": {
+          "status": "PASS",
+          "source_ids": [
+            "LAW-LSA-50",
+            "LAW-LSA-53",
+            "LAW-LSA-54",
+            "LABOR-SCOPE"
+          ]
+        },
+        "budget": {
+          "status": "PASS",
+          "source_ids": [
+            "BUDGET-POLICY"
+          ]
+        },
+        "prohibited_zones": {
+          "status": "PASS",
+          "source_ids": [
+            "LOCATION-LOC-EXT",
+            "LOCATION-LOC-INT"
+          ]
+        }
+      },
+      "resource_versions": {
+        "LOC-EXT": 1,
+        "LOC-INT": 1,
+        "LOC-COVER": 1,
+        "LOC-STUDIO": 1,
+        "LOC-PLAZA": 1,
+        "LOC-HUB": 1,
+        "LOC-FAR": 1,
+        "LOC-RESTRICTED": 1,
+        "CAM-BASE": 1,
+        "CAM-B": 1,
+        "CAM-C": 1,
+        "LIGHT-BASE": 1,
+        "LIGHT-B": 1,
+        "LIGHT-C": 1,
+        "SOUND-BASE": 1,
+        "SOUND-B": 1,
+        "SOUND-C": 1,
+        "GRIP-BASE": 1,
+        "GRIP-B": 1,
+        "POWER-BASE": 1,
+        "POWER-B": 1,
+        "CAST-01": 1,
+        "CAST-02": 1,
+        "CAST-03": 1,
+        "CAST-04": 1,
+        "CAST-05": 1,
+        "CREW-01": 1,
+        "CREW-02": 1,
+        "CREW-03": 1,
+        "CREW-04": 1,
+        "CREW-05": 1,
+        "CREW-06": 1,
+        "CREW-07": 1,
+        "CREW-08": 1,
+        "CREW-09": 1,
+        "CREW-10": 1,
+        "CREW-11": 1,
+        "CREW-12": 1,
+        "CREW-13": 1,
+        "CREW-14": 1,
+        "CREW-15": 1,
+        "CREW-16": 1,
+        "RES-LOC-EXT": 1,
+        "RES-LOC-INT": 1,
+        "RES-CAM-BASE": 1,
+        "RES-LIGHT-BASE": 1,
+        "RES-SOUND-BASE": 1,
+        "RES-GRIP-BASE": 1,
+        "RES-POWER-BASE": 1
+      },
+      "score": {
+        "profile_id": "COST_FIRST",
+        "normalized": {
+          "place": 82.666667,
+          "equipment": 95.0,
+          "weather": 90.0,
+          "budget": 99.0,
+          "time": 5.0,
+          "distance": 90.0
+        },
+        "weights": {
+          "place": 0.15,
+          "equipment": 0.1,
+          "weather": 0.1,
+          "budget": 0.4,
+          "time": 0.1,
+          "distance": 0.15
+        },
+        "total": 84.5,
+        "normalization_version": "FIXED-BOUNDS-1",
+        "scope": "registered six-unit finite candidate space; not real-world global optimality"
+      },
+      "event_ref": {
+        "event_id": "EV-D01",
+        "revision": 1,
+        "dedupe_key": "EP01-D01-r1"
+      },
+      "plan_hash": "c79941ef7a26ca7435d37686e14c83d57678c0d1003b61178cac708ad2332777"
+    }
+  },
+  {
+    "plan_id": "PLAN-2",
+    "status": "PREPARED_BEFORE_EVENT",
+    "plan": {
+      "shoot_date": "2026-10-23",
+      "outdoor_location_id": "LOC-COVER",
+      "indoor_location_id": "LOC-INT",
+      "equipment_offer_ids": [
+        "CAM-BASE",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-B",
+        "POWER-BASE"
+      ],
+      "scene_order": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S008",
+        "S009",
+        "S010",
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S023",
+        "S024"
+      ],
+      "crew_call_min": 480,
+      "wrap_end_min": 1050,
+      "blocks": [
+        {
+          "kind": "PREP",
+          "start_min": 480,
+          "end_min": 540,
+          "location_id": "LOC-COVER"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S001",
+          "start_min": 540,
+          "end_min": 550,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S002",
+          "start_min": 550,
+          "end_min": 570,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S003",
+          "start_min": 570,
+          "end_min": 585,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S004",
+          "start_min": 585,
+          "end_min": 600,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S005",
+          "start_min": 600,
+          "end_min": 615,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S006",
+          "start_min": 615,
+          "end_min": 625,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S007",
+          "start_min": 625,
+          "end_min": 645,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S008",
+          "start_min": 645,
+          "end_min": 660,
+          "location_id": "LOC-COVER",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "MOVE",
+          "start_min": 660,
+          "end_min": 675,
+          "location_id": "LOC-INT",
+          "from_location_id": "LOC-COVER"
+        },
+        {
+          "kind": "SETUP",
+          "start_min": 675,
+          "end_min": 705,
+          "location_id": "LOC-INT"
+        },
+        {
+          "kind": "HOLD",
+          "start_min": 705,
+          "end_min": 720,
+          "location_id": "LOC-INT"
+        },
+        {
+          "kind": "MEAL",
+          "start_min": 720,
+          "end_min": 780,
+          "location_id": "LOC-INT"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S009",
+          "start_min": 780,
+          "end_min": 800,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S010",
+          "start_min": 800,
+          "end_min": 810,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S011",
+          "start_min": 810,
+          "end_min": 825,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S012",
+          "start_min": 825,
+          "end_min": 840,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S013",
+          "start_min": 840,
+          "end_min": 850,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S014",
+          "start_min": 850,
+          "end_min": 870,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S015",
+          "start_min": 870,
+          "end_min": 885,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S016",
+          "start_min": 885,
+          "end_min": 900,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S017",
+          "start_min": 900,
+          "end_min": 915,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S018",
+          "start_min": 915,
+          "end_min": 925,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S019",
+          "start_min": 925,
+          "end_min": 945,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S020",
+          "start_min": 945,
+          "end_min": 960,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S021",
+          "start_min": 960,
+          "end_min": 980,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S022",
+          "start_min": 980,
+          "end_min": 990,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S023",
+          "start_min": 990,
+          "end_min": 1005,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S024",
+          "start_min": 1005,
+          "end_min": 1020,
+          "location_id": "LOC-INT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "WRAP",
+          "start_min": 1020,
+          "end_min": 1050,
+          "location_id": "LOC-INT"
+        }
+      ],
+      "cast_calls": [
+        {
+          "cast_id": "CAST-01",
+          "report_location_id": "LOC-COVER",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-02",
+          "report_location_id": "LOC-COVER",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-03",
+          "report_location_id": "LOC-COVER",
+          "report_min": 550,
+          "makeup_start_min": 555,
+          "makeup_end_min": 585,
+          "wardrobe_end_min": 595,
+          "ready_min": 595,
+          "first_shot_min": 600,
+          "release_min": 1020
+        },
+        {
+          "cast_id": "CAST-04",
+          "report_location_id": "LOC-INT",
+          "report_min": 675,
+          "makeup_start_min": 680,
+          "makeup_end_min": 710,
+          "wardrobe_end_min": 720,
+          "ready_min": 720,
+          "first_shot_min": 825,
+          "release_min": 960
+        },
+        {
+          "cast_id": "CAST-05",
+          "report_location_id": "LOC-INT",
+          "report_min": 835,
+          "makeup_start_min": 840,
+          "makeup_end_min": 870,
+          "wardrobe_end_min": 880,
+          "ready_min": 880,
+          "first_shot_min": 885,
+          "release_min": 1020
+        }
+      ],
+      "incremental_cost_krw": 385000,
+      "move_distance_km": 4.0,
+      "conditions": [],
+      "calendar_variant": "CONFIRMED",
+      "must_not_execute_before_conditions_confirmed": true,
+      "unit_order": [
+        "U01",
+        "U02",
+        "U03",
+        "U04",
+        "U05",
+        "U06"
+      ],
+      "cost_breakdown_krw": {
+        "locations": 280000,
+        "equipment": 35000,
+        "transport": 10000,
+        "negotiation": 0,
+        "cancellation": 60000
+      },
+      "cancellation_items": [
+        {
+          "reservation_id": "RES-LOC-EXT",
+          "contract_id": "RESOURCE-CONTRACT-LOC-EXT",
+          "fee_krw": 40000
+        },
+        {
+          "reservation_id": "RES-GRIP-BASE",
+          "contract_id": "RESOURCE-CONTRACT-GRIP-BASE",
+          "fee_krw": 20000
+        }
+      ],
+      "booking_actions": [
+        {
+          "resource_id": "GRIP-B",
+          "action": "MANUAL_BOOKING_REQUIRED",
+          "provider": "RENTAL_MOCK"
+        },
+        {
+          "resource_id": "LOC-COVER",
+          "action": "MANUAL_BOOKING_REQUIRED",
+          "provider": "OURPLACE_MOCK"
+        }
+      ],
+      "required_approver_ids": [
+        "USER-AD1",
+        "USER-AD2",
+        "USER-BUDGET",
+        "USER-DIRECTOR",
+        "USER-EQUIPMENT",
+        "USER-SOUND"
+      ],
+      "source_elements": {
+        "outdoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "indoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-1",
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "equipment_offer_ids": {
+          "source_plan_ids": [
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "unit_order": {
+          "source_plan_ids": [
+            "PLAN-1",
+            "PLAN-2"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        }
+      },
+      "contract_refs": [
+        {
+          "person_id": "CAST-01",
+          "contract_id": "CONTRACT-01",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-01-v3"
+        },
+        {
+          "person_id": "CAST-02",
+          "contract_id": "CONTRACT-02",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-02-v3"
+        },
+        {
+          "person_id": "CAST-03",
+          "contract_id": "CONTRACT-03",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-03-v3"
+        },
+        {
+          "person_id": "CAST-04",
+          "contract_id": "CONTRACT-04",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-04-v3"
+        },
+        {
+          "person_id": "CAST-05",
+          "contract_id": "CONTRACT-05",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-05-v3"
+        }
+      ],
+      "hard_checks": {
+        "contracts": {
+          "status": "PASS",
+          "source_ids": [
+            "CONTRACT-CAST-01-v3",
+            "CONTRACT-CAST-02-v3",
+            "CONTRACT-CAST-03-v3",
+            "CONTRACT-CAST-04-v3",
+            "CONTRACT-CAST-05-v3",
+            "RESOURCE-CONTRACT-LOC-EXT",
+            "RESOURCE-CONTRACT-LOC-INT",
+            "RESOURCE-CONTRACT-CAM-BASE",
+            "RESOURCE-CONTRACT-LIGHT-BASE",
+            "RESOURCE-CONTRACT-SOUND-BASE",
+            "RESOURCE-CONTRACT-GRIP-BASE",
+            "RESOURCE-CONTRACT-POWER-BASE"
+          ]
+        },
+        "schedule": {
+          "status": "PASS",
+          "source_ids": [
+            "PLAN-RULES",
+            "LABOR-SCOPE"
+          ]
+        },
+        "regulations": {
+          "status": "PASS",
+          "source_ids": [
+            "LAW-LSA-50",
+            "LAW-LSA-53",
+            "LAW-LSA-54",
+            "LABOR-SCOPE"
+          ]
+        },
+        "budget": {
+          "status": "PASS",
+          "source_ids": [
+            "BUDGET-POLICY"
+          ]
+        },
+        "prohibited_zones": {
+          "status": "PASS",
+          "source_ids": [
+            "LOCATION-LOC-COVER",
+            "LOCATION-LOC-INT"
+          ]
+        }
+      },
+      "resource_versions": {
+        "LOC-EXT": 1,
+        "LOC-INT": 1,
+        "LOC-COVER": 1,
+        "LOC-STUDIO": 1,
+        "LOC-PLAZA": 1,
+        "LOC-HUB": 1,
+        "LOC-FAR": 1,
+        "LOC-RESTRICTED": 1,
+        "CAM-BASE": 1,
+        "CAM-B": 1,
+        "CAM-C": 1,
+        "LIGHT-BASE": 1,
+        "LIGHT-B": 1,
+        "LIGHT-C": 1,
+        "SOUND-BASE": 1,
+        "SOUND-B": 1,
+        "SOUND-C": 1,
+        "GRIP-BASE": 1,
+        "GRIP-B": 1,
+        "POWER-BASE": 1,
+        "POWER-B": 1,
+        "CAST-01": 1,
+        "CAST-02": 1,
+        "CAST-03": 1,
+        "CAST-04": 1,
+        "CAST-05": 1,
+        "CREW-01": 1,
+        "CREW-02": 1,
+        "CREW-03": 1,
+        "CREW-04": 1,
+        "CREW-05": 1,
+        "CREW-06": 1,
+        "CREW-07": 1,
+        "CREW-08": 1,
+        "CREW-09": 1,
+        "CREW-10": 1,
+        "CREW-11": 1,
+        "CREW-12": 1,
+        "CREW-13": 1,
+        "CREW-14": 1,
+        "CREW-15": 1,
+        "CREW-16": 1,
+        "RES-LOC-EXT": 1,
+        "RES-LOC-INT": 1,
+        "RES-CAM-BASE": 1,
+        "RES-LIGHT-BASE": 1,
+        "RES-SOUND-BASE": 1,
+        "RES-GRIP-BASE": 1,
+        "RES-POWER-BASE": 1
+      },
+      "score": {
+        "profile_id": "COST_FIRST",
+        "normalized": {
+          "place": 76.666667,
+          "equipment": 95.6,
+          "weather": 100.0,
+          "budget": 80.75,
+          "time": 5.0,
+          "distance": 95.0
+        },
+        "weights": {
+          "place": 0.15,
+          "equipment": 0.1,
+          "weather": 0.1,
+          "budget": 0.4,
+          "time": 0.1,
+          "distance": 0.15
+        },
+        "total": 78.11,
+        "normalization_version": "FIXED-BOUNDS-1",
+        "scope": "registered six-unit finite candidate space; not real-world global optimality"
+      },
+      "event_ref": {
+        "event_id": "EV-D01",
+        "revision": 1,
+        "dedupe_key": "EP01-D01-r1"
+      },
+      "plan_hash": "552e8ad764913989263639ea13f6fd4c49eb988f22289f0db7f254a2309ceb3f"
+    }
+  },
+  {
+    "plan_id": "PLAN-3",
+    "status": "PREPARED_BEFORE_EVENT",
+    "plan": {
+      "shoot_date": "2026-10-23",
+      "outdoor_location_id": "LOC-HUB",
+      "indoor_location_id": "LOC-HUB",
+      "equipment_offer_ids": [
+        "CAM-B",
+        "LIGHT-BASE",
+        "SOUND-BASE",
+        "GRIP-BASE",
+        "POWER-B"
+      ],
+      "scene_order": [
+        "S009",
+        "S010",
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S023",
+        "S024",
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S006",
+        "S007",
+        "S008"
+      ],
+      "crew_call_min": 480,
+      "wrap_end_min": 990,
+      "blocks": [
+        {
+          "kind": "PREP",
+          "start_min": 480,
+          "end_min": 540,
+          "location_id": "LOC-HUB"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S009",
+          "start_min": 540,
+          "end_min": 560,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S010",
+          "start_min": 560,
+          "end_min": 570,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S011",
+          "start_min": 570,
+          "end_min": 585,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S012",
+          "start_min": 585,
+          "end_min": 600,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S013",
+          "start_min": 600,
+          "end_min": 610,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S014",
+          "start_min": 610,
+          "end_min": 630,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S015",
+          "start_min": 630,
+          "end_min": 645,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S016",
+          "start_min": 645,
+          "end_min": 660,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S017",
+          "start_min": 660,
+          "end_min": 675,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S018",
+          "start_min": 675,
+          "end_min": 685,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S019",
+          "start_min": 685,
+          "end_min": 705,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S020",
+          "start_min": 705,
+          "end_min": 720,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03",
+            "CAST-04"
+          ]
+        },
+        {
+          "kind": "MEAL",
+          "start_min": 720,
+          "end_min": 780,
+          "location_id": "LOC-HUB"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S021",
+          "start_min": 780,
+          "end_min": 800,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S022",
+          "start_min": 800,
+          "end_min": 810,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S023",
+          "start_min": 810,
+          "end_min": 825,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S024",
+          "start_min": 825,
+          "end_min": 840,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02",
+            "CAST-03",
+            "CAST-05"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S001",
+          "start_min": 840,
+          "end_min": 850,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S002",
+          "start_min": 850,
+          "end_min": 870,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S003",
+          "start_min": 870,
+          "end_min": 885,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S004",
+          "start_min": 885,
+          "end_min": 900,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S005",
+          "start_min": 900,
+          "end_min": 915,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S006",
+          "start_min": 915,
+          "end_min": 925,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S007",
+          "start_min": 925,
+          "end_min": 945,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S008",
+          "start_min": 945,
+          "end_min": 960,
+          "location_id": "LOC-HUB",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "WRAP",
+          "start_min": 960,
+          "end_min": 990,
+          "location_id": "LOC-HUB"
+        }
+      ],
+      "cast_calls": [
+        {
+          "cast_id": "CAST-01",
+          "report_location_id": "LOC-HUB",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 960
+        },
+        {
+          "cast_id": "CAST-02",
+          "report_location_id": "LOC-HUB",
+          "report_min": 490,
+          "makeup_start_min": 495,
+          "makeup_end_min": 525,
+          "wardrobe_end_min": 535,
+          "ready_min": 535,
+          "first_shot_min": 540,
+          "release_min": 900
+        },
+        {
+          "cast_id": "CAST-04",
+          "report_location_id": "LOC-HUB",
+          "report_min": 535,
+          "makeup_start_min": 540,
+          "makeup_end_min": 570,
+          "wardrobe_end_min": 580,
+          "ready_min": 580,
+          "first_shot_min": 585,
+          "release_min": 720
+        },
+        {
+          "cast_id": "CAST-03",
+          "report_location_id": "LOC-HUB",
+          "report_min": 550,
+          "makeup_start_min": 555,
+          "makeup_end_min": 585,
+          "wardrobe_end_min": 595,
+          "ready_min": 595,
+          "first_shot_min": 600,
+          "release_min": 960
+        },
+        {
+          "cast_id": "CAST-05",
+          "report_location_id": "LOC-HUB",
+          "report_min": 595,
+          "makeup_start_min": 600,
+          "makeup_end_min": 630,
+          "wardrobe_end_min": 640,
+          "ready_min": 640,
+          "first_shot_min": 645,
+          "release_min": 840
+        }
+      ],
+      "incremental_cost_krw": 795000,
+      "move_distance_km": 0,
+      "conditions": [],
+      "calendar_variant": "CONFIRMED",
+      "must_not_execute_before_conditions_confirmed": true,
+      "unit_order": [
+        "U03",
+        "U04",
+        "U05",
+        "U06",
+        "U01",
+        "U02"
+      ],
+      "cost_breakdown_krw": {
+        "locations": 450000,
+        "equipment": 205000,
+        "transport": 0,
+        "negotiation": 0,
+        "cancellation": 140000
+      },
+      "cancellation_items": [
+        {
+          "reservation_id": "RES-LOC-EXT",
+          "contract_id": "RESOURCE-CONTRACT-LOC-EXT",
+          "fee_krw": 40000
+        },
+        {
+          "reservation_id": "RES-LOC-INT",
+          "contract_id": "RESOURCE-CONTRACT-LOC-INT",
+          "fee_krw": 60000
+        },
+        {
+          "reservation_id": "RES-CAM-BASE",
+          "contract_id": "RESOURCE-CONTRACT-CAM-BASE",
+          "fee_krw": 20000
+        },
+        {
+          "reservation_id": "RES-POWER-BASE",
+          "contract_id": "RESOURCE-CONTRACT-POWER-BASE",
+          "fee_krw": 20000
+        }
+      ],
+      "booking_actions": [
+        {
+          "resource_id": "CAM-B",
+          "action": "MANUAL_BOOKING_REQUIRED",
+          "provider": "RENTAL_MOCK"
+        },
+        {
+          "resource_id": "LOC-HUB",
+          "action": "MANUAL_BOOKING_REQUIRED",
+          "provider": "OURPLACE_MOCK"
+        },
+        {
+          "resource_id": "POWER-B",
+          "action": "MANUAL_BOOKING_REQUIRED",
+          "provider": "RENTAL_MOCK"
+        }
+      ],
+      "required_approver_ids": [
+        "USER-AD1",
+        "USER-AD2",
+        "USER-BUDGET",
+        "USER-DIRECTOR",
+        "USER-EQUIPMENT",
+        "USER-SOUND"
+      ],
+      "source_elements": {
+        "outdoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-3"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "indoor_location_id": {
+          "source_plan_ids": [
+            "PLAN-3"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "equipment_offer_ids": {
+          "source_plan_ids": [
+            "PLAN-3"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        },
+        "unit_order": {
+          "source_plan_ids": [
+            "PLAN-3"
+          ],
+          "source": "PREPARED_PLAN_SET"
+        }
+      },
+      "contract_refs": [
+        {
+          "person_id": "CAST-01",
+          "contract_id": "CONTRACT-01",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-01-v3"
+        },
+        {
+          "person_id": "CAST-02",
+          "contract_id": "CONTRACT-02",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-02-v3"
+        },
+        {
+          "person_id": "CAST-03",
+          "contract_id": "CONTRACT-03",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-03-v3"
+        },
+        {
+          "person_id": "CAST-04",
+          "contract_id": "CONTRACT-04",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-04-v3"
+        },
+        {
+          "person_id": "CAST-05",
+          "contract_id": "CONTRACT-05",
+          "version": 3,
+          "doc_id": "CONTRACT-CAST-05-v3"
+        }
+      ],
+      "hard_checks": {
+        "contracts": {
+          "status": "PASS",
+          "source_ids": [
+            "CONTRACT-CAST-01-v3",
+            "CONTRACT-CAST-02-v3",
+            "CONTRACT-CAST-03-v3",
+            "CONTRACT-CAST-04-v3",
+            "CONTRACT-CAST-05-v3",
+            "RESOURCE-CONTRACT-LOC-EXT",
+            "RESOURCE-CONTRACT-LOC-INT",
+            "RESOURCE-CONTRACT-CAM-BASE",
+            "RESOURCE-CONTRACT-LIGHT-BASE",
+            "RESOURCE-CONTRACT-SOUND-BASE",
+            "RESOURCE-CONTRACT-GRIP-BASE",
+            "RESOURCE-CONTRACT-POWER-BASE"
+          ]
+        },
+        "schedule": {
+          "status": "PASS",
+          "source_ids": [
+            "PLAN-RULES",
+            "LABOR-SCOPE"
+          ]
+        },
+        "regulations": {
+          "status": "PASS",
+          "source_ids": [
+            "LAW-LSA-50",
+            "LAW-LSA-53",
+            "LAW-LSA-54",
+            "LABOR-SCOPE"
+          ]
+        },
+        "budget": {
+          "status": "PASS",
+          "source_ids": [
+            "BUDGET-POLICY"
+          ]
+        },
+        "prohibited_zones": {
+          "status": "PASS",
+          "source_ids": [
+            "LOCATION-LOC-HUB"
+          ]
+        }
+      },
+      "resource_versions": {
+        "LOC-EXT": 1,
+        "LOC-INT": 1,
+        "LOC-COVER": 1,
+        "LOC-STUDIO": 1,
+        "LOC-PLAZA": 1,
+        "LOC-HUB": 1,
+        "LOC-FAR": 1,
+        "LOC-RESTRICTED": 1,
+        "CAM-BASE": 1,
+        "CAM-B": 1,
+        "CAM-C": 1,
+        "LIGHT-BASE": 1,
+        "LIGHT-B": 1,
+        "LIGHT-C": 1,
+        "SOUND-BASE": 1,
+        "SOUND-B": 1,
+        "SOUND-C": 1,
+        "GRIP-BASE": 1,
+        "GRIP-B": 1,
+        "POWER-BASE": 1,
+        "POWER-B": 1,
+        "CAST-01": 1,
+        "CAST-02": 1,
+        "CAST-03": 1,
+        "CAST-04": 1,
+        "CAST-05": 1,
+        "CREW-01": 1,
+        "CREW-02": 1,
+        "CREW-03": 1,
+        "CREW-04": 1,
+        "CREW-05": 1,
+        "CREW-06": 1,
+        "CREW-07": 1,
+        "CREW-08": 1,
+        "CREW-09": 1,
+        "CREW-10": 1,
+        "CREW-11": 1,
+        "CREW-12": 1,
+        "CREW-13": 1,
+        "CREW-14": 1,
+        "CREW-15": 1,
+        "CREW-16": 1,
+        "RES-LOC-EXT": 1,
+        "RES-LOC-INT": 1,
+        "RES-CAM-BASE": 1,
+        "RES-LIGHT-BASE": 1,
+        "RES-SOUND-BASE": 1,
+        "RES-GRIP-BASE": 1,
+        "RES-POWER-BASE": 1
+      },
+      "score": {
+        "profile_id": "COST_FIRST",
+        "normalized": {
+          "place": 99.0,
+          "equipment": 96.2,
+          "weather": 100.0,
+          "budget": 60.25,
+          "time": 15.0,
+          "distance": 100.0
+        },
+        "weights": {
+          "place": 0.15,
+          "equipment": 0.1,
+          "weather": 0.1,
+          "budget": 0.4,
+          "time": 0.1,
+          "distance": 0.15
+        },
+        "total": 75.07,
+        "normalization_version": "FIXED-BOUNDS-1",
+        "scope": "registered six-unit finite candidate space; not real-world global optimality"
+      },
+      "event_ref": {
+        "event_id": "EV-D01",
+        "revision": 1,
+        "dedupe_key": "EP01-D01-r1"
+      },
+      "plan_hash": "b211f2d27a165cc5855e195828aac29208c6efbde8a42784beaea37f765a09d6"
+    }
+  }
+]

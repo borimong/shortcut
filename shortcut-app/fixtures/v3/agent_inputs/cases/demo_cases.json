@@ -1,0 +1,938 @@
+[
+  {
+    "case_id": "D01",
+    "split": "demo",
+    "name": "오전 비, 여러 장소 후보",
+    "request": "오전9시부터13시까지 비입니다. 촬영 순서 변경과 지붕 있는 장소 이용을 비교해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23",
+        "2026-10-24"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 780,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D01",
+      "revision": 1,
+      "dedupe_key": "EP01-D01-r1"
+    }
+  },
+  {
+    "case_id": "D02",
+    "split": "demo",
+    "name": "종일 비, 당일 대체 장소",
+    "request": "10월23일 야외 허가시간 내내 비 예보입니다. 촬영 당일 마칠 수 있는 방법을 찾아 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D02",
+      "revision": 1,
+      "dedupe_key": "EP01-D02-r1"
+    }
+  },
+  {
+    "case_id": "D03",
+    "split": "demo",
+    "name": "비와 실내 장소 취소",
+    "request": "종일 비가 오고 기존 실내 세트도 취소됐습니다. 장소와 장비를 함께 검토해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [
+        "LOC-INT"
+      ],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D03",
+      "revision": 1,
+      "dedupe_key": "EP01-D03-r1"
+    }
+  },
+  {
+    "case_id": "D04",
+    "split": "demo",
+    "name": "배우 지연, 다음 날도 비교",
+    "request": "진선구 배우가13시 도착으로 변경됐습니다. 추가비120만원 이내에서 다음 날로 옮기는 안도 검토해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23",
+        "2026-10-24"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 1200000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [
+        {
+          "cast_id": "CAST-03",
+          "date": "2026-10-23",
+          "start_min": 780,
+          "end_min": 1080
+        }
+      ],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D04",
+      "revision": 1,
+      "dedupe_key": "EP01-D04-r1"
+    }
+  },
+  {
+    "case_id": "D05",
+    "split": "demo",
+    "name": "배우 지연, 조건부 조기 도착",
+    "request": "진선구 배우가13시 도착 예정인데 매니저가 이동편 변경 시11시 도착 가능성을 제안했습니다. 당일 해결안을 검토해 주세요. 취소 위약금을 포함한 추가비 한도는70만원입니다.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 700000,
+      "event_tags": [
+        "FLEXIBLE_CAST_DELAY"
+      ],
+      "weather": [],
+      "cast_overrides": [
+        {
+          "cast_id": "CAST-03",
+          "date": "2026-10-23",
+          "start_min": 780,
+          "end_min": 1080
+        }
+      ],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D05",
+      "revision": 1,
+      "dedupe_key": "EP01-D05-r1"
+    }
+  },
+  {
+    "case_id": "D06",
+    "split": "demo",
+    "name": "배우 조기 해산",
+    "request": "이하니 배우가16시에 떠나야 합니다. 일정 재배치로 해결할 수 있나요?",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [
+        {
+          "cast_id": "CAST-02",
+          "date": "2026-10-23",
+          "start_min": 480,
+          "end_min": 960
+        }
+      ],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D06",
+      "revision": 1,
+      "dedupe_key": "EP01-D06-r1"
+    }
+  },
+  {
+    "case_id": "D07",
+    "split": "demo",
+    "name": "기존 카메라 고장",
+    "request": "기존 카메라를 쓸 수 없습니다. 호환성과 당일 도착시간을 확인해 대체해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [
+        "CAM-BASE"
+      ],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D07",
+      "revision": 1,
+      "dedupe_key": "EP01-D07-r1"
+    }
+  },
+  {
+    "case_id": "D08",
+    "split": "demo",
+    "name": "조명과 동시녹음 교체",
+    "request": "기존 조명과 녹음 패키지를 사용할 수 없습니다. 두 장비를 따로 조합해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [
+        "LIGHT-BASE",
+        "SOUND-BASE"
+      ],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D08",
+      "revision": 1,
+      "dedupe_key": "EP01-D08-r1"
+    }
+  },
+  {
+    "case_id": "D09",
+    "split": "demo",
+    "name": "추가 예산 부족",
+    "request": "종일 비인데 당일만 촬영 가능하고 추가비 상한은5만원입니다. 가능한지 확인해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 50000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D09",
+      "revision": 1,
+      "dedupe_key": "EP01-D09-r1"
+    }
+  },
+  {
+    "case_id": "D10",
+    "split": "demo",
+    "name": "배우 도착시간 불명",
+    "request": "진선구 배우가 늦습니다. 계획을 바꿔 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23",
+        "2026-10-24"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [
+        "CAST-03.arrival_time"
+      ],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D10",
+      "revision": 1,
+      "dedupe_key": "EP01-D10-r1"
+    }
+  },
+  {
+    "case_id": "D11",
+    "split": "demo",
+    "name": "실내 대체 자원 모두 사용 불가",
+    "request": "비가 오고 실내 기존 장소, 지붕 통로, 모노 세트, 복합 세트를 사용할 수 없습니다. 당일 가능한 방법을 찾아 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [
+        "LOC-INT",
+        "LOC-COVER",
+        "LOC-STUDIO",
+        "LOC-HUB"
+      ],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D11",
+      "revision": 1,
+      "dedupe_key": "EP01-D11-r1"
+    }
+  },
+  {
+    "case_id": "D12",
+    "split": "demo",
+    "name": "승인 필요한 장비만 남음",
+    "request": "기존과 B조명은 사용할 수 없습니다. C조명은 렌탈사 확인 전 상태입니다. 당일 대안을 제안해 주세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [
+        "LIGHT-BASE",
+        "LIGHT-B"
+      ],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D12",
+      "revision": 1,
+      "dedupe_key": "EP01-D12-r1"
+    }
+  },
+  {
+    "case_id": "D13",
+    "split": "demo",
+    "name": "같은 우천·장소 우선 지시",
+    "request": "감독 지시: 예산 상한은 유지하되 장소 완성도를 우선해 최적안 하나를 요청합니다.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "PLACE_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D13",
+      "revision": 1,
+      "dedupe_key": "EP01-D13-r1"
+    }
+  },
+  {
+    "case_id": "D14",
+    "split": "demo",
+    "name": "음향감독 거절 후 새 제약",
+    "request": "기존 실내의13~18시 공사 소음으로 동시녹음 불가입니다. 거절 사유를 반영해 다시 선택하세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [
+        {
+          "location_id": "LOC-INT",
+          "date": "2026-10-23",
+          "start_min": 780,
+          "end_min": 1080,
+          "source_event_id": "REJECTION-SOUND-01"
+        }
+      ],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {}
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D14",
+      "revision": 1,
+      "dedupe_key": "EP01-D14-r1"
+    }
+  },
+  {
+    "case_id": "D15",
+    "split": "demo",
+    "name": "집중호우 대피",
+    "request": "모의 긴급 안전 통보입니다. 촬영 중지와 안전담당자 확인을 우선하세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "STOP_ALL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {},
+      "safety_notice": {
+        "notice_id": "SYNTHETIC-D15",
+        "type": "FLOOD",
+        "authority": "가상 안전통제본부",
+        "mandatory_action": "STOP_AND_ESCALATE",
+        "source_doc_id": "SAFETY-SOP",
+        "is_synthetic": true
+      }
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D15",
+      "revision": 1,
+      "dedupe_key": "EP01-D15-r1"
+    }
+  },
+  {
+    "case_id": "D16",
+    "split": "demo",
+    "name": "산불 대피",
+    "request": "모의 긴급 안전 통보입니다. 촬영 중지와 안전담당자 확인을 우선하세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "STOP_ALL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {},
+      "safety_notice": {
+        "notice_id": "SYNTHETIC-D16",
+        "type": "WILDFIRE",
+        "authority": "가상 안전통제본부",
+        "mandatory_action": "STOP_AND_ESCALATE",
+        "source_doc_id": "SAFETY-SOP",
+        "is_synthetic": true
+      }
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D16",
+      "revision": 1,
+      "dedupe_key": "EP01-D16-r1"
+    }
+  },
+  {
+    "case_id": "D17",
+    "split": "demo",
+    "name": "지진 현장 점검",
+    "request": "모의 긴급 안전 통보입니다. 촬영 중지와 안전담당자 확인을 우선하세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-22T18:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 540,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "STOP_ALL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {},
+      "safety_notice": {
+        "notice_id": "SYNTHETIC-D17",
+        "type": "EARTHQUAKE",
+        "authority": "가상 안전통제본부",
+        "mandatory_action": "STOP_AND_ESCALATE",
+        "source_doc_id": "SAFETY-SOP",
+        "is_synthetic": true
+      }
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D17",
+      "revision": 1,
+      "dedupe_key": "EP01-D17-r1"
+    }
+  },
+  {
+    "case_id": "D18",
+    "split": "demo",
+    "name": "촬영 중 완료 씬 보존",
+    "request": "23일11시입니다.13시 이후 비 예보이나 야외8씬은 이미 촬영 완료했습니다. 완료 구간을 바꾸거나 재촬영하지 말고 유지 가능한지 판단하세요.",
+    "requester_id": "USER-AD1",
+    "base_schedule_id": "PLAN-1",
+    "facts": {
+      "allowed_dates": [
+        "2026-10-23"
+      ],
+      "detected_at": "2026-10-23T11:00:00+09:00",
+      "change_budget_cap_krw": 600000,
+      "event_tags": [],
+      "weather": [
+        {
+          "date": "2026-10-23",
+          "start_min": 780,
+          "end_min": 1020,
+          "precipitation_mm": 4,
+          "wind_mps": 2,
+          "applies_to": "ALL_LOCATIONS"
+        }
+      ],
+      "cast_overrides": [],
+      "unavailable_locations": [],
+      "unavailable_offers": [],
+      "permit_overrides": [],
+      "equipment_busy": [],
+      "venue_busy": [],
+      "missing_fields": [],
+      "weight_profile_id": "COST_FIRST",
+      "weight_instruction_by": "USER-DIRECTOR",
+      "safety_status": "NORMAL",
+      "noise_blocks": [],
+      "crew_overrides": [],
+      "work_history_overrides": [],
+      "budget_overrides": {},
+      "executed_blocks": [
+        {
+          "kind": "PREP",
+          "start_min": 480,
+          "end_min": 540,
+          "location_id": "LOC-EXT"
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S001",
+          "start_min": 540,
+          "end_min": 550,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S002",
+          "start_min": 550,
+          "end_min": 570,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S003",
+          "start_min": 570,
+          "end_min": 585,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S004",
+          "start_min": 585,
+          "end_min": 600,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-02"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S005",
+          "start_min": 600,
+          "end_min": 615,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S006",
+          "start_min": 615,
+          "end_min": 625,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S007",
+          "start_min": 625,
+          "end_min": 645,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        },
+        {
+          "kind": "SHOOT",
+          "scene_id": "S008",
+          "start_min": 645,
+          "end_min": 660,
+          "location_id": "LOC-EXT",
+          "cast_ids": [
+            "CAST-01",
+            "CAST-03"
+          ]
+        }
+      ]
+    },
+    "plan_set_id": "PLANSET-EP01-D01",
+    "event": {
+      "event_id": "EV-D18",
+      "revision": 1,
+      "dedupe_key": "EP01-D18-r1"
+    }
+  }
+]

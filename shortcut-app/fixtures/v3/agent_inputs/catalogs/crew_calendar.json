@@ -1,0 +1,482 @@
+[
+  {
+    "crew_id": "CREW-01",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-01",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-01",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-02",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-02",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-02",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-03",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-03",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-03",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-04",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-04",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-04",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-05",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-05",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-05",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-06",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-06",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-06",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-07",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-07",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-07",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-08",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-08",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-08",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-09",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-09",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-09",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-10",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-10",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-10",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-11",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-11",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-11",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-12",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-12",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-12",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-13",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-13",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-13",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-14",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-14",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-14",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-15",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-15",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-15",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-16",
+    "date": "2026-10-23",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-16",
+    "date": "2026-10-24",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  },
+  {
+    "crew_id": "CREW-16",
+    "date": "2026-10-25",
+    "start_min": 480,
+    "end_min": 1080,
+    "overtime_agreement": true,
+    "employment_fixture": "ORDINARY_ADULT_EMPLOYEE",
+    "agreement_doc_id": "LABOR-SCOPE",
+    "version": 1
+  }
+]

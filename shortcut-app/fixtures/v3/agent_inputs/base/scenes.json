@@ -1,0 +1,1070 @@
+[
+  {
+    "scene_id": "S001",
+    "scene_number": 1,
+    "title": "경비실 앞",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "사원증",
+      "봉투",
+      "텀블러"
+    ],
+    "synopsis": "경비실 앞에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S001",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U01"
+  },
+  {
+    "scene_id": "S002",
+    "scene_number": 2,
+    "title": "주차장 인사",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "사원증",
+      "봉투",
+      "텀블러"
+    ],
+    "synopsis": "주차장 인사에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S002",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S001"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U01"
+  },
+  {
+    "scene_id": "S003",
+    "scene_number": 3,
+    "title": "정문 계단",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "사원증",
+      "봉투",
+      "텀블러"
+    ],
+    "synopsis": "정문 계단에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S003",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S002"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U01"
+  },
+  {
+    "scene_id": "S004",
+    "scene_number": 4,
+    "title": "외부 출입구",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "사원증",
+      "봉투",
+      "텀블러"
+    ],
+    "synopsis": "외부 출입구에서 도윤이 서연에게 마지막 출근임을 말하지 못한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S004",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S003"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U01"
+  },
+  {
+    "scene_id": "S005",
+    "scene_number": 5,
+    "title": "동측 마당",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "사원증",
+      "노트북 가방"
+    ],
+    "synopsis": "동측 마당에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S005",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U02"
+  },
+  {
+    "scene_id": "S006",
+    "scene_number": 6,
+    "title": "명함 교환",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "사원증",
+      "노트북 가방"
+    ],
+    "synopsis": "명함 교환에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S006",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S005"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U02"
+  },
+  {
+    "scene_id": "S007",
+    "scene_number": 7,
+    "title": "택배 카트",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "사원증",
+      "노트북 가방"
+    ],
+    "synopsis": "택배 카트에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S007",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S006"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U02"
+  },
+  {
+    "scene_id": "S008",
+    "scene_number": 8,
+    "title": "건물 입구",
+    "int_ext": "EXT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "사원증",
+      "노트북 가방"
+    ],
+    "synopsis": "건물 입구에서 민재가 도윤에게 첫 업무 인계를 부탁한다.",
+    "requires_dry_weather": true,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S008",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S007"
+    ],
+    "appearance_required": "OFFICE_EXTERIOR",
+    "eligible_location_ids": [
+      "LOC-EXT",
+      "LOC-COVER",
+      "LOC-PLAZA",
+      "LOC-HUB",
+      "LOC-FAR",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-EXT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U02"
+  },
+  {
+    "scene_id": "S009",
+    "scene_number": 9,
+    "title": "사무실 첫인사",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "회의 자료",
+      "텀블러"
+    ],
+    "synopsis": "사무실 첫인사에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S009",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U03"
+  },
+  {
+    "scene_id": "S010",
+    "scene_number": 10,
+    "title": "회의 자료",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "회의 자료",
+      "텀블러"
+    ],
+    "synopsis": "회의 자료에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S010",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S009"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U03"
+  },
+  {
+    "scene_id": "S011",
+    "scene_number": 11,
+    "title": "발표 모니터",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02"
+    ],
+    "props": [
+      "회의 자료",
+      "텀블러"
+    ],
+    "synopsis": "발표 모니터에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S011",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S010"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U03"
+  },
+  {
+    "scene_id": "S012",
+    "scene_number": 12,
+    "title": "총무팀 방문",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-04"
+    ],
+    "props": [
+      "회의 자료",
+      "텀블러"
+    ],
+    "synopsis": "총무팀 방문에서 서연은 도윤의 빈 발표 슬라이드를 눈치챈다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S012",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S011"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U03"
+  },
+  {
+    "scene_id": "S013",
+    "scene_number": 13,
+    "title": "복도 분기점",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북 가방",
+      "사원증"
+    ],
+    "synopsis": "복도 분기점에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S013",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U04"
+  },
+  {
+    "scene_id": "S014",
+    "scene_number": 14,
+    "title": "복사실",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북 가방",
+      "사원증"
+    ],
+    "synopsis": "복사실에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S014",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S013"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U04"
+  },
+  {
+    "scene_id": "S015",
+    "scene_number": 15,
+    "title": "직원 게시판",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북 가방",
+      "사원증"
+    ],
+    "synopsis": "직원 게시판에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S015",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S014"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U04"
+  },
+  {
+    "scene_id": "S016",
+    "scene_number": 16,
+    "title": "외주 기사 호출",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-02",
+      "CAST-03",
+      "CAST-05"
+    ],
+    "props": [
+      "노트북 가방",
+      "사원증"
+    ],
+    "synopsis": "외주 기사 호출에서 민재가 서연에게 도윤의 퇴사 소식을 듣는다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S016",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S015"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U04"
+  },
+  {
+    "scene_id": "S017",
+    "scene_number": 17,
+    "title": "업무 파일",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북",
+      "인계 메모"
+    ],
+    "synopsis": "업무 파일에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S017",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U05"
+  },
+  {
+    "scene_id": "S018",
+    "scene_number": 18,
+    "title": "인계 체크",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북",
+      "인계 메모"
+    ],
+    "synopsis": "인계 체크에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S018",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S017"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U05"
+  },
+  {
+    "scene_id": "S019",
+    "scene_number": 19,
+    "title": "서랍 정리",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03"
+    ],
+    "props": [
+      "노트북",
+      "인계 메모"
+    ],
+    "synopsis": "서랍 정리에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S019",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S018"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U05"
+  },
+  {
+    "scene_id": "S020",
+    "scene_number": 20,
+    "title": "총무 확인",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-03",
+      "CAST-04"
+    ],
+    "props": [
+      "노트북",
+      "인계 메모"
+    ],
+    "synopsis": "총무 확인에서 도윤은 민재에게 파일보다 중요한 팀의 습관을 알려준다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S020",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S019"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U05"
+  },
+  {
+    "scene_id": "S021",
+    "scene_number": 21,
+    "title": "빈 책상",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 20,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "봉투",
+      "사원증",
+      "텀블러"
+    ],
+    "synopsis": "빈 책상에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S021",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U06"
+  },
+  {
+    "scene_id": "S022",
+    "scene_number": 22,
+    "title": "동료 메시지",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 3,
+    "duration_minutes": 10,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "봉투",
+      "사원증",
+      "텀블러"
+    ],
+    "synopsis": "동료 메시지에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S022",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S021"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U06"
+  },
+  {
+    "scene_id": "S023",
+    "scene_number": 23,
+    "title": "봉투 전달",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-03"
+    ],
+    "props": [
+      "봉투",
+      "사원증",
+      "텀블러"
+    ],
+    "synopsis": "봉투 전달에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S023",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S022"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U06"
+  },
+  {
+    "scene_id": "S024",
+    "scene_number": 24,
+    "title": "마지막 인사",
+    "int_ext": "INT",
+    "story_time": "DAY",
+    "script_eighths": 2,
+    "duration_minutes": 15,
+    "cast_ids": [
+      "CAST-01",
+      "CAST-02",
+      "CAST-03",
+      "CAST-05"
+    ],
+    "props": [
+      "봉투",
+      "사원증",
+      "텀블러"
+    ],
+    "synopsis": "마지막 인사에서 세 사람은 점심 뒤 회의실에서 도윤의 다음 출발을 응원한다.",
+    "requires_dry_weather": false,
+    "source_doc_id": "SCRIPT-V3",
+    "source_clause": "S024",
+    "costume_continuity": "동일 극중일 C01/C02/C03 유지",
+    "hard_predecessor_scene_ids": [
+      "S023"
+    ],
+    "appearance_required": "OFFICE_INTERIOR",
+    "eligible_location_ids": [
+      "LOC-INT",
+      "LOC-STUDIO",
+      "LOC-HUB",
+      "LOC-RESTRICTED"
+    ],
+    "original_location_id": "LOC-INT",
+    "original_equipment_ids": [
+      "EQ-CAM",
+      "EQ-SND",
+      "EQ-LED"
+    ],
+    "required_equipment_groups": [
+      "CAM_4K",
+      "LED_2",
+      "AUDIO_3CH"
+    ],
+    "unit_id": "U06"
+  }
+]
