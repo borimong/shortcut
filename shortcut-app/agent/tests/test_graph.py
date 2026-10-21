@@ -78,6 +78,7 @@ def test_impact_analysis_names_the_block_node_to_start_from():
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
     assert "블록의 노드 ID는 BLOCK:1-PM입니다" in ctx.model.impact_prompts[0]
+    assert "shoot_day_id(값 1)를 함께 넘기세요" in ctx.model.impact_prompts[0]
 
 
 def test_rejection_becomes_constraint_and_next_loop_proposes_one_new_plan():

@@ -8,6 +8,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.shortcut.common.ApiException;
 import com.shortcut.domain.OntologyEdge;
 import com.shortcut.domain.OntologyNode;
@@ -16,6 +17,7 @@ import com.shortcut.dto.OntologyDtos.ImpactResponse;
 import com.shortcut.repository.OntologyRepository;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 class OntologyServiceTest {
 
     // 시드의 오후 블록 둘레만 옮겼다. 씬 → 블록 → 촬영일, 블록 → 장소·장비·후보안.
+    // 배우 B는 2회차 S18에도 나와서 촬영일을 가리지 않으면 1회차 씬에서 2회차 씬과 블록까지 닿는다.
     private static final List<OntologyEdge> EDGES = List.of(
             edge(1, "SCENE:S12", "출연", "ACTOR:1"),
             edge(2, "SCENE:S12", "촬영지", "LOCATION:1"),
@@ -32,9 +35,17 @@ class OntologyServiceTest {
             edge(6, "BLOCK:1-PM", "포함", "SCENE:S13"),
             edge(7, "BLOCK:1-PM", "촬영지", "LOCATION:1"),
             edge(8, "BLOCK:1-PM", "사용", "EQUIPMENT:1"),
-            edge(9, "BLOCK:1-PM", "후보", "PLAN:2"),
-            edge(10, "PLAN:2", "사용", "EQUIPMENT:4"),
-            edge(11, "BLOCK:1-AM", "촬영지", "LOCATION:4"));
+            edge(9, "BLOCK:1-PM", "후보", "PLAN:1-2"),
+            edge(10, "PLAN:1-2", "사용", "EQUIPMENT:4"),
+            edge(11, "BLOCK:1-AM", "촬영지", "LOCATION:4"),
+            edge(12, "SCENE:S12", "출연", "ACTOR:2"),
+            edge(13, "SCENE:S18", "출연", "ACTOR:2"),
+            edge(14, "BLOCK:2-PM", "포함", "SCENE:S18"));
+
+    // 시드처럼 촬영일에 딸린 노드에만 props.shootDayId를 둔다.
+    private static final Map<String, Integer> SHOOT_DAYS = Map.of(
+            "SCENE:S12", 1, "SCENE:S13", 1, "SCENE:S18", 2, "SHOOT_DAY:1", 1,
+            "BLOCK:1-AM", 1, "BLOCK:1-PM", 1, "BLOCK:2-PM", 2, "PLAN:1-2", 1);
 
     private final OntologyRepository repository = mock(OntologyRepository.class);
     private OntologyService ontology;
@@ -56,24 +67,39 @@ class OntologyServiceTest {
 
     @Test
     void 씬에서_깊이_2면_블록을_거쳐_촬영일과_후보안까지_닿는다() {
-        ImpactResponse impact = ontology.impact("SCENE:S12", 2);
+        ImpactResponse impact = ontology.impact("SCENE:S12", 2, null);
 
-        assertThat(ids(impact)).contains("BLOCK:1-PM", "SHOOT_DAY:1", "SCENE:S13", "EQUIPMENT:1", "PLAN:2")
+        assertThat(ids(impact)).contains("BLOCK:1-PM", "SHOOT_DAY:1", "SCENE:S13", "EQUIPMENT:1", "PLAN:1-2")
                 .doesNotContain("BLOCK:1-AM", "EQUIPMENT:4");
         assertThat(impact.edges()).contains(new EdgeRef("SHOOT_DAY:1", "포함", "BLOCK:1-PM"),
-                new EdgeRef("BLOCK:1-PM", "후보", "PLAN:2"));
+                new EdgeRef("BLOCK:1-PM", "후보", "PLAN:1-2"));
     }
 
     @Test
     void 깊이_1이면_바로_이웃한_블록까지만_나온다() {
-        ImpactResponse impact = ontology.impact("SCENE:S12", 1);
+        ImpactResponse impact = ontology.impact("SCENE:S12", 1, null);
 
-        assertThat(ids(impact)).containsExactly("SCENE:S12", "ACTOR:1", "LOCATION:1", "BLOCK:1-PM");
+        assertThat(ids(impact)).containsExactly("SCENE:S12", "ACTOR:1", "LOCATION:1", "BLOCK:1-PM", "ACTOR:2");
+    }
+
+    @Test
+    void 촬영일을_주지_않으면_공유_배우를_거쳐_다른_촬영일_씬까지_나온다() {
+        assertThat(ids(ontology.impact("SCENE:S12", 2, null))).contains("SCENE:S18");
+    }
+
+    @Test
+    void 촬영일을_주면_다른_촬영일_노드는_넣지도_따라가지도_않는다() {
+        ImpactResponse impact = ontology.impact("SCENE:S12", 3, 1L);
+
+        assertThat(ids(impact)).contains("ACTOR:2", "SHOOT_DAY:1", "PLAN:1-2")
+                .doesNotContain("SCENE:S18", "BLOCK:2-PM");
+        assertThat(impact.edges()).contains(new EdgeRef("SCENE:S12", "출연", "ACTOR:2"))
+                .doesNotContain(new EdgeRef("SCENE:S18", "출연", "ACTOR:2"));
     }
 
     @Test
     void 노드는_가까운_순서로_나와_잘려도_먼_노드부터_빠진다() {
-        List<String> ids = ids(ontology.impact("SCENE:S12", 3));
+        List<String> ids = ids(ontology.impact("SCENE:S12", 3, null));
 
         assertThat(ids.get(0)).isEqualTo("SCENE:S12");
         assertThat(ids.indexOf("BLOCK:1-PM")).isLessThan(ids.indexOf("SHOOT_DAY:1"));
@@ -83,7 +109,7 @@ class OntologyServiceTest {
 
     @Test
     void 깊이가_3을_넘으면_400이다() {
-        assertThatThrownBy(() -> ontology.impact("SCENE:S12", 4))
+        assertThatThrownBy(() -> ontology.impact("SCENE:S12", 4, null))
                 .isInstanceOf(ApiException.class)
                 .extracting(e -> ((ApiException) e).code()).isEqualTo("INVALID_DEPTH");
     }
@@ -93,7 +119,11 @@ class OntologyServiceTest {
     }
 
     private static OntologyNode node(String id) {
-        return new OntologyNode(id, id.substring(0, id.indexOf(':')), id, JsonNodeFactory.instance.objectNode());
+        ObjectNode props = JsonNodeFactory.instance.objectNode();
+        if (SHOOT_DAYS.containsKey(id)) {
+            props.put("shootDayId", SHOOT_DAYS.get(id));
+        }
+        return new OntologyNode(id, id.substring(0, id.indexOf(':')), id, props);
     }
 
     private static OntologyEdge edge(long id, String src, String relation, String dst) {

@@ -259,29 +259,35 @@ public class PlanRepository {
                 .param("externalId", external.id())
                 .param("keywords", json.write(keywords))
                 .update();
+        // 4안 노드는 촬영일마다 따로 둔다(PLAN:<촬영일>-4). 대체 장소 노드는 장소 ID가 같으면 촬영일끼리 함께 쓴다.
+        String plan = "PLAN:" + shootDayId + "-4";
         jdbc.sql("""
                         INSERT INTO ontology_nodes (node_id, type, label, props)
-                        VALUES ('PLAN:4', 'PLAN', '4안 (대체 장소)', '{}'),
+                        VALUES (:plan, 'PLAN', '4안 (대체 장소)', CAST(:planProps AS jsonb)),
                                (:node, 'LOCATION', :name, CAST(:props AS jsonb))
                         ON CONFLICT DO NOTHING
                         """)
+                .param("plan", plan)
+                .param("planProps", json.write(java.util.Map.of("shootDayId", shootDayId, "optionNo", 4)))
                 .param("node", "LOCATION:" + locationId)
                 .param("name", external.name())
                 .param("props", json.write(java.util.Map.of("source", "OURPLACE_MOCK", "region", external.region())))
                 .update();
         jdbc.sql("""
                         INSERT INTO ontology_edges (src, relation, dst, created_by)
-                        VALUES ('PLAN:4', '포함', :node, 'agent')
+                        VALUES (:plan, '포함', :node, 'agent')
                         ON CONFLICT DO NOTHING
                         """)
+                .param("plan", plan)
                 .param("node", "LOCATION:" + locationId)
                 .update();
         // 4안도 오후 블록의 후보로 이어 블록에서 영향을 볼 때 함께 나오게 한다. 블록 노드가 없는 촬영일이면 건너뛴다.
         jdbc.sql("""
                         INSERT INTO ontology_edges (src, relation, dst, created_by)
-                        SELECT node_id, '후보', 'PLAN:4', 'agent' FROM ontology_nodes WHERE node_id = :block
+                        SELECT node_id, '후보', :plan, 'agent' FROM ontology_nodes WHERE node_id = :block
                         ON CONFLICT DO NOTHING
                         """)
+                .param("plan", plan)
                 .param("block", "BLOCK:" + shootDayId + "-PM")
                 .update();
     }

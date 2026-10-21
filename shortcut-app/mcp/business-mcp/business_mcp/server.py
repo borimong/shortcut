@@ -31,7 +31,7 @@ NodeId = Annotated[
     str,
     Field(
         pattern=r"^[A-Z_]+:[A-Za-z0-9_\-]+$",
-        description="온톨로지 노드 ID. 형식 TYPE:키 (예: SCENE:S12, ACTOR:1, LOCATION:2, BLOCK:1-PM, SHOOT_DAY:1, CONTRACT:contract-actor-a-v3)",
+        description="온톨로지 노드 ID. 형식 TYPE:키 (예: SCENE:S12, ACTOR:1, LOCATION:2, BLOCK:1-PM, PLAN:1-2, SHOOT_DAY:1, CONTRACT:contract-actor-a-v3)",
     ),
 ]
 ShootDayId = Annotated[int, Field(ge=1, description="촬영일 ID (시연 데이터는 1)")]
@@ -151,12 +151,20 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
     async def find_impacted_entities(
         node_id: NodeId,
         depth: Annotated[int, Field(ge=1, le=3, description="탐색 깊이, 기본 2")] = 2,
+        shoot_day_id: Annotated[
+            int | None,
+            Field(ge=1, description="이 촬영일의 노드만 따라간다. 주지 않으면 다른 촬영일 씬, 블록, 안까지 섞여 나온다"),
+        ] = None,
     ) -> dict:
         """변경이 생긴 노드에서 depth 단계 안에 연결된 노드와 엣지를 모두 돌려준다.
         변경 영향 범위(관련 씬, 배우, 계약서, 예약, 장비)를 한 번에 볼 때 가장 먼저 쓴다.
-        블록 노드(BLOCK:촬영일ID-블록코드)에서 시작하면 그 블록의 씬, 장소, 장비, 후보안이 depth 1에 나온다.
+        블록 노드(BLOCK:촬영일ID-블록코드)에서 시작하면 그 블록의 씬, 장소, 장비, 후보안(PLAN:촬영일ID-번호)이 depth 1에 나온다.
+        배우와 장비는 여러 촬영일이 함께 쓰므로 재계획 중인 촬영일의 shoot_day_id를 넘겨 다른 촬영일 노드를 뺀다.
         결과는 엣지가 먼저, 노드는 시작점에서 가까운 순서다."""
-        return await call("GET", "/internal/ontology/impact", params={"nodeId": node_id, "depth": depth})
+        params: dict[str, Any] = {"nodeId": node_id, "depth": depth}
+        if shoot_day_id is not None:
+            params["shootDayId"] = shoot_day_id
+        return await call("GET", "/internal/ontology/impact", params=params)
 
     @mcp.tool(annotations=WRITE)
     async def link_entity(
