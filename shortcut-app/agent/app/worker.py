@@ -70,7 +70,7 @@ class TaskRunner:
             config = {
                 "configurable": {"thread_id": message["threadId"]},
                 "recursion_limit": 60,
-                **run_config(task_id, trace_id, message["kind"], prompt_versions()),
+                **run_config(task_id, trace_id, message["kind"], prompt_versions(), message["threadId"]),
             }
             started = time.monotonic()
             with collect_runs() as runs:
@@ -81,7 +81,9 @@ class TaskRunner:
             if final is None:
                 return
             run_id = str(runs.traced_runs[0].id) if runs.traced_runs else None
-            await self._finish(events, final, trace_url_for(run_id), int((time.monotonic() - started) * 1000))
+            # 링크 조회는 trace 전송을 기다리느라 몇 초 걸릴 수 있어 이벤트 루프를 막지 않게 스레드에서 돌린다.
+            trace_url = await asyncio.to_thread(trace_url_for, run_id)
+            await self._finish(events, final, trace_url, int((time.monotonic() - started) * 1000))
 
     async def _replan(self, message: dict[str, Any], config: dict, ctx: RunContext) -> dict[str, Any] | None:
         graph = self.replan_graph

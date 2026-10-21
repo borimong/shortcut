@@ -2,7 +2,7 @@
 
 > **현재 기준은 이 폴더가 아니라 shortcut-app 코드다.** 팀 전체 스택(shortcut-app)이 올라오면서 MCP는
 > `shortcut-app/backend`의 `/internal/**`와 `shortcut-app/agent`가 부르는 도구 이름에 맞춰 바뀌었다
-> (`callsheet-agent/mcp/README.md` 참고). 아래 rc2 문서와 mcp-tools.json은 설계 기록으로만 남긴다.
+> (`shortcut-app/mcp/README.md` 참고, MCP 코드는 `shortcut-app/mcp/`로 옮겼다). 아래 rc2 문서와 mcp-tools.json은 설계 기록으로만 남긴다.
 
 서비스와 서비스가 만나는 경계에서 주고받는 **이름, 경로, JSON 형식, 오류 형식**을 미리 정해 둔 약속이다.
 각자 자기 모듈 안은 자유롭게 만들되, 경계를 넘는 것은 이 폴더를 따른다.
