@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS locations (
     note        text
 );
 
+-- actors, locations, equipment는 원본 시드다. 고장, 취소, 불참은 이 행을 고치지 않고 shoot_day_overrides에만 남긴다.
+-- 그래서 equipment.available 같은 열은 "원래 상태"일 뿐이고, 현재 상태는 반드시 PlanDataService.load()로 읽는다.
 CREATE TABLE IF NOT EXISTS equipment (
     id        bigint PRIMARY KEY,
     name      varchar(60) NOT NULL,
@@ -78,16 +80,18 @@ CREATE TABLE IF NOT EXISTS blocks (
     UNIQUE (shoot_day_id, code)
 );
 
+-- 같은 씬을 여러 촬영일에 나눠 찍을 수 있어 씬 코드는 촬영일 안에서만 유일하다.
 CREATE TABLE IF NOT EXISTS scenes (
-    code           varchar(10) PRIMARY KEY,
-    shoot_day_id   bigint REFERENCES shoot_days (id),
-    block_code     varchar(10),
+    shoot_day_id   bigint      NOT NULL REFERENCES shoot_days (id),
+    code           varchar(10) NOT NULL,
+    block_code     varchar(10) NOT NULL,
     title          varchar(80) NOT NULL,
     duration_min   integer     NOT NULL,
     outdoor_intent boolean     NOT NULL,
     location_id    bigint REFERENCES locations (id),
     actor_ids      jsonb       NOT NULL DEFAULT '[]',
-    sort           integer     NOT NULL
+    sort           integer     NOT NULL,
+    PRIMARY KEY (shoot_day_id, code)
 );
 
 CREATE TABLE IF NOT EXISTS plan_options (
@@ -121,7 +125,6 @@ CREATE TABLE IF NOT EXISTS weather_forecasts (
     shoot_day_id bigint  NOT NULL REFERENCES shoot_days (id),
     location_id  bigint  NOT NULL REFERENCES locations (id),
     hour         integer NOT NULL,
-    precip_prob  integer NOT NULL,
     PRIMARY KEY (shoot_day_id, location_id, hour)
 );
 
@@ -320,7 +323,7 @@ ALTER TABLE proposals ADD COLUMN IF NOT EXISTS review jsonb;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
 
--- 강수확률 대신 시간당 강수량(mm)으로 판정한다. 확률 열은 예전 데이터 호환을 위해 남겨 둔다.
+-- 강수확률 대신 시간당 강수량(mm)으로 판정한다. 읽는 곳이 없던 확률 열(precip_prob)은 아래 정리 구역에서 지운다.
 ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS precip_mm numeric(5, 1) NOT NULL DEFAULT 0;
 
 -- 관리자가 바꾸는 운영 설정이다. 행은 하나만 둔다.
@@ -372,3 +375,115 @@ CREATE TABLE IF NOT EXISTS rain_alerts_sent (
     created_at   timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (shoot_day_id, location_id, hour)
 );
+
+-- ===== DB 구조 정리 (씬 기본키, 재난 문자 날짜, 외래키, 승인자 id, 변경안 번호, 인덱스) =====
+-- 이 파일은 서버가 켜질 때마다 다시 실행되므로 아래 문장도 모두 여러 번 돌려도 같은 결과가 나와야 한다.
+-- Spring의 SQL 실행기는 $$ 안의 세미콜론에서도 문장을 끊는다. 그래서 DO 블록과 함수 본문은 작은따옴표로 감싸고,
+-- 본문 안의 문자열은 작은따옴표를 두 번 써서 적는다.
+
+-- 제약이 없을 때만 NOT VALID로 걸고 기존 행을 검증한다. 어기는 행이 남아 있으면 경고만 남기고 새 행만 검사한다.
+CREATE OR REPLACE FUNCTION ensure_constraint(tbl regclass, con_name text, con_ddl text) RETURNS void
+LANGUAGE plpgsql AS '
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = tbl AND conname = con_name) THEN
+        EXECUTE format(''ALTER TABLE %s ADD CONSTRAINT %I %s NOT VALID'', tbl, con_name, con_ddl);
+    END IF;
+    BEGIN
+        EXECUTE format(''ALTER TABLE %s VALIDATE CONSTRAINT %I'', tbl, con_name);
+    EXCEPTION WHEN foreign_key_violation OR check_violation THEN
+        RAISE WARNING ''% 제약을 어기는 기존 행이 있어 검증하지 않은 채로 둡니다: %'', con_name, SQLERRM;
+    END;
+END';
+
+-- 씬 기본키를 (촬영일, 코드)로 바꾼다. 촬영일이 없던 시드 씬(S18)은 지우고 data.sql이 2회차 촬영일에 다시 넣는다.
+DELETE FROM scenes WHERE shoot_day_id IS NULL OR block_code IS NULL;
+ALTER TABLE scenes ALTER COLUMN shoot_day_id SET NOT NULL;
+ALTER TABLE scenes ALTER COLUMN block_code SET NOT NULL;
+DO '
+BEGIN
+    IF (SELECT array_length(conkey, 1) FROM pg_constraint
+        WHERE conrelid = ''scenes''::regclass AND contype = ''p'') = 1 THEN
+        ALTER TABLE scenes DROP CONSTRAINT scenes_pkey;
+        ALTER TABLE scenes ADD CONSTRAINT scenes_pkey PRIMARY KEY (shoot_day_id, code);
+    END IF;
+END';
+
+-- 재난 문자는 발령된 날에만 적용한다. 날짜 칸이 없던 기존 행은 오늘 날짜로 채우고, 이후로는 넣을 때 날짜를 꼭 받는다.
+ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS alert_date date NOT NULL DEFAULT CURRENT_DATE;
+ALTER TABLE disaster_alerts ALTER COLUMN alert_date DROP DEFAULT;
+
+-- 승인자는 표시 이름(user_name)과 함께 계정 id도 남긴다. 기존 행은 이름과 역할이 한 사람에게만 맞을 때 채운다.
+ALTER TABLE approvals ADD COLUMN IF NOT EXISTS user_id bigint;
+UPDATE approvals a SET user_id = u.id
+FROM users u
+WHERE a.user_id IS NULL AND a.user_name IS NOT NULL AND u.name = a.user_name AND u.role = a.role
+  AND (SELECT count(*) FROM users x WHERE x.name = a.user_name AND x.role = a.role) = 1;
+
+-- 외래키를 걸기 전에 지워진 행을 가리키는 값을 정리한다. 비워도 되는 칸은 NULL로, 배포 기록과 우천 알림 기록은 지운다.
+DELETE FROM distribution_logs d
+WHERE NOT EXISTS (SELECT 1 FROM callsheet_versions c WHERE c.id = d.callsheet_version_id);
+DELETE FROM rain_alerts_sent r
+WHERE NOT EXISTS (SELECT 1 FROM shoot_days s WHERE s.id = r.shoot_day_id)
+   OR NOT EXISTS (SELECT 1 FROM locations l WHERE l.id = r.location_id);
+UPDATE callsheet_versions c SET proposal_id = NULL
+WHERE proposal_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM proposals p WHERE p.id = c.proposal_id);
+UPDATE ai_tasks t SET proposal_id = NULL
+WHERE proposal_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM proposals p WHERE p.id = t.proposal_id);
+UPDATE ai_tasks t SET event_id = NULL
+WHERE event_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM change_events e WHERE e.id = t.event_id);
+UPDATE proposals p SET event_id = NULL
+WHERE event_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM change_events e WHERE e.id = p.event_id);
+UPDATE shoot_day_overrides o SET event_id = NULL
+WHERE event_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM change_events e WHERE e.id = o.event_id);
+
+-- 작업과 변경안은 서로 가리킨다. 작업 → 변경안 → 작업.proposal_id 갱신 순서로만 쓰므로 지연 검사는 필요 없고,
+-- 지울 때는 어느 쪽을 먼저 지워도 되도록 변경안 → 작업은 CASCADE, 작업 → 변경안은 SET NULL로 둔다.
+-- 데모 초기화(ResetRepository)는 변경안, 작업, 변경 이벤트를 모두 지우고 촬영일별 기록은 일부만 지우므로,
+-- 다른 촬영일 행이 지워진 변경안이나 이벤트를 가리키는 칸은 SET NULL로 비운다.
+SELECT ensure_constraint('proposals', 'proposals_task_id_fkey',
+                         'FOREIGN KEY (task_id) REFERENCES ai_tasks (id) ON DELETE CASCADE');
+SELECT ensure_constraint('proposals', 'proposals_event_id_fkey',
+                         'FOREIGN KEY (event_id) REFERENCES change_events (id) ON DELETE SET NULL');
+SELECT ensure_constraint('proposals', 'proposals_location_id_fkey',
+                         'FOREIGN KEY (location_id) REFERENCES locations (id)');
+SELECT ensure_constraint('proposals', 'proposals_orig_location_id_fkey',
+                         'FOREIGN KEY (orig_location_id) REFERENCES locations (id)');
+SELECT ensure_constraint('ai_tasks', 'ai_tasks_event_id_fkey',
+                         'FOREIGN KEY (event_id) REFERENCES change_events (id) ON DELETE SET NULL');
+SELECT ensure_constraint('ai_tasks', 'ai_tasks_proposal_id_fkey',
+                         'FOREIGN KEY (proposal_id) REFERENCES proposals (id) ON DELETE SET NULL');
+SELECT ensure_constraint('ai_tasks', 'ai_tasks_shoot_day_id_fkey',
+                         'FOREIGN KEY (shoot_day_id) REFERENCES shoot_days (id)');
+SELECT ensure_constraint('callsheet_versions', 'callsheet_versions_proposal_id_fkey',
+                         'FOREIGN KEY (proposal_id) REFERENCES proposals (id) ON DELETE SET NULL');
+SELECT ensure_constraint('distribution_logs', 'distribution_logs_callsheet_version_id_fkey',
+                         'FOREIGN KEY (callsheet_version_id) REFERENCES callsheet_versions (id) ON DELETE CASCADE');
+SELECT ensure_constraint('shoot_day_overrides', 'shoot_day_overrides_event_id_fkey',
+                         'FOREIGN KEY (event_id) REFERENCES change_events (id) ON DELETE SET NULL');
+SELECT ensure_constraint('rain_alerts_sent', 'rain_alerts_sent_shoot_day_id_fkey',
+                         'FOREIGN KEY (shoot_day_id) REFERENCES shoot_days (id)');
+-- 초기화가 4안 장소(id 100 이상)를 지울 때 그 장소의 우천 알림 기록도 함께 지운다.
+SELECT ensure_constraint('rain_alerts_sent', 'rain_alerts_sent_location_id_fkey',
+                         'FOREIGN KEY (location_id) REFERENCES locations (id) ON DELETE CASCADE');
+SELECT ensure_constraint('approvals', 'approvals_user_id_fkey',
+                         'FOREIGN KEY (user_id) REFERENCES users (id)');
+
+-- 변경안 번호(v2, v3 ...)는 촬영일 안에서 겹치지 않는다. 예전 방식으로 겹친 번호는 확정된 안(없으면 가장 최근 안)만 두고
+-- 나머지를 그 촬영일의 가장 큰 번호 뒤로 옮긴다. 이 유일 인덱스는 촬영일별 변경안 조회 인덱스도 겸한다.
+WITH ranked AS (
+    SELECT id, shoot_day_id,
+           row_number() OVER (PARTITION BY shoot_day_id, version_no ORDER BY status = 'COMMITTED' DESC, id DESC) AS dup,
+           max(version_no) OVER (PARTITION BY shoot_day_id) AS top
+    FROM proposals
+), moved AS (
+    SELECT id, top + row_number() OVER (PARTITION BY shoot_day_id ORDER BY id) AS version_no
+    FROM ranked
+    WHERE dup > 1
+)
+UPDATE proposals p SET version_no = m.version_no FROM moved m WHERE p.id = m.id;
+CREATE UNIQUE INDEX IF NOT EXISTS proposals_shoot_day_id_version_no_key ON proposals (shoot_day_id, version_no);
+
+CREATE INDEX IF NOT EXISTS change_events_shoot_day_idx ON change_events (shoot_day_id, id);
+CREATE INDEX IF NOT EXISTS shoot_day_overrides_shoot_day_idx ON shoot_day_overrides (shoot_day_id);
+
+ALTER TABLE weather_forecasts DROP COLUMN IF EXISTS precip_prob;

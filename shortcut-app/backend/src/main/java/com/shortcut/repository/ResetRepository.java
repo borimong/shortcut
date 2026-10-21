@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 /**
  * 시연 시나리오를 처음부터 다시 돌리려고 촬영일을 시드 상태로 되돌린다.
  * 시드 값은 data.sql에 한 번만 두고 여기서는 1안 행을 다시 읽어 복원한다.
+ * 지우는 순서는 외래키에 맞춰 두었다. 변경안을 먼저 지우면 작업과 콜시트의 변경안 칸은 SET NULL로 비고,
+ * 4안 장소를 지우면 그 장소의 우천 알림 기록은 CASCADE로 함께 지워진다(schema.sql 정리 구역).
  */
 @Repository
 public class ResetRepository {
@@ -43,7 +45,13 @@ public class ResetRepository {
             "DELETE FROM shoot_day_overrides WHERE shoot_day_id = :id",
             "DELETE FROM rain_alerts_sent WHERE shoot_day_id = :id",
             // 씬 진행 표시가 시계 기준이라 시연 촬영일은 항상 오늘로 둔다.
-            "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE WHERE id = :id"
+            "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE WHERE id = :id",
+            // 같은 작품의 다음 촬영일(시드 2회차)은 그다음 날부터 하루씩 둔다. 촬영판은 계속 오늘인 시연 촬영일을 고르고,
+            // 적용 기간이 있는 자원 상태가 다음 촬영일에도 걸리는지 이어서 확인할 수 있다.
+            """
+            UPDATE shoot_days SET shoot_date = CURRENT_DATE + CAST(id - :id AS integer)
+            WHERE id > :id AND project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
+            """
     };
 
     private final JdbcClient jdbc;

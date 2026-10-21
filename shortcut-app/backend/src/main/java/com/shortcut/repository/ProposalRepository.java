@@ -82,6 +82,22 @@ public class ProposalRepository {
                               JsonNode evidence, JsonNode unresolved, JsonNode review) {
     }
 
+    /**
+     * 촬영일 안에서 아직 쓰지 않은 다음 변경안 번호다. 거절되거나 무효가 된 안도 번호를 차지하고,
+     * 확정 콜시트 번호보다 항상 커서 확정되면 같은 번호의 콜시트가 된다.
+     * 호출하는 쪽이 촬영일 행을 잠근 상태여야 두 변경안이 같은 번호를 받지 않는다.
+     */
+    public int nextVersionNo(long shootDayId) {
+        return jdbc.sql("""
+                        SELECT greatest((SELECT coalesce(max(version_no), 0) FROM proposals WHERE shoot_day_id = :id),
+                                        (SELECT coalesce(max(version_no), 0) FROM callsheet_versions
+                                         WHERE shoot_day_id = :id)) + 1
+                        """)
+                .param("id", shootDayId)
+                .query(Integer.class)
+                .single();
+    }
+
     public Optional<Proposal> find(long id) {
         return jdbc.sql(SELECT + " WHERE id = :id").param("id", id).query(this::map).optional();
     }
@@ -129,15 +145,21 @@ public class ProposalRepository {
                 .list();
     }
 
-    public int decide(long proposalId, String role, String status, String userName, String reason, List<String> issues) {
+    /**
+     * 토큰에는 계정 id가 없어서 로그인 아이디로 users 행을 찾아 승인자 id를 남긴다. 표시 이름은 그때 이름을 그대로 둔다.
+     */
+    public int decide(long proposalId, String role, String status, String username, String userName, String reason,
+                      List<String> issues) {
         return jdbc.sql("""
                         UPDATE approvals SET status = :status, user_name = :userName, reason = :reason,
+                               user_id = (SELECT id FROM users WHERE username = :username),
                                issues = CAST(:issues AS jsonb), decided_at = now()
                         WHERE proposal_id = :proposalId AND role = :role AND status = 'PENDING'
                         """)
                 .param("proposalId", proposalId)
                 .param("role", role)
                 .param("status", status)
+                .param("username", username)
                 .param("userName", userName)
                 .param("reason", reason)
                 .param("issues", json.write(issues))
@@ -181,7 +203,7 @@ public class ProposalRepository {
 
     private Approval mapApproval(ResultSet rs, int row) throws SQLException {
         return new Approval(rs.getLong("id"), rs.getLong("proposal_id"), rs.getInt("seq"), rs.getString("role"),
-                rs.getString("status"), rs.getString("user_name"), rs.getString("reason"),
-                json.strings(rs.getString("issues")), rs.getObject("decided_at", OffsetDateTime.class));
+                rs.getString("status"), rs.getObject("user_id", Long.class), rs.getString("user_name"),
+                rs.getString("reason"), json.strings(rs.getString("issues")), rs.getObject("decided_at", OffsetDateTime.class));
     }
 }

@@ -33,7 +33,7 @@ public class InternalTestController {
     @PostMapping("/disaster-alerts")
     @ResponseStatus(HttpStatus.CREATED)
     public DisasterAlert addAlert(@Valid @RequestBody AlertRequest request) {
-        return testSupport.addAlert(request);
+        return testSupport.addAlert(SEED_SHOOT_DAY, request);
     }
 
     @DeleteMapping("/disaster-alerts")

@@ -80,8 +80,7 @@ public class ShootDayQueryService {
     }
 
     public List<DisasterAlert> disasterAlerts(long shootDayId) {
-        planData.load(shootDayId);
-        return plans.findAlerts();
+        return planData.load(shootDayId).alerts();
     }
 
     /**

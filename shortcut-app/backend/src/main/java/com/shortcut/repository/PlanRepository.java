@@ -113,6 +113,8 @@ public class PlanRepository {
                 .list();
     }
 
+    // 배우, 장소, 장비는 원본 시드 행이다. 변경 입력과 자원 현황의 고장, 취소, 불참은 shoot_day_overrides에만 있으므로
+    // 서비스는 아래 세 메서드를 직접 부르지 말고 PlanDataService.load()로 덮어쓰기까지 얹은 상태를 읽는다.
     public List<Actor> findActors() {
         return jdbc.sql("SELECT * FROM actors ORDER BY id")
                 .query((rs, n) -> new Actor(rs.getLong("id"), rs.getString("name"), time(rs, "available_from"),
@@ -157,17 +159,21 @@ public class PlanRepository {
                 .list();
     }
 
-    public List<DisasterAlert> findAlerts() {
-        return jdbc.sql("SELECT * FROM disaster_alerts ORDER BY id")
+    /** 그 날짜에 발령된 재난 문자다. 다른 날 문자가 이 촬영일 판정에 섞이지 않게 촬영일 날짜로 거른다. */
+    public List<DisasterAlert> findAlerts(LocalDate date) {
+        return jdbc.sql("SELECT * FROM disaster_alerts WHERE alert_date = :date ORDER BY id")
+                .param("date", date)
                 .query(PlanRepository::mapAlert)
                 .list();
     }
 
-    public DisasterAlert insertAlert(String region, String kind, LocalTime startsAt, LocalTime endsAt, String message) {
+    public DisasterAlert insertAlert(LocalDate date, String region, String kind, LocalTime startsAt, LocalTime endsAt,
+                                     String message) {
         return jdbc.sql("""
-                        INSERT INTO disaster_alerts (region, kind, starts_at, ends_at, message)
-                        VALUES (:region, :kind, :startsAt, :endsAt, :message) RETURNING *
+                        INSERT INTO disaster_alerts (alert_date, region, kind, starts_at, ends_at, message)
+                        VALUES (:date, :region, :kind, :startsAt, :endsAt, :message) RETURNING *
                         """)
+                .param("date", date)
                 .param("region", region)
                 .param("kind", kind)
                 .param("startsAt", startsAt)
@@ -216,8 +222,8 @@ public class PlanRepository {
                 .update();
         // 대체 장소는 지점별 예보가 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
         jdbc.sql("""
-                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob, precip_mm)
-                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_prob), max(w.precip_mm)
+                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm)
+                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_mm)
                         FROM weather_forecasts w JOIN locations l ON l.id = w.location_id
                         WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base
                         GROUP BY w.shoot_day_id, w.hour
@@ -265,8 +271,8 @@ public class PlanRepository {
     }
 
     private static DisasterAlert mapAlert(ResultSet rs, int row) throws SQLException {
-        return new DisasterAlert(rs.getLong("id"), rs.getString("region"), rs.getString("kind"),
-                time(rs, "starts_at"), time(rs, "ends_at"), rs.getString("message"));
+        return new DisasterAlert(rs.getLong("id"), rs.getObject("alert_date", LocalDate.class), rs.getString("region"),
+                rs.getString("kind"), time(rs, "starts_at"), time(rs, "ends_at"), rs.getString("message"));
     }
 
     static LocalTime time(ResultSet rs, String column) throws SQLException {

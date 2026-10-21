@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.shortcut.domain.DisasterAlert;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import org.assertj.core.data.Offset;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 class PlanEngineTest {
 
     private final PlanEngine engine = new PlanEngine();
+
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 21);
 
     private static final ExtraConstraint SEONGSU_AFTERNOON = new ExtraConstraint(
             "EXCLUDE_LOCATION_TIME", 2L, null, t("13:00"), t("18:00"), null, null, "공사 소음", "SOUND 거절");
@@ -59,13 +62,25 @@ class PlanEngineTest {
     @Test
     void 서울_재난_문자가_더해져도_파주가_1등이다() {
         List<DisasterAlert> alerts = List.of(
-                new DisasterAlert(1, "서울 영등포구", "호우", t("13:00"), t("18:00"), "호우 경보"),
-                new DisasterAlert(2, "서울 성동구", "호우", t("13:00"), t("18:00"), "호우 경보"));
+                new DisasterAlert(1, TODAY, "서울 영등포구", "호우", t("13:00"), t("18:00"), "호우 경보"),
+                new DisasterAlert(2, TODAY, "서울 성동구", "호우", t("13:00"), t("18:00"), "호우 경보"));
         EvaluationResult result = engine.evaluate(SeedPlan.input(alerts), null, List.of(SEONGSU_AFTERNOON));
 
         assertThat(result.candidates().getFirst().hash()).isEqualTo("L3-E1,5-T14001600");
         assertThat(codes(find(result, "L1-E1,2,3-T13001500"))).contains("DISASTER_ALERT", "RAIN_HARD");
         assertThat(codes(find(result, "L2-E1,4-T14001600"))).contains("DISASTER_ALERT");
+    }
+
+    @Test
+    void 재난_문자_지역은_정식_이름과_시도_단위로도_맞춘다() {
+        List<DisasterAlert> alerts = List.of(
+                new DisasterAlert(1, TODAY, "서울특별시  성동구", "호우", t("13:00"), t("18:00"), "호우 경보"),
+                new DisasterAlert(2, TODAY, "경기도", "호우", t("13:00"), t("18:00"), "호우 경보"));
+        EvaluationResult result = engine.evaluate(SeedPlan.input(alerts), null, List.of());
+
+        assertThat(codes(find(result, "L2-E1,4-T14001600"))).contains("DISASTER_ALERT");
+        assertThat(codes(find(result, "L3-E1,5-T14001600"))).contains("DISASTER_ALERT");
+        assertThat(codes(find(result, "L1-E1,2,3-T13001500"))).doesNotContain("DISASTER_ALERT");
     }
 
     @Test

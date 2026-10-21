@@ -236,7 +236,8 @@ public final class PlanEngine {
                     location.name() + "은(는) 비행금지구역이라 드론을 쓸 수 없습니다.", "NO_FLY_ZONE"));
         }
         for (DisasterAlert alert : input.alerts()) {
-            if (alert.region().equals(location.region()) && overlaps(alert.startsAt(), alert.endsAt(), start, end)) {
+            if (Regions.covers(alert.region(), location.region())
+                    && overlaps(alert.startsAt(), alert.endsAt(), start, end)) {
                 violations.add(new Finding("DISASTER_ALERT", "DISASTER",
                         location.region() + " " + alert.kind() + " 재난 문자(" + fmt(alert.startsAt()) + "~" + fmt(alert.endsAt()) + ")와 겹칩니다.",
                         "DISASTER_ALERT"));

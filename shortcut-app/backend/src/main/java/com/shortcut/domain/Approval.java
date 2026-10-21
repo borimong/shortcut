@@ -9,6 +9,7 @@ public record Approval(
         int seq,
         String role,
         String status,
+        Long userId,
         String userName,
         String reason,
         List<String> issues,

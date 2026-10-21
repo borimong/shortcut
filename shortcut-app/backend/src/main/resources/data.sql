@@ -9,6 +9,15 @@ VALUES (1, 1, CURRENT_DATE, '06:30', 1, '13시 이후 비 예보가 있습니다
           {"team": "동시녹음팀", "time": "07:00"}, {"team": "미술팀", "time": "06:30"}]')
 ON CONFLICT DO NOTHING;
 
+-- 2회차 촬영일은 1회차 다음 날이다. 자원 상태의 적용 기간(until_date)처럼 날짜를 넘나드는 기능을 확인하려고 둔다.
+-- 촬영판은 오늘 이후 가장 가까운 촬영일을 고르므로 1회차가 오늘이면 그대로 1회차를 보여 준다.
+INSERT INTO shoot_days (id, project_id, shoot_date, call_time, data_version, notice, crew_calls)
+SELECT 2, 1, shoot_date + 1, '07:30', 1, '성수 스튜디오 실내 촬영입니다. 주차는 건물 뒤편을 이용합니다.',
+       '[{"team": "연출팀", "time": "07:30"}, {"team": "촬영팀", "time": "07:45"}, {"team": "조명팀", "time": "07:45"},
+         {"team": "동시녹음팀", "time": "08:00"}, {"team": "미술팀", "time": "07:30"}]'
+FROM shoot_days WHERE id = 1
+ON CONFLICT DO NOTHING;
+
 INSERT INTO actors (id, name, available_from, available_to, weekly_hours_used, contract_doc_id, no_night, max_daily_hours, manager_phone)
 VALUES (1, '배우 A', '09:00', '16:00', 44, 'contract-actor-a-v3', true, 10, '010-2481-7731'),
        (2, '배우 B', '07:00', '22:00', 38, 'contract-actor-b-v1', false, NULL, '010-3920-1184'),
@@ -37,7 +46,9 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO blocks (shoot_day_id, code, start_time, end_time, duration_min, location_id, equipment_ids)
 VALUES (1, 'AM', '07:00', '11:30', 270, 4, '[1]'),
-       (1, 'PM', '13:00', '15:00', 120, 1, '[1, 2, 3]')
+       (1, 'PM', '13:00', '15:00', 120, 1, '[1, 2, 3]'),
+       (2, 'AM', '08:00', '10:00', 120, 4, '[1]'),
+       (2, 'PM', '14:00', '16:00', 120, 2, '[1, 5]')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO scenes (code, shoot_day_id, block_code, title, duration_min, outdoor_intent, location_id, actor_ids, sort)
@@ -51,24 +62,37 @@ VALUES ('S01', 1, 'AM', '출근길 로비', 30, false, NULL, '[2, 3]', 1),
        ('S08', 1, 'AM', '퇴근 준비', 35, false, NULL, '[2, 3]', 8),
        ('S12', 1, 'PM', '한강 산책 대화', 90, true, NULL, '[1, 2]', 12),
        ('S13', 1, 'PM', '강변 인서트', 30, true, NULL, '[1]', 13),
-       ('S18', NULL, NULL, '작업실 대화', 90, false, 2, '[2, 3]', 18)
+       ('S14', 2, 'AM', '편집실 회의', 60, false, NULL, '[2, 3]', 14),
+       ('S15', 2, 'AM', '복도 재회', 60, false, NULL, '[3]', 15),
+       ('S18', 2, 'PM', '작업실 대화', 90, false, 2, '[2, 3]', 18),
+       ('S19', 2, 'PM', '작업실 인서트', 30, false, 2, '[2]', 19)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO plan_options (shoot_day_id, block_code, option_no, location_id, equipment_ids, equipment_fit, start_time, end_time)
 VALUES (1, 'PM', 1, 1, '[1, 2, 3]', 1.00, '13:00', '15:00'),
        (1, 'PM', 2, 2, '[1, 4]', 0.75, '14:00', '16:00'),
-       (1, 'PM', 3, 3, '[1, 5]', 0.60, '12:30', '14:30')
+       (1, 'PM', 3, 3, '[1, 5]', 0.60, '12:30', '14:30'),
+       (2, 'PM', 1, 2, '[1, 5]', 1.00, '14:00', '16:00'),
+       (2, 'PM', 2, 3, '[1, 5]', 0.80, '13:00', '15:00'),
+       (2, 'PM', 3, 1, '[1, 3]', 0.60, '13:00', '15:00')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO callsheet_versions (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost)
-VALUES (1, 1, NULL, 1, '[1, 2, 3]', '13:00', '15:00', 300000)
+VALUES (1, 1, NULL, 1, '[1, 2, 3]', '13:00', '15:00', 300000),
+       (2, 1, NULL, 2, '[1, 5]', '14:00', '16:00', 450000)
 ON CONFLICT DO NOTHING;
 
 -- 한강 공원은 13시부터 시간당 8mm 비가 예보되어 있다(촬영 불가 기준 5mm 이상). 나머지 장소는 비가 오지 않는다.
-INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob, precip_mm)
-SELECT 1, l.id, h, CASE WHEN l.id = 1 AND h >= 13 THEN 80 ELSE 20 END,
-       CASE WHEN l.id = 1 AND h >= 13 THEN 8.0 WHEN l.id = 1 AND h = 12 THEN 0.5 ELSE 0 END
+INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm)
+SELECT 1, l.id, h, CASE WHEN l.id = 1 AND h >= 13 THEN 8.0 WHEN l.id = 1 AND h = 12 THEN 0.5 ELSE 0 END
 FROM locations l CROSS JOIN generate_series(6, 18) AS h
+ON CONFLICT DO NOTHING;
+
+-- 2회차에는 비가 오지 않는다.
+INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm)
+SELECT 2, l.id, h, 0
+FROM locations l CROSS JOIN generate_series(6, 18) AS h
+WHERE l.id < 100
 ON CONFLICT DO NOTHING;
 
 -- 강수량 열을 추가하기 전에 만든 DB는 확률만 있으므로, 강수량이 하나도 없을 때만 같은 예보로 채운다.
@@ -92,7 +116,8 @@ FROM (VALUES ('ALWAYS', 'DIRECTOR'),
 WHERE NOT EXISTS (SELECT 1 FROM approver_rules);
 
 INSERT INTO reservations (id, shoot_day_id, location_id, start_time, end_time, status, provider)
-VALUES ('R-2031', 1, 2, '14:00', '18:00', 'HELD', 'OURPLACE')
+VALUES ('R-2031', 1, 2, '14:00', '18:00', 'HELD', 'OURPLACE'),
+       ('R-2032', 2, 2, '14:00', '18:00', 'HELD', 'OURPLACE')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO external_locations (id, name, indoor, region, distance_km, cost, keywords)

@@ -5,6 +5,7 @@ import com.shortcut.domain.DisasterAlert;
 import com.shortcut.dto.TestDtos.AlertRequest;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.ResetRepository;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +24,15 @@ public class TestSupportService {
     }
 
     @Transactional
-    public DisasterAlert addAlert(AlertRequest request) {
+    public DisasterAlert addAlert(long shootDayId, AlertRequest request) {
         if (!request.startsAt().isBefore(request.endsAt())) {
             throw ApiException.badRequest("INVALID_TIME", "시작 시각은 종료 시각보다 빨라야 합니다.");
         }
+        LocalDate date = request.date() != null ? request.date() : plans.findShootDay(shootDayId)
+                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId))
+                .shootDate();
         String message = request.message() == null ? request.region() + " " + request.kind() : request.message();
-        return plans.insertAlert(request.region(), request.kind(), request.startsAt(), request.endsAt(), message);
+        return plans.insertAlert(date, request.region(), request.kind(), request.startsAt(), request.endsAt(), message);
     }
 
     @Transactional

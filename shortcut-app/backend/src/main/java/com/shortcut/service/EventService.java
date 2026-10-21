@@ -100,7 +100,7 @@ public class EventService {
         long eventId = inserted.get();
         if (!applied.isEmpty()) {
             for (Map<String, Object> change : applied) {
-                apply(shootDayId, eventId, change, user.username());
+                apply(shootDay, eventId, change, user.username());
             }
             tasks.updateEventChanges(eventId, json.write(applied));
             int version = plans.bumpDataVersion(shootDayId);
@@ -169,7 +169,7 @@ public class EventService {
             active.values().stream()
                     .filter(o -> family.equals(o.kind()) && o.targetId() != null && o.targetId() == target)
                     .forEach(o -> overrides.clear(o.id(), user.username()));
-            apply(shootDayId, eventId, change, user.username());
+            apply(shootDay, eventId, change, user.username());
         }
         tasks.updateEventChanges(eventId, json.write(applied));
         int version = plans.bumpDataVersion(shootDayId);
@@ -291,7 +291,8 @@ public class EventService {
         return out;
     }
 
-    private void apply(long shootDayId, long eventId, Map<String, Object> c, String username) {
+    private void apply(ShootDay shootDay, long eventId, Map<String, Object> c, String username) {
+        long shootDayId = shootDay.id();
         String kind = (String) c.get("kind");
         Long target = c.get("targetId") == null ? null : ((Number) c.get("targetId")).longValue();
         LocalDate until = c.get("untilDate") == null ? null : LocalDate.parse((String) c.get("untilDate"));
@@ -306,9 +307,10 @@ public class EventService {
                     Map.of("from", c.get("from"), "to", c.get("to")), null, memo, username);
             case "RAIN_FORECAST" -> overrides.insert(shootDayId, eventId, kind, target,
                     Map.of("fromHour", c.get("fromHour"), "toHour", c.get("toHour"), "mm", c.get("mm")), null, memo, username);
-            case "DISASTER_ALERT" -> plans.insertAlert((String) c.get("region"), (String) c.get("alertKind"),
-                    LocalTime.parse((String) c.get("from")), LocalTime.parse((String) c.get("to")),
-                    c.get("region") + " " + c.get("alertKind"));
+            // 재난 문자는 이 촬영일 날짜에만 적용한다. 다른 날 촬영일의 판정에는 섞이지 않는다.
+            case "DISASTER_ALERT" -> plans.insertAlert(shootDay.shootDate(), (String) c.get("region"),
+                    (String) c.get("alertKind"), LocalTime.parse((String) c.get("from")),
+                    LocalTime.parse((String) c.get("to")), c.get("region") + " " + c.get("alertKind"));
             default -> throw new IllegalStateException(kind);
         }
     }

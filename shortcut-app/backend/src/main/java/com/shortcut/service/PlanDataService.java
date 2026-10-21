@@ -36,6 +36,7 @@ public class PlanDataService {
     /**
      * 시드 데이터에 변경 입력이 남긴 덮어쓰기를 얹어서 읽는다.
      * 엔진, 촬영판, Agent 조회가 모두 이 결과를 쓰므로 "반사판 고장"을 입력하면 세 곳 모두 고장으로 본다.
+     * equipment.available 같은 원본 열에는 고장이 남지 않으므로, 배우, 장소, 장비 상태는 반드시 이 메서드로 읽는다.
      */
     @Transactional(readOnly = true)
     public PlanData load(long shootDayId) {
@@ -56,7 +57,7 @@ public class PlanDataService {
                 equipment,
                 plans.findPlanOptions(shootDayId, PlanData.CHANGING_BLOCK),
                 weather,
-                plans.findAlerts(),
+                plans.findAlerts(shootDay.shootDate()),
                 plans.findAlternativeLocationIds(shootDayId),
                 settings.settings());
     }

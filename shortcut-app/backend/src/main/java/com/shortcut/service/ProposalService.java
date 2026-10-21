@@ -119,7 +119,8 @@ public class ProposalService {
                 candidate.start(), candidate.end());
         // 필수 승인자는 관리자 페이지에서 바꾼 규칙을 따른다.
         List<String> roles = ApproverRule.requiredApprovers(original, proposed, settings.approverRules());
-        int versionNo = callsheets.findLatest(shootDayId).map(Callsheet::versionNo).orElse(0) + 1;
+        // 위에서 촬영일 행을 잠갔으므로 동시에 만든 변경안끼리 번호가 겹치지 않는다.
+        int versionNo = proposals.nextVersionNo(shootDayId);
         Long eventId = request.eventId() != null ? request.eventId() : task.eventId();
         double score = request.score() == null ? 0.0 : request.score();
         long id = proposals.insert(new NewProposal(task.id(), eventId, shootDayId, request.loopNo(), versionNo, current,
@@ -215,7 +216,7 @@ public class ProposalService {
             title = "변경안 " + label + " 무효";
             body = "승인 대기 중 촬영 데이터가 바뀌어 다시 계획합니다.";
         } else if (reject) {
-            proposals.decide(p.id(), user.role(), REJECTED, user.name(), reason, issues);
+            proposals.decide(p.id(), user.role(), REJECTED, user.username(), user.name(), reason, issues);
             proposals.updateStatus(p.id(), REJECTED);
             proposals.cancelPending(p.id());
             outbox.agentResume(task, p.id(), new OutboxService.Resume(REJECTED, user.role(), reason, issues));
@@ -223,7 +224,7 @@ public class ProposalService {
             title = "변경안 " + label + " 거절";
             body = user.name() + ": " + reason;
         } else {
-            proposals.decide(p.id(), user.role(), APPROVED, user.name(), null, List.of());
+            proposals.decide(p.id(), user.role(), APPROVED, user.username(), user.name(), null, List.of());
             boolean all = proposals.findApprovals(p.id()).stream().allMatch(a -> APPROVED.equals(a.status()));
             if (all) {
                 proposals.updateStatus(p.id(), APPROVED);
@@ -266,7 +267,8 @@ public class ProposalService {
         PlanSnapshot proposed = p.proposed();
         plans.updateBlock(shootDayId, PlanData.CHANGING_BLOCK, proposed);
         plans.bumpDataVersion(shootDayId);
-        int versionNo = callsheets.findLatest(shootDayId).map(Callsheet::versionNo).orElse(0) + 1;
+        // "변경안 v4 확정"이 "콜시트 v4"가 되도록 변경안 번호를 그대로 쓴다. 거절된 안의 번호는 콜시트에서 건너뛴다.
+        int versionNo = p.versionNo();
         Callsheet callsheet = callsheets.insert(shootDayId, versionNo, p.id(), proposed);
         proposals.updateStatus(id, "COMMITTED");
 
