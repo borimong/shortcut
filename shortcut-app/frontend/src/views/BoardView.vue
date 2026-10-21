@@ -12,10 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useShootDayStore } from '../stores/shootDay.js'
 import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
-import { SHOOT_DAY_ID } from '../labels.js'
 
 const notifications = useNotificationStore()
+const shootDay = useShootDayStore()
 
 const board = ref(null)
 const history = ref([])
@@ -46,9 +47,11 @@ const rainRule = computed(() => board.value?.rainRule ?? { blockMm: 5, warnMm: 1
 async function load() {
   error.value = null
   try {
-    const [b, h] = await Promise.all([api('/board/today'), api(`/history?shootDayId=${SHOOT_DAY_ID}`)])
+    // 이력은 서버가 촬영판에 고른 촬영일 것을 읽어야 해서 촬영판을 먼저 받는다.
+    const b = await api('/board/today')
+    shootDay.setFromBoard(b)
     board.value = b
-    history.value = h ?? []
+    history.value = (await api(`/history?shootDayId=${b.shootDay.id}`)) ?? []
   } catch (e) {
     error.value = e
   } finally {
@@ -205,7 +208,7 @@ function isInternal(link) {
 
         <CardContent class="flex min-w-0 flex-col items-center gap-1 px-6 py-6 text-center">
           <h2 class="text-xl font-semibold tracking-tight">{{ board.project.name }}</h2>
-          <p class="text-muted-foreground">{{ dateWithWeekday(board.shootDay.date) }}, 1회차 (총 1회차)</p>
+          <p class="text-muted-foreground">{{ dateWithWeekday(board.shootDay.date) }}, {{ board.shootDay.dayNo }}회차 (총 {{ board.shootDay.totalDays }}회차)</p>
           <div class="mt-4 mb-2 flex flex-col items-center gap-1">
             <span class="text-sm text-muted-foreground">콜타임</span>
             <strong class="mono text-5xl leading-none font-bold tracking-tight min-[900px]:text-[56px]">

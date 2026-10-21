@@ -12,9 +12,11 @@ import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useShootDayStore } from '../stores/shootDay.js'
 import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
 
 const notifications = useNotificationStore()
+const shootDay = useShootDayStore()
 
 const board = ref(null)
 const versions = ref([])
@@ -36,6 +38,7 @@ async function load() {
   error.value = null
   try {
     const b = await api('/board/today')
+    shootDay.setFromBoard(b)
     const list = await api(`/callsheets?shootDayId=${b.shootDay.id}`)
     board.value = b
     versions.value = [...(list ?? [])].sort((x, y) => y.versionNo - x.versionNo)

@@ -152,7 +152,7 @@ public class ProposalService {
         long extraCost = p.proposed().cost() - p.original().cost();
         double distanceDelta = data.locations().get(p.proposed().locationId()).distanceKm()
                 - data.locations().get(p.original().locationId()).distanceKm();
-        return new ProposalView(p.id(), p.taskId(), p.eventId(), p.versionLabel(), p.loopNo(), p.status(), p.createdAt(),
+        return new ProposalView(p.id(), p.taskId(), p.shootDayId(), p.eventId(), p.versionLabel(), p.loopNo(), p.status(), p.createdAt(),
                 p.dataVersion(), side(data, p.original(), null), side(data, p.proposed(), p.source()), extraCost,
                 distanceDelta, p.score(), p.scoreBreakdown(), p.weights(), p.explanation(), p.checklist(),
                 p.evidence(), p.unresolved(), p.review(), approvalViews(approvals, extraCost), approvedCount(approvals),

@@ -26,6 +26,8 @@ import com.shortcut.dto.BoardDtos.WeatherView;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.engine.PlanSnapshot;
 import com.shortcut.repository.CallsheetRepository;
+import com.shortcut.repository.PlanRepository;
+import com.shortcut.repository.PlanRepository.DayOrder;
 import com.shortcut.repository.ProposalRepository;
 import com.shortcut.repository.ProposalRepository.DecidedApproval;
 import com.shortcut.repository.TaskRepository;
@@ -49,15 +51,17 @@ public class BoardService {
             "EQUIPMENT_FAILURE", "장비 고장", "DISASTER", "천재지변", "OTHER", "기타");
 
     private final PlanDataService planData;
+    private final PlanRepository plans;
     private final CallsheetRepository callsheets;
     private final ProposalRepository proposals;
     private final TaskRepository tasks;
     private final UserRepository users;
     private final JsonColumns json;
 
-    public BoardService(PlanDataService planData, CallsheetRepository callsheets, ProposalRepository proposals,
-                        TaskRepository tasks, UserRepository users, JsonColumns json) {
+    public BoardService(PlanDataService planData, PlanRepository plans, CallsheetRepository callsheets,
+                        ProposalRepository proposals, TaskRepository tasks, UserRepository users, JsonColumns json) {
         this.planData = planData;
+        this.plans = plans;
         this.callsheets = callsheets;
         this.proposals = proposals;
         this.tasks = tasks;
@@ -85,11 +89,12 @@ public class BoardService {
         PendingProposalView pending = proposals.findOpen(shootDayId)
                 .map(p -> new PendingProposalView(p.id(), p.versionLabel(), p.status()))
                 .orElse(null);
+        DayOrder order = plans.findDayOrder(shootDayId);
 
         return new BoardResponse(
                 new ProjectView(data.shootDay().projectId(), data.shootDay().projectName()),
                 new ShootDayView(shootDayId, data.shootDay().shootDate(), data.shootDay().callTime(),
-                        data.shootDay().dataVersion(), data.shootDay().notice()),
+                        data.shootDay().dataVersion(), data.shootDay().notice(), order.dayNo(), order.totalDays()),
                 new CallsheetRef(latest.versionNo(), latest.createdAt()),
                 blockViews(data, current),
                 json.tree(data.shootDay().crewCallsJson()),

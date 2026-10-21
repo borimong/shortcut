@@ -20,7 +20,9 @@ public final class BoardDtos {
     public record ProjectView(long id, String name) {
     }
 
-    public record ShootDayView(long id, LocalDate date, LocalTime callTime, int dataVersion, String notice) {
+    /** dayNo는 같은 작품의 촬영일을 날짜순으로 셌을 때의 회차이고, totalDays는 전체 회차 수다. */
+    public record ShootDayView(long id, LocalDate date, LocalTime callTime, int dataVersion, String notice,
+                               int dayNo, int totalDays) {
     }
 
     public record CallsheetRef(int versionNo, OffsetDateTime createdAt) {

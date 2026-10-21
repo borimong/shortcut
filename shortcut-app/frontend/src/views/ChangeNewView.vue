@@ -11,11 +11,13 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { api } from '../api.js'
+import { useShootDayStore } from '../stores/shootDay.js'
 import { useToastStore } from '../stores/toast.js'
-import { EVENT_TYPES, SHOOT_DAY_ID } from '../labels.js'
+import { EVENT_TYPES } from '../labels.js'
 
 const router = useRouter()
 const toast = useToastStore()
+const shootDay = useShootDayStore()
 
 const type = ref('RAIN')
 const detail = ref('')
@@ -38,7 +40,7 @@ const selectClass =
 
 onMounted(async () => {
   try {
-    const o = await api(`/events/options?shootDayId=${SHOOT_DAY_ID}`)
+    const o = await api(`/events/options?shootDayId=${await shootDay.ensure()}`)
     options.value = o
     rain.value.locationId = o.pmLocationId
     cancelLocationId.value = o.pmLocationId
@@ -113,7 +115,7 @@ async function submit() {
   try {
     // 상세 내용을 비워 두면 고른 변경 요약을 그대로 상세 내용으로 쓴다.
     const text = detail.value.trim() || `${current.value.label}: ${summary.value.join(', ')}`
-    const body = { shootDayId: SHOOT_DAY_ID, type: type.value, detail: text, changes: changes.value }
+    const body = { shootDayId: shootDay.id, type: type.value, detail: text, changes: changes.value }
     if (instruction.value.trim()) body.instruction = instruction.value.trim()
     const res = await api('/events', { method: 'POST', body })
     if (res.duplicate) toast.info('같은 변경이 이미 접수되어 있어 기존 진행 화면으로 이동합니다.')

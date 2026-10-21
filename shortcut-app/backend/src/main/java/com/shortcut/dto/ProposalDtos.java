@@ -31,7 +31,7 @@ public final class ProposalDtos {
     public record ProposalCreated(long proposalId, String versionNo, List<String> requiredApprovers, String status) {
     }
 
-    public record ProposalView(long id, long taskId, Long eventId, String versionNo, int loopNo, String status,
+    public record ProposalView(long id, long taskId, long shootDayId, Long eventId, String versionNo, int loopNo, String status,
                                OffsetDateTime createdAt, int dataVersion, PlanSide original, PlanSide proposed,
                                long extraCost, double distanceDeltaKm, double score, JsonNode scoreBreakdown,
                                JsonNode weights, String explanation, JsonNode checklist, JsonNode evidence,

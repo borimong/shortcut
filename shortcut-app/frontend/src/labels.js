@@ -1,9 +1,6 @@
 // 콜시트를 바꿀 수 있는 사람은 제작 PD와 연출 PD다. 제작 조직은 제작자, 제작 PD, 제작실장, 제작부장, 제작부원 순이다.
 export const CHANGE_ROLES = ['PRODUCER', 'DIRECTOR']
 
-// 시드 계정이 모두 같은 촬영일 하나를 쓰므로 목록 조회 기준을 한 곳에 둔다.
-export const SHOOT_DAY_ID = 1
-
 export const DEMO_ACCOUNTS = [
   { username: 'pd', name: '한서윤', role: 'PRODUCER', title: '제작 PD (예산 권한자)' },
   { username: 'manager', name: '오지훈', role: 'PRODUCTION_MANAGER', title: '제작실장' },

@@ -8,7 +8,9 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/u
 import { Spinner } from '@/components/ui/spinner'
 import { api } from '../api.js'
 import { dateTime } from '../format.js'
-import { SHOOT_DAY_ID } from '../labels.js'
+import { useShootDayStore } from '../stores/shootDay.js'
+
+const shootDay = useShootDayStore()
 
 const items = ref([])
 const error = ref(null)
@@ -16,7 +18,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    items.value = (await api(`/history?shootDayId=${SHOOT_DAY_ID}`)) ?? []
+    items.value = (await api(`/history?shootDayId=${await shootDay.ensure()}`)) ?? []
   } catch (e) {
     error.value = e
   } finally {

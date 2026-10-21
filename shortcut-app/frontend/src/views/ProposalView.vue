@@ -8,7 +8,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, signedWon, ver, won } from '../format.js'
-import { CONSTRAINT_LABELS, DEPARTMENTS, ISSUE_LABELS, ISSUE_OPTIONS, REVIEW_ACTIONS, REVIEW_LABELS, SCORE_LABELS, SHOOT_DAY_ID } from '../labels.js'
+import { CONSTRAINT_LABELS, DEPARTMENTS, ISSUE_LABELS, ISSUE_OPTIONS, REVIEW_ACTIONS, REVIEW_LABELS, SCORE_LABELS } from '../labels.js'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -70,7 +70,8 @@ async function loadContext() {
     priorRejections.value = []
     return
   }
-  const list = await api(`/proposals?shootDayId=${SHOOT_DAY_ID}`)
+  // 앞선 거절안은 촬영판이 지금 보는 날이 아니라 이 변경안의 촬영일에서 찾는다.
+  const list = await api(`/proposals?shootDayId=${p.shootDayId}`)
   const earlier = list
     .filter((x) => x.taskId === p.taskId && x.id !== p.id && x.status === 'REJECTED' && x.loopNo < p.loopNo)
     .sort((a, b) => a.loopNo - b.loopNo)

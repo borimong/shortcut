@@ -3,13 +3,15 @@ import { onMounted, ref } from 'vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { dateTime, ver } from '../format.js'
-import { SHOOT_DAY_ID } from '../labels.js'
+import { useShootDayStore } from '../stores/shootDay.js'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 const KIND_LABELS = { REPLAN: '재계획', ASK: '근거 질문' }
+
+const shootDay = useShootDayStore()
 
 const proposals = ref([])
 const tasks = ref([])
@@ -18,7 +20,10 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const [p, t] = await Promise.all([api(`/proposals?shootDayId=${SHOOT_DAY_ID}`), api('/ai/tasks?mine=true')])
+    const [p, t] = await Promise.all([
+      shootDay.ensure().then((id) => api(`/proposals?shootDayId=${id}`)),
+      api('/ai/tasks?mine=true')
+    ])
     proposals.value = p ?? []
     tasks.value = t ?? []
   } catch (e) {

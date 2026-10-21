@@ -67,6 +67,22 @@ public class PlanRepository {
                 .optional();
     }
 
+    /** 같은 작품의 촬영일을 날짜순으로 셌을 때 이 촬영일이 몇 회차인지와 전체 회차 수다. */
+    public record DayOrder(int dayNo, int totalDays) {
+    }
+
+    public DayOrder findDayOrder(long shootDayId) {
+        return jdbc.sql("""
+                        SELECT count(*) FILTER (WHERE (o.shoot_date, o.id) <= (sd.shoot_date, sd.id)) AS day_no,
+                               count(*) AS total_days
+                        FROM shoot_days sd JOIN shoot_days o ON o.project_id = sd.project_id
+                        WHERE sd.id = :id
+                        """)
+                .param("id", shootDayId)
+                .query((rs, n) -> new DayOrder(rs.getInt("day_no"), rs.getInt("total_days")))
+                .single();
+    }
+
     public Optional<Integer> lockDataVersion(long shootDayId) {
         return jdbc.sql("SELECT data_version FROM shoot_days WHERE id = :id FOR UPDATE")
                 .param("id", shootDayId)
