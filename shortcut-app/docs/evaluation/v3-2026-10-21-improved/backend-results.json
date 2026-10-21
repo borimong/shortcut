@@ -1,0 +1,152 @@
+{
+  "kind": "ACTUAL_BACKEND_DB_CHECK_NOT_AGENT_EVAL",
+  "executedAt": "2026-10-21T14:31:20.042406+09:00",
+  "baseUrl": "http://localhost:18880",
+  "passed": 11,
+  "total": 11,
+  "checks": [
+    {
+      "check": "V3 실제 시드·콜시트 연결",
+      "ok": true,
+      "detail": {
+        "scenes": 24,
+        "date": "2026-10-23",
+        "fixedScenes": 8,
+        "changingScenes": 16
+      }
+    },
+    {
+      "check": "소음 시 LOC-STUDIO 대체",
+      "ok": true,
+      "detail": {
+        "location": "모노스튜디오 사무실 세트",
+        "locationId": 4,
+        "equipmentIds": [
+          1,
+          4,
+          7,
+          10,
+          12
+        ],
+        "cost": 180000,
+        "feasibleCount": 15
+      }
+    },
+    {
+      "check": "장소 제외 제약 적용 시 LOC-HUB 대체",
+      "ok": true,
+      "detail": {
+        "location": "하루오피스 복합 세트",
+        "locationId": 6,
+        "equipmentIds": [
+          1,
+          4,
+          7,
+          10,
+          12
+        ],
+        "cost": 450000,
+        "feasibleCount": 6
+      }
+    },
+    {
+      "check": "카메라 고장 시 실제 CAM-B 선택",
+      "ok": true,
+      "detail": {
+        "location": "새봄스튜디오 사무실 세트",
+        "locationId": 2,
+        "equipmentIds": [
+          2,
+          4,
+          7,
+          10,
+          12
+        ],
+        "cost": 160000,
+        "feasibleCount": 6
+      }
+    },
+    {
+      "check": "카메라 A 제외 제약 적용",
+      "ok": true,
+      "detail": {
+        "location": "모노스튜디오 사무실 세트",
+        "locationId": 4,
+        "equipmentIds": [
+          2,
+          4,
+          7,
+          10,
+          12
+        ],
+        "cost": 340000,
+        "feasibleCount": 3
+      }
+    },
+    {
+      "check": "추가비 10만원 제한 시 후보 없음",
+      "ok": true,
+      "detail": {
+        "feasibleCount": 0
+      }
+    },
+    {
+      "check": "실내 세 곳 사용 불가 시 후보 없음",
+      "ok": true,
+      "detail": {
+        "feasibleCount": 0
+      }
+    },
+    {
+      "check": "야외 완료 후 비 예보 시 기존 실내 유지",
+      "ok": true,
+      "detail": {
+        "location": "새봄스튜디오 사무실 세트",
+        "locationId": 2,
+        "equipmentIds": [
+          1,
+          4,
+          7,
+          10,
+          12
+        ],
+        "cost": 0,
+        "feasibleCount": 24
+      }
+    },
+    {
+      "check": "금지 장소·비호환 음향·시간 이탈 차단",
+      "ok": true,
+      "detail": {
+        "rejectedViolationCodes": [
+          [
+            "V3_INTERIOR_SCOPE"
+          ],
+          [
+            "EQUIPMENT_UNAVAILABLE",
+            "V3_EQUIPMENT_GROUPS"
+          ],
+          [
+            "V3_FIXED_PM_WINDOW"
+          ]
+        ]
+      }
+    },
+    {
+      "check": "사건 초기화·가용 상태 복원",
+      "ok": true,
+      "detail": {
+        "equipmentRestored": true,
+        "locationRestored": true
+      }
+    },
+    {
+      "check": "카메라와 24씬 영향 관계 연결",
+      "ok": true,
+      "detail": {
+        "impactedScenes": 24
+      }
+    }
+  ],
+  "agentEvalStatus": "NOT_RUN_REQUIRES_OPENAI_API_KEY"
+}

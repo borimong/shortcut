@@ -51,3 +51,5 @@ curl -X POST http://localhost:18880/internal/test/v3/case -H "X-Internal-Token: 
 ## 공유된 실행 결과
 
 [2026-10-21 실제 평가 결과](../../docs/evaluation/v3-2026-10-21/SUMMARY.md): Agent 6/9, DB·백엔드 11/11. 실패 3건을 포함한 결과이며 전체 V3 평가가 아니다. 평가 당시 버전과 최신 main 통합 여부는 해당 보고서의 재현 정보를 참고한다.
+
+실패 개선 후에는 [동일 시나리오 실제 재평가 9/9](../../docs/evaluation/v3-2026-10-21-improved/SUMMARY.md)를 기록했다. 이전 6/9 기록도 보존하며, 각 보고서의 평가 버전을 구분한다.

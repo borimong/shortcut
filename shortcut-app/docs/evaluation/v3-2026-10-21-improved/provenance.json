@@ -1,0 +1,18 @@
+{
+  "evaluated_snapshot_commit": "20aff19c79bd188a0013d56f81d63fe5f0860b3b",
+  "previous_evaluated_snapshot_commit": "c869e92",
+  "agent_passed": 9,
+  "agent_total": 9,
+  "backend_api_passed": 11,
+  "backend_api_total": 11,
+  "agent_regression_tests_passed": 49,
+  "backend_tests_passed": 31,
+  "evaluation_functions_unchanged": true,
+  "v3_scenario_file_unchanged": true,
+  "v3_world_sha256": "52baed92139603963d98985c0a0598bdec40a544279fc69cf084bde34e804e48",
+  "completed_at": "2026-10-21T14:32:18.413781+09:00",
+  "scope": "PM_ADAPTER_NOT_FULL_V3_EVALUATION",
+  "sequential_single_run": true,
+  "agent_long_term_memory_cleared": false,
+  "includes_upstream_changes_since_previous_evaluation": true
+}
