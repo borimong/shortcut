@@ -1,5 +1,4 @@
 __pycache__/
 *.pyc
 .venv/
-rag-mcp/index/
 .pytest_cache/

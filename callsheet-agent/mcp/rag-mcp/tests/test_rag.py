@@ -1,111 +1,162 @@
-"""rag-mcp 테스트 (계약 rc2). data/docs의 가상 문서를 hash Embedding으로 임시 색인해 쓴다 (외부 호출 없음).
-
-    cd mcp/rag-mcp && pytest -q
-"""
+"""rag-mcp의 청킹, 검색 범위, 오류 처리, Resource, 색인 작업을 네트워크 없이 검증한다."""
 from __future__ import annotations
 
+import asyncio
 import json
-import tempfile
-from pathlib import Path
 
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
-from rag_mcp.chunker import chunk_markdown, load_dir
-from rag_mcp.embedder import HashEmbedder
-from rag_mcp.retriever import Retriever
-from rag_mcp.server import create_server
-from rag_mcp.store import IndexMismatchError, LocalVectorStore
+from rag_mcp.chunking import parse_markdown, split_into_chunks
+from rag_mcp.embedding import HashEmbedder
+from rag_mcp.indexer import CORPUS_DIR, index_corpus
+from rag_mcp.server import build_server
+from rag_mcp.store import MemoryStore
 
-DOCS = Path(__file__).resolve().parents[3] / "data" / "docs"
+# shortcut-app/agent가 부르는 도구 (접두어 rag_ 제외)
+AGENT_TOOLS = {"search_regulation", "search_contract_clause", "index_document", "delete_document"}
 
 
-def make_retriever(tmp: Path | None = None) -> Retriever:
-    emb = HashEmbedder(512)
-    store = LocalVectorStore.build(load_dir(DOCS), emb)
-    if tmp:
-        store.save(tmp)
-        store = LocalVectorStore.load(tmp, emb)
-    return Retriever(store, emb)
+class FailingEmbedder(HashEmbedder):
+    def embed(self, texts):
+        raise RuntimeError("rate limited")
+
+
+def run(coro):
+    return asyncio.run(coro)
 
 
 def data(result):
-    sc = getattr(result, "structured_content", None)
-    if sc is None:
-        return json.loads(result.content[0].text)
-    return sc["result"] if isinstance(sc, dict) and set(sc) == {"result"} else sc
+    if getattr(result, "data", None) is not None:
+        return result.data
+    return json.loads(result.content[0].text)
 
 
-# ---------------------------------------------------------------- chunker / store
+def make_indexed(embedder=None):
+    store = MemoryStore()
+    server = build_server(store, embedder or HashEmbedder(64))
+
+    async def setup():
+        async with Client(server) as client:
+            await index_corpus(client)
+
+    run(setup())
+    return server, store
 
 
-def test_chunker_reads_versions_and_categories():
-    chunks = load_dir(DOCS)
-    keys = {(c.docId, c.section) for c in chunks}
-    assert ("law-labor", "53") in keys and ("contract-A04-v3", "5.4") in keys and ("zone-paju", "2.1") in keys
-    v2 = next(c for c in chunks if c.docId == "contract-A04-v2")
-    assert v2.meta["status"] == "SUPERSEDED" and v2.meta["supersededBy"] == "contract-A04-v3"
+@pytest.fixture()
+def indexed_server():
+    return make_indexed()
 
 
-def test_chunker_requires_front_matter():
-    with pytest.raises(ValueError, match="메타데이터"):
-        chunk_markdown("## 1.1 제목\n본문")
+def tool_call(server, name, args):
+    async def scenario():
+        async with Client(server) as client:
+            return await client.call_tool(name, args)
+
+    return run(scenario())
 
 
-def test_index_records_model_and_rejects_mismatch():
-    with tempfile.TemporaryDirectory() as tmp:
-        make_retriever(Path(tmp))
-        meta = json.loads((Path(tmp) / "meta.json").read_text(encoding="utf-8"))
-        assert meta["embeddingModel"] == "hash-ngram-512" and meta["dim"] == 512
-        with pytest.raises(IndexMismatchError):
-            LocalVectorStore.load(tmp, HashEmbedder(256))
+def test_markdown_is_split_by_article_heading_and_chunks_are_substrings():
+    document = parse_markdown((CORPUS_DIR / "law-labor-standards.md").read_text(encoding="utf-8"))
+    chunks = split_into_chunks(document)
+    assert document.doc_type == "LAW"
+    assert "제53조 연장 근로의 제한" in [c.heading for c in chunks]
+    assert chunks[0].chunk_id == "law-labor-standards#0"
+    # Agent는 chunk 원문이 문서 원문 안에 그대로 있는지 확인한 뒤에만 근거로 인용한다.
+    assert all(c.text in document.text for c in chunks)
 
 
-# ---------------------------------------------------------------- MCP
+def test_tools_match_agent_and_resources_exist(indexed_server):
+    server, _ = indexed_server
+
+    async def scenario():
+        async with Client(server) as client:
+            tools = {t.name: t for t in await client.list_tools()}
+            info = json.loads((await client.read_resource("rag://index/info"))[0].text)
+            return tools, info
+
+    tools, info = run(scenario())
+    assert set(tools) == AGENT_TOOLS
+    assert tools["search_regulation"].annotations.read_only_hint is True
+    assert tools["delete_document"].annotations.destructive_hint is True
+    assert info["embedding_model"] == "hash-64"
+    assert len(info["documents"]) == len(list(CORPUS_DIR.glob("*.md")))
 
 
-@pytest.mark.anyio
-async def test_tools_are_read_only():
-    async with Client(create_server(make_retriever())) as client:
-        tools = await client.list_tools()
-    assert {t.name for t in tools} == {"search_regulation", "search_contract_clause", "get_source"}
-    assert all(t.annotations.read_only_hint and not t.annotations.destructive_hint for t in tools)
+def test_regulation_search_never_returns_contracts(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_regulation", {"query": "야간 촬영 22시 이후", "k": 8}))
+    assert hits
+    assert all(hit["doc_type"] != "CONTRACT" for hit in hits)
+    assert {"chunk_id", "doc_id", "title", "heading", "text", "score"} <= set(hits[0])
 
 
-@pytest.mark.anyio
-async def test_regulation_search_by_category():
-    async with Client(create_server(make_retriever())) as client:
-        law = data(await client.call_tool("search_regulation", {"query": "1주 최대 근로시간 52시간", "category": "LABOR_LAW", "k": 1}))
-        rain = data(await client.call_tool("search_regulation", {"query": "강수 확률 높은 시간대 야외 촬영", "category": "FILMING_PERMIT", "k": 1}))
-        drone = data(await client.call_tool("search_regulation", {"query": "드론 비행", "category": "NO_FILMING_ZONE", "k": 1}))
-    assert (law[0]["docId"], law[0]["section"]) == ("law-labor", "53")
-    assert (rain[0]["docId"], rain[0]["section"]) == ("permit-hangang", "3.1")
-    assert (drone[0]["docId"], drone[0]["section"]) == ("zone-paju", "2.1")
+def test_regulation_search_can_narrow_doc_types(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_regulation", {"query": "드론 비행", "doc_types": ["NO_FLY"]}))
+    assert hits and {hit["doc_type"] for hit in hits} == {"NO_FLY"}
 
 
-@pytest.mark.anyio
-async def test_contract_search_is_scoped_to_current_version():
-    async with Client(create_server(make_retriever())) as client:
-        hits = data(await client.call_tool("search_contract_clause", {"contract_doc_id": "contract-A04-v3", "query": "야간 촬영 몇 시 이후", "k": 1}))
-        with pytest.raises(ToolError) as old:
-            await client.call_tool("search_contract_clause", {"contract_doc_id": "contract-A04-v2", "query": "야간"})
-        with pytest.raises(ToolError) as none:
-            await client.call_tool("search_contract_clause", {"contract_doc_id": "contract-A99-v1", "query": "야간"})
-    assert hits[0]["docId"] == "contract-A04-v3" and hits[0]["section"] == "5.4"
-    assert "[SUPERSEDED]" in str(old.value) and "contract-A04-v3" in str(old.value)
-    assert "[NO_DOCS]" in str(none.value) and "contract-A01-v3" in str(none.value)
+def test_contract_search_is_scoped_to_one_document(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_contract_clause",
+                          {"query": "22시 이후의 촬영은 하지 않는다", "contract_doc_id": "contract-actor-a-v3"}))
+    assert {hit["doc_id"] for hit in hits} == {"contract-actor-a-v3"}
+    assert hits[0]["heading"] == "제6조 야간 촬영"
 
 
-@pytest.mark.anyio
-async def test_get_source_and_resources():
-    async with Client(create_server(make_retriever())) as client:
-        src = data(await client.call_tool("get_source", {"doc_id": "contract-A04-v3", "section": "5.4"}))
-        res = await client.read_resource("doc://law-labor/54")
-        index = json.loads((await client.read_resource("doc://index"))[0].text)
-        with pytest.raises(ToolError) as e:
-            await client.call_tool("get_source", {"doc_id": "law-labor", "section": "99"})
-    assert "22:00 이후" in src["text"]
-    assert "30분 이상" in res[0].text
-    assert index["embeddingModel"] == "hash-ngram-512" and any(d["status"] == "SUPERSEDED" for d in index["docs"])
-    assert "53" in str(e.value)
+def test_unknown_contract_lists_available_ids(indexed_server):
+    server, _ = indexed_server
+    with pytest.raises(ToolError) as error:
+        tool_call(server, "search_contract_clause", {"query": "야간", "contract_doc_id": "contract-actor-z-v1"})
+    assert "[CONTRACT_NOT_FOUND]" in str(error.value)
+    assert "contract-actor-a-v3" in str(error.value)
+    assert "retryable=false" in str(error.value)
+
+
+def test_embedding_failure_is_retryable():
+    server = build_server(MemoryStore(), FailingEmbedder(64))
+    with pytest.raises(ToolError) as error:
+        tool_call(server, "search_regulation", {"query": "주 52시간"})
+    assert "[EMBEDDING_UNAVAILABLE]" in str(error.value)
+    assert "retryable=true" in str(error.value)
+
+
+def test_resource_returns_full_original_text_containing_hits(indexed_server):
+    server, _ = indexed_server
+
+    async def scenario():
+        async with Client(server) as client:
+            hits = data(await client.call_tool(
+                "search_contract_clause", {"query": "위약", "contract_doc_id": "contract-actor-a-v3"}))
+            text = (await client.read_resource("rag://documents/contract-actor-a-v3"))[0].text
+            return hits, text
+
+    hits, text = run(scenario())
+    assert "제11조 위약" in text
+    assert all(hit["text"] in text for hit in hits)
+
+
+def test_indexer_skips_same_version_and_reindexes_when_model_changes(indexed_server):
+    server, store = indexed_server
+
+    async def again(srv):
+        async with Client(srv) as client:
+            return await index_corpus(client)
+
+    assert all(row.get("skipped") for row in run(again(server)))
+    # 같은 저장소를 다른 임베딩 모델로 띄우면 모든 문서를 다시 색인한다.
+    other = build_server(store, HashEmbedder(32))
+    results = run(again(other))
+    assert not any(row.get("skipped") for row in results)
+    assert {d["embedding_model"] for d in store.list_documents()} == {"hash-32"}
+
+
+def test_delete_is_destructive_and_reports_missing(indexed_server):
+    server, _ = indexed_server
+    assert data(tool_call(server, "delete_document", {"doc_id": "budget-approval-policy"}))["deleted"] is True
+    with pytest.raises(ToolError) as error:
+        tool_call(server, "delete_document", {"doc_id": "budget-approval-policy"})
+    assert "[DOCUMENT_NOT_FOUND]" in str(error.value)

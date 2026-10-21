@@ -1,230 +1,217 @@
-"""business-mcp 테스트 (계약 rc2). mock-backend를 메모리 안에서 띄워 연결한다 (네트워크 없음).
-
-    cd mcp/business-mcp && pytest -q
-"""
+"""business-mcp 도구 계약과 오류 변환을 인메모리 MCP Client로 검증한다 (backend는 httpx.MockTransport)."""
 from __future__ import annotations
 
+import asyncio
 import json
-import sys
-from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "mock-backend"))
+from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 try:
     import httpx
 except ImportError:  # pragma: no cover
     import httpx2 as httpx  # type: ignore[no-redef]
 
-from fastmcp import Client
-from fastmcp.exceptions import ToolError
-from mock_backend.app import STATE
-from mock_backend.app import app as mock_app
+from business_mcp.server import BackendClient, build_server
 
-from business_mcp.backend import BackendClient, ctx_headers
-from business_mcp.server import create_server
-
-PM = {"id": 3, "role": "PRODUCTION_MANAGER", "projectId": "drama-ep07", "taskId": "t_test_0001"}
-DOP = {"id": 7, "role": "DOP", "projectId": "drama-ep07", "taskId": "t_test_0002"}
-DATE = "2026-11-12"
-PREMIUM = {"location": 0.35, "equipment": 0.30, "weather": 0.10, "budget": 0.05, "time": 0.10, "distance": 0.10}
-NOISE = {"kind": "EXCLUDE_LOCATION", "locationId": "L02", "reason": "성수 스튜디오 오후 공사 소음, 동시녹음 불가", "fromRole": "SOUND_LEAD"}
-DESTRUCTIVE = {"commit_plan", "request_location_booking"}
-WRITES = {"link_entity", "save_plan"} | DESTRUCTIVE
+# shortcut-app/agent가 부르는 도구 (agent/app/graph, harness/guardrails.py 기준, 접두어 business_ 제외)
+AGENT_TOOLS = {
+    "get_entity_context", "find_impacted_entities", "link_entity",
+    "get_plan_set", "get_availability", "get_weather", "get_disaster_alerts",
+    "search_locations", "register_alternative_locations",
+    "evaluate_plans", "validate_plan", "get_proposal", "submit_proposal", "commit_plan",
+}
 
 
-def make_server(transport=None):
-    STATE.reset()
-    be = BackendClient("http://mock", "dev-internal-token", transport=transport or httpx.ASGITransport(app=mock_app))
-    return create_server(be)
+def make_server(handler):
+    return build_server(BackendClient("http://backend.test", "token", transport=httpx.MockTransport(handler)))
+
+
+def run(coro):
+    return asyncio.run(coro)
 
 
 def data(result):
-    sc = getattr(result, "structured_content", None)
-    if sc is None:
-        return json.loads(result.content[0].text)
-    return sc["result"] if isinstance(sc, dict) and set(sc) == {"result"} else sc
+    if getattr(result, "data", None) is not None:
+        return result.data
+    if getattr(result, "structured_content", None) is not None:
+        return result.structured_content
+    return json.loads(result.content[0].text)
 
 
-async def decide(plan_id: int, decision: str = "APPROVE", role: str | None = None, reason: str | None = None) -> dict:
-    """승인자 응답 흉내 (실제로는 화면 → backend)."""
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mock_app), base_url="http://mock") as c:
-        r = await c.post(f"/mock/plans/{plan_id}/decisions", json={"role": role, "decision": decision, "reason": reason})
-        return r.json()
+def call(server, name, args):
+    async def scenario():
+        async with Client(server) as client:
+            return await client.call_tool(name, args)
+
+    return run(scenario())
 
 
-async def call(client, name, **args):
-    return data(await client.call_tool(name, args))
+def test_tool_names_match_agent_and_annotations_are_set():
+    server = make_server(lambda request: httpx.Response(200, json={}))
+
+    async def scenario():
+        async with Client(server) as client:
+            return await client.list_tools()
+
+    tools = {tool.name: tool for tool in run(scenario())}
+    assert set(tools) == AGENT_TOOLS
+    assert all(tool.description for tool in tools.values())
+    assert tools["get_plan_set"].annotations.read_only_hint is True
+    assert tools["submit_proposal"].annotations.read_only_hint is False
+    assert tools["register_alternative_locations"].annotations.read_only_hint is False
+    assert tools["commit_plan"].annotations.destructive_hint is True
 
 
-# ---------------------------------------------------------------- 형식
+def test_evaluate_plans_sends_backend_contract_fields():
+    captured = {}
+
+    def handler(request):
+        captured["path"] = request.url.path
+        captured["token"] = request.headers["X-Internal-Token"]
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"dataVersion": 1, "feasibleCount": 0, "candidates": []})
+
+    result = call(
+        make_server(handler),
+        "evaluate_plans",
+        {
+            "shoot_day_id": 1,
+            "weights": {"budget": 0.05},
+            "extra_constraints": [
+                {"type": "EXCLUDE_LOCATION_TIME", "location_id": 2, "from_time": "13:00", "to_time": "18:00"}
+            ],
+        },
+    )
+    assert data(result)["dataVersion"] == 1
+    assert captured["path"] == "/internal/plans/evaluate"
+    assert captured["token"] == "token"
+    assert captured["body"]["weights"] == {"budget": 0.05}
+    assert captured["body"]["extraConstraints"][0] == {
+        "type": "EXCLUDE_LOCATION_TIME", "locationId": 2, "from": "13:00", "to": "18:00", "reason": "", "source": "",
+    }
 
 
-def test_ctx_headers():
-    with pytest.raises(ValueError, match="projectId"):
-        ctx_headers({"id": 3, "role": "AD1", "taskId": "t_x"})
-    assert ctx_headers(PM)["X-Project-Id"] == "drama-ep07"
+def test_submit_proposal_maps_snake_case_to_camel_case():
+    captured = {}
+
+    def handler(request):
+        captured["path"] = request.url.path
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(201, json={"proposalId": 7, "status": "PENDING"})
+
+    result = call(
+        make_server(handler),
+        "submit_proposal",
+        {
+            "task_id": 3, "event_id": 5, "shoot_day_id": 1, "loop_no": 1,
+            "candidate": {"location_id": 2, "equipment_ids": [3, 1], "start": "14:00", "end": "16:00",
+                          "source": {"location": 2, "equipment": 1, "time": 2}},
+            "score": 0.74, "score_breakdown": {"location": 0.9}, "weights": {"location": 0.25},
+            "explanation": "우천으로 실내 2안 장소로 옮긴다",
+            "checklist": [{"constraint": "LAW", "status": "PASS", "evidence_ids": ["law-labor-standards#2"]}],
+            "evidence": [{"id": "law-labor-standards#2", "doc_id": "law-labor-standards", "title": "근로기준법", "text": "..."}],
+            "unresolved": [], "data_version": 4,
+        },
+    )
+    assert data(result)["proposalId"] == 7
+    body = captured["body"]
+    assert captured["path"] == "/internal/proposals"
+    assert body["candidate"] == {"locationId": 2, "equipmentIds": [1, 3], "start": "14:00", "end": "16:00",
+                                 "source": {"location": 2, "equipment": 1, "time": 2}}
+    assert body["checklist"][0]["evidenceIds"] == ["law-labor-standards#2"]
+    assert body["evidence"][0]["docId"] == "law-labor-standards"
+    assert body["dataVersion"] == 4 and body["taskId"] == 3
 
 
-@pytest.mark.anyio
-async def test_tools_and_annotations():
-    async with Client(make_server()) as client:
-        tools = {t.name: t for t in await client.list_tools()}
-    assert len(tools) == 15
-    for name, t in tools.items():
-        assert t.description, name
-        assert bool(t.annotations.destructive_hint) == (name in DESTRUCTIVE), name
-        assert bool(t.annotations.read_only_hint) == (name not in WRITES), name
+def test_paths_for_read_tools():
+    paths = []
+
+    def handler(request):
+        paths.append((request.method, request.url.path, dict(request.url.params)))
+        return httpx.Response(200, json=[])
+
+    server = make_server(handler)
+    call(server, "find_impacted_entities", {"node_id": "LOCATION:1"})
+    call(server, "get_disaster_alerts", {"shoot_day_id": 1})
+    found = call(server, "search_locations", {"keywords": ["실내", "자연광"]})
+    assert paths[0] == ("GET", "/internal/ontology/impact", {"nodeId": "LOCATION:1", "depth": "2"})
+    assert paths[1][1] == "/internal/shoot-days/1/disaster-alerts"
+    assert paths[2][2] == {"keywords": "실내,자연광", "maxDistanceKm": "40"}
+    assert data(found) == {"locations": []}
 
 
-# ---------------------------------------------------------------- 온톨로지
+def test_conflict_becomes_non_retryable_tool_error_with_next_step():
+    def handler(request):
+        return httpx.Response(409, json={"code": "VERSION_CONFLICT", "message": "데이터 버전이 다릅니다"})
+
+    with pytest.raises(ToolError) as error:
+        call(make_server(handler), "commit_plan", {"proposal_id": 3, "data_version": 1})
+    text = str(error.value)
+    assert "[VERSION_CONFLICT]" in text
+    assert "evaluate_plans" in text
+    assert text.endswith("(retryable=false)")
 
 
-@pytest.mark.anyio
-async def test_impact_and_entity_context():
-    async with Client(make_server()) as client:
-        imp = await call(client, "find_impacted_entities", event_type="WEATHER", entity_type="LOCATION",
-                         entity_id="L01", date=DATE, start="13:00", end="18:00", ctx=PM)
-        ctx = await call(client, "get_entity_context", entity_type="ACTOR", entity_id="A04", ctx=PM)
-        with pytest.raises(ToolError) as e:
-            await call(client, "get_entity_context", entity_type="ACTOR", entity_id="A09", ctx=PM)
-    assert [b["blockId"] for b in imp["blocks"]] == ["B2"] and imp["blocks"][0]["hasPlanSet"]
-    a04 = next(a for a in imp["actors"] if a["actorId"] == "A04")
-    assert a04["currentContractDocId"] == "contract-A04-v3" and a04["managerUserIds"] == [31]
-    assert "permit-hangang" in imp["regulationDocIds"]
-    rel = {(r["relation"], r["target"]["id"]) for r in ctx["relations"]}
-    assert ("HAS_CONTRACT", "contract-A04-v3") in rel and ("MANAGED_BY", "31") in rel
-    assert "A04" in str(e.value) and "[ENTITY_NOT_FOUND]" in str(e.value)
+def test_plan_invalid_lists_violation_codes():
+    def handler(request):
+        return httpx.Response(422, json={"code": "PLAN_INVALID", "message": "하드 제약을 위반한 후보입니다.",
+                                         "violations": [{"code": "WEATHER_RAIN"}, {"code": "NO_FLY_ZONE"}]})
+
+    candidate = {"location_id": 1, "equipment_ids": [1], "start": "13:00", "end": "15:00"}
+    with pytest.raises(ToolError) as error:
+        call(make_server(handler), "validate_plan", {"shoot_day_id": 1, "candidate": candidate, "data_version": 1})
+    assert "WEATHER_RAIN, NO_FLY_ZONE" in str(error.value)
 
 
-# ---------------------------------------------------------------- 재평가·재조합
+def test_backend_down_and_5xx_are_retryable():
+    def down(request):
+        raise httpx.ConnectError("connection refused")
+
+    with pytest.raises(ToolError) as error:
+        call(make_server(down), "get_plan_set", {"shoot_day_id": 1})
+    assert "[BACKEND_UNAVAILABLE]" in str(error.value) and "retryable=true" in str(error.value)
+
+    def boom(request):
+        return httpx.Response(500, json={"code": "INTERNAL_ERROR", "message": "서버 오류가 발생했습니다."})
+
+    with pytest.raises(ToolError) as error:
+        call(make_server(boom), "get_weather", {"shoot_day_id": 1})
+    assert "[INTERNAL_ERROR]" in str(error.value) and "retryable=true" in str(error.value)
 
 
-@pytest.mark.anyio
-async def test_evaluate_recombines_and_respects_weights():
-    async with Client(make_server()) as client:
-        ps = await call(client, "get_plan_set", block_id="B2", date=DATE, ctx=PM)
-        base = await call(client, "evaluate_plans", block_id="B2", ctx=PM)
-        prem = await call(client, "evaluate_plans", block_id="B2", weights=PREMIUM, ctx=PM)
-        loop2 = await call(client, "evaluate_plans", block_id="B2", extra_constraints=[NOISE], ctx=PM)
-    assert set(ps["plans"]) == {"P1", "P2", "P3"}
-    assert base["originalPlans"]["P1"]["feasible"] is False                    # 1안은 13시 이후 우천
-    assert base["ranked"][0]["choice"] == {"location": "P2", "equipment": "P1", "time": "P2"}
-    assert base["ranked"][0]["recombined"] is True
-    assert prem["ranked"][0]["choice"] == {"location": "P2", "equipment": "P2", "time": "P2"}   # 웃돈 OK → 추가 조명
-    assert loop2["ranked"][0]["choice"] == {"location": "P3", "equipment": "P3", "time": "P1"}  # 소음 거절 반영
-    assert all(r["choice"]["location"] != "P2" for r in loop2["ranked"])
+def test_invalid_node_id_is_rejected_before_backend_call():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, json={})
+
+    with pytest.raises(ToolError):
+        call(make_server(handler), "get_entity_context", {"node_id": "배우A"})
+    assert calls == []
 
 
-@pytest.mark.anyio
-async def test_validate_reports_hard_categories_with_sources():
-    async with Client(make_server()) as client:
-        plan1 = await call(client, "build_schedule", block_id="B2", choice={"location": "P1", "equipment": "P1", "time": "P1"}, ctx=PM)
-        v1 = await call(client, "validate_plan", plan_hash=plan1["planHash"], ctx=PM)
-        drone = await call(client, "build_schedule", block_id="B2", choice={"location": "P3", "equipment": "P1", "time": "P1"}, ctx=PM)
-        v2 = await call(client, "validate_plan", plan_hash=drone["planHash"], ctx=PM)
-    assert v1["valid"] is False and [v["code"] for v in v1["violations"]] == ["SCHEDULE.OUTDOOR_RAIN"]
-    assert v1["violations"][0]["source"] == {"docId": "permit-hangang", "section": "3.1"}
-    assert {v["code"] for v in v2["violations"]} == {"NO_FILMING_ZONE.DRONE"}
-    assert set(v1["scores"]) == {"location", "equipment", "weather", "budget", "time", "distance"}
+def test_node_not_found_message_tells_model_the_id_format():
+    def handler(request):
+        return httpx.Response(404, json={"code": "NODE_NOT_FOUND", "message": "노드가 없습니다"})
+
+    with pytest.raises(ToolError) as error:
+        call(make_server(handler), "get_entity_context", {"node_id": "ACTOR:9"})
+    assert "SCENE:S12" in str(error.value)
 
 
-# ---------------------------------------------------------------- 다중 승인 → 거절 → 재계획 → 확정
+def test_register_alternative_locations_backend_contract():
+    captured = {}
 
+    def handler(request):
+        captured["path"] = request.url.path
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(201, json=[{"locationId": 101, "externalId": 1, "name": "일산 실내 스튜디오", "fit": 0.8}])
 
-@pytest.mark.anyio
-async def test_reject_then_replan_then_commit():
-    async with Client(make_server()) as client:
-        best = (await call(client, "evaluate_plans", block_id="B2", ctx=PM))["ranked"][0]
-        v8 = await call(client, "save_plan", plan_hash=best["planHash"], reason="13시 이후 우천 → 장소 2안 + 장비 1안 + 시간대 2안", ctx=PM)
-        roles = [a["role"] for a in v8["requiredApprovers"]]
-        assert v8["version"] == "v8" and "SOUND_LEAD" in roles and "PRODUCTION_PD" not in roles and v8["bookingNeeded"]
-
-        with pytest.raises(ToolError) as e:
-            await call(client, "commit_plan", plan_id=v8["planId"], data_version=v8["dataVersion"], ctx=PM)
-        assert "[APPROVAL_REQUIRED]" in str(e.value) and "SOUND_LEAD" in str(e.value)
-
-        res = await decide(v8["planId"], "REJECT", "SOUND_LEAD", "성수 스튜디오 오후 공사 소음")
-        assert res["planStatus"] == "REJECTED" and res["resumeMessage"]["approval"]["result"] == "REJECTED"
-
-        best2 = (await call(client, "evaluate_plans", block_id="B2", extra_constraints=[NOISE], ctx=PM))["ranked"][0]
-        v9 = await call(client, "save_plan", plan_hash=best2["planHash"], reason="음향감독 거절 반영 → 장소 3안 + 장비 3안 + 시간대 1안", ctx=PM)
-        assert {"DOP", "GRIP_CHIEF", "AD2"} <= {a["role"] for a in v9["requiredApprovers"]} and not v9["bookingNeeded"]
-        await decide(v9["planId"], "APPROVE")
-        with pytest.raises(ToolError) as e2:
-            await call(client, "request_location_booking", plan_id=v9["planId"], location_id="L03", ctx=PM)
-        assert "[BOOKING_NOT_NEEDED]" in str(e2.value)
-        done = await call(client, "commit_plan", plan_id=v9["planId"], data_version=v9["dataVersion"], ctx=PM)
-        again = await call(client, "commit_plan", plan_id=v9["planId"], data_version=v9["dataVersion"], ctx=PM)
-    assert done == again and done["scheduleVersion"] == 9 and done["callsheetJobs"] > 0
-    assert next(b for b in STATE.blocks if b["blockId"] == "B2")["locationId"] == "L03"
-    assert len(STATE.outbox) == 1                                              # 두 번 호출해도 배포는 한 번
-
-
-@pytest.mark.anyio
-async def test_booking_after_approval_is_manual_pending():
-    async with Client(make_server()) as client:
-        best = (await call(client, "evaluate_plans", block_id="B2", ctx=PM))["ranked"][0]
-        v8 = await call(client, "save_plan", plan_hash=best["planHash"], reason="r", ctx=PM)
-        with pytest.raises(ToolError):
-            await call(client, "request_location_booking", plan_id=v8["planId"], location_id="L02", ctx=PM)
-        await decide(v8["planId"], "APPROVE")
-        bk = await call(client, "request_location_booking", plan_id=v8["planId"], location_id="L02", ctx=PM)
-    assert bk["status"] == "MANUAL_PENDING" and bk["assigneeRole"] == "PRODUCTION_MANAGER"
-
-
-@pytest.mark.anyio
-async def test_stale_plan_after_source_change():
-    async with Client(make_server()) as client:
-        best = (await call(client, "evaluate_plans", block_id="B2", ctx=PM))["ranked"][0]
-        v8 = await call(client, "save_plan", plan_hash=best["planHash"], reason="r", ctx=PM)
-        await decide(v8["planId"], "APPROVE")
-        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=mock_app), base_url="http://mock") as c:
-            await c.post("/mock/data-version/bump")                           # 승인 대기 중 원본 변경
-        with pytest.raises(ToolError) as e:
-            await call(client, "commit_plan", plan_id=v8["planId"], data_version=v8["dataVersion"], ctx=PM)
-    assert "[STALE_PLAN]" in str(e.value) and "evaluate_plans" in str(e.value)
-
-
-@pytest.mark.anyio
-async def test_gate_rejects_violating_plan_and_wrong_role():
-    async with Client(make_server()) as client:
-        bad = await call(client, "build_schedule", block_id="B2", choice={"location": "P1", "equipment": "P1", "time": "P1"}, ctx=PM)
-        with pytest.raises(ToolError) as e1:
-            await call(client, "save_plan", plan_hash=bad["planHash"], reason="r", ctx=PM)
-        with pytest.raises(ToolError) as e2:
-            await call(client, "save_plan", plan_hash=bad["planHash"], reason="r", ctx=DOP)
-    assert "[HARD_VIOLATION]" in str(e1.value) and "OUTDOOR_RAIN" in str(e1.value)
-    assert "[FORBIDDEN]" in str(e2.value)
-
-
-# ---------------------------------------------------------------- 외부 서비스·장애
-
-
-@pytest.mark.anyio
-async def test_external_tools():
-    async with Client(make_server()) as client:
-        w = await call(client, "get_weather", location_id="L01", date=DATE, ctx=PM)
-        r = await call(client, "get_route", from_location_id="L03", to_location_id="L02", ctx=PM)
-        q = await call(client, "get_equipment_quote", package_id="PKG-LIGHT", date=DATE, ctx=PM)
-        s = await call(client, "search_locations", area="성수", indoor=True, ctx=PM)
-    assert next(h for h in w["hourly"] if h["hour"] == "13:00")["rainProb"] == 80
-    assert (r["km"], r["minutes"]) == (41, 60)
-    assert q["extraCost"] == 320_000
-    assert [p["placeId"] for p in s["results"]] == ["OP-101"]
-
-
-@pytest.mark.anyio
-async def test_backend_down_and_bad_ctx():
-    def refuse(request):
-        raise httpx.ConnectError("connection refused", request=request)
-
-    async with Client(make_server(httpx.MockTransport(refuse))) as client:
-        with pytest.raises(ToolError) as e1:
-            await call(client, "get_plan_set", block_id="B2", date=DATE, ctx=PM)
-    async with Client(make_server()) as client:
-        with pytest.raises(ToolError) as e2:
-            await call(client, "get_plan_set", block_id="B2", date=DATE, ctx={"id": 3})
-    assert "[RETRYABLE]" in str(e1.value)
-    assert "[BAD_CONTEXT]" in str(e2.value)
+    result = call(make_server(handler), "register_alternative_locations",
+                  {"shoot_day_id": 1, "external_location_ids": [1], "keywords": ["실내", "자연광"]})
+    assert captured["path"] == "/internal/shoot-days/1/alternative-locations"
+    assert captured["body"] == {"externalLocationIds": [1], "keywords": ["실내", "자연광"]}
+    assert data(result)["registered"][0]["locationId"] == 101

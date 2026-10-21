@@ -48,8 +48,8 @@
 ```bash
 # 단위 테스트 (네트워크, DB 없이)
 cd agent && python -m pytest -q
-cd business_mcp && python -m pytest -q
-cd rag_mcp && python -m pytest -q
+cd ../callsheet-agent/mcp/business-mcp && python -m pytest -q   # MCP 서버는 D 담당 폴더에서 빌드한다
+cd ../callsheet-agent/mcp/rag-mcp && python -m pytest -q
 cd backend && mvn -q test
 
 # 실제 서비스로 평가 시나리오 5개 실행 (compose 실행 중, .env의 INTERNAL_TOKEN과 같은 값을 넘긴다)

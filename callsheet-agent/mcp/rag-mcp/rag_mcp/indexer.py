@@ -1,40 +1,55 @@
-"""문서 색인 CLI.
+"""코퍼스 문서를 rag-mcp의 index_document 도구로 색인하는 오프라인 작업.
 
-    python -m rag_mcp.indexer --docs ../../data/docs --out ./index
-    EMBEDDING_PROVIDER=openai OPENAI_API_KEY=... python -m rag_mcp.indexer --docs ... --out ...
+질문과 별개로 미리 색인해 둔다. 같은 버전이 같은 임베딩 모델로 이미 색인된 문서는 건너뛰고,
+버전이나 임베딩 모델이 바뀐 문서만 다시 색인한다.
 
-색인을 다시 만들 때는 rag-mcp 서버를 재시작한다. 서버와 색인기는 같은 EMBEDDING_PROVIDER를 써야 한다.
+실행:  RAG_MCP_URL=http://localhost:9102/mcp python -m rag_mcp.indexer
 """
 from __future__ import annotations
 
-import argparse
-import shutil
+import asyncio
+import json
+import os
 from pathlib import Path
 
-from .chunker import load_dir
-from .embedder import get_embedder
-from .store import LocalVectorStore
+from fastmcp import Client
+
+from rag_mcp.chunking import parse_markdown
+
+CORPUS_DIR = Path(os.getenv("RAG_CORPUS_DIR", Path(__file__).resolve().parent.parent / "corpus"))
 
 
-def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(description="data/docs/*.md를 조항·씬 단위로 잘라 색인한다")
-    ap.add_argument("--docs", default="../../data/docs")
-    ap.add_argument("--out", default="./index")
-    args = ap.parse_args(argv)
+async def index_corpus(client: Client, corpus_dir: Path = CORPUS_DIR) -> list[dict]:
+    """버전이나 임베딩 모델이 바뀌었거나 아직 없는 문서만 색인하고 결과 목록을 돌려준다."""
+    info = json.loads((await client.read_resource("rag://index/info"))[0].text)
+    model = info["embedding_model"]
+    indexed = {d["doc_id"]: (d["version"], d.get("embedding_model")) for d in info["documents"]}
+    results = []
+    for path in sorted(Path(corpus_dir).glob("*.md")):
+        document = parse_markdown(path.read_text(encoding="utf-8"))
+        if indexed.get(document.doc_id) == (document.version, model):
+            results.append({"doc_id": document.doc_id, "skipped": True})
+            continue
+        result = await client.call_tool(
+            "index_document",
+            {
+                "doc_id": document.doc_id,
+                "title": document.title,
+                "doc_type": document.doc_type,
+                "version": document.version,
+                "text": document.text,
+            },
+        )
+        results.append(result.data)
+    return results
 
-    chunks = load_dir(args.docs)
-    embedder = get_embedder()
-    store = LocalVectorStore.build(chunks, embedder)
-    out = Path(args.out)
-    if out.exists():
-        shutil.rmtree(out)
-    store.save(out)
 
-    print(f"색인 완료: {store.meta['docCount']}개 문서, {store.meta['chunkCount']}개 chunk")
-    print(f"Embedding: {store.meta['embeddingModel']} ({store.meta['dim']}차원) → {out}/meta.json에 기록")
-    for doc_id in store.doc_ids():
-        print(f"  - {doc_id}: {', '.join(store.sections(doc_id))}")
+async def main() -> None:
+    url = os.getenv("RAG_MCP_URL", "http://localhost:9102/mcp")
+    async with Client(url) as client:
+        for row in await index_corpus(client):
+            print(json.dumps(row, ensure_ascii=False))
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
