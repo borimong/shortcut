@@ -322,14 +322,16 @@ function isInternal(link) {
                   :key="s.code"
                   :aria-current="s.state === 'current' ? 'true' : undefined"
                   :class="[
-                    s.state === 'current' && 'bg-primary/10 shadow-[inset_4px_0_0_var(--color-primary)] hover:bg-primary/15',
+                    s.state === 'current' && 'bg-yellow-200 font-semibold text-yellow-950 shadow-[inset_6px_0_0_var(--color-amber-500)] hover:bg-yellow-200 dark:bg-yellow-400/25 dark:text-yellow-50 dark:hover:bg-yellow-400/25',
                     s.state === 'done' && 'text-muted-foreground'
                   ]"
                 >
                   <TableCell class="mono">{{ s.start }}~{{ s.end }}</TableCell>
                   <TableCell class="font-medium">
                     {{ s.code }}
-                    <Badge v-if="s.state === 'current'" class="ml-1.5">촬영 중</Badge>
+                    <Badge v-if="s.state === 'current'" class="ml-1.5 gap-1.5 border-amber-600 bg-amber-400 text-yellow-950">
+                      <span class="size-1.5 animate-pulse rounded-full bg-red-600" aria-hidden="true" />촬영 중
+                    </Badge>
                     <Badge v-else-if="s.state === 'done'" variant="secondary" class="ml-1.5">완료</Badge>
                   </TableCell>
                   <TableCell>{{ s.title }}</TableCell>
