@@ -10,10 +10,12 @@
 | backend | Spring Boot 3.5, Java 21 | 업무 API, JWT 인증, 제약/점수 엔진(업무 규칙 단일 위치), 작업 접수 202, SSE 중계, Outbox | 18080 |
 | worker | backend와 같은 이미지(profile worker) | 콜시트 배포 큐 소비, 실패 재시도와 DLQ | 내부 |
 | agent | FastAPI, LangGraph 1.2, LangChain 1.x | Harness로 감싼 재계획 그래프와 근거 질의응답 그래프 | 내부 |
-| business-mcp | FastMCP 4.1 | 업무 도구 14개(조회 10, 변경 4). DB 대신 backend `/internal/**` 호출 | 내부 |
-| rag-mcp | FastMCP 4.1, pgvector | 규정 검색, 계약서 범위 검색, 색인과 삭제, 원문 Resource | 내부 |
+| business-mcp | FastMCP 4.1 (`mcp/business-mcp`) | 업무 도구 14개(조회 10, 변경 4). DB 대신 backend `/internal/**` 호출 | 내부 |
+| rag-mcp | FastMCP 4.1, pgvector (`mcp/rag-mcp`) | 규정 검색, 계약서 범위 검색, 색인과 삭제, 원문 Resource | 내부 |
 | postgres | PostgreSQL 16 + pgvector | 업무 데이터(app), 임베딩(rag), checkpointer와 장기 메모리(agent) | 내부 |
 | rabbitmq | RabbitMQ 3.13 | `agent.tasks`, `jobs.callsheet` 큐와 retry, DLQ | 관리 화면만 로컬 |
+
+MCP 서버 2개의 코드는 `mcp/` 폴더에 있습니다(D 담당 안윤태 작성, 설명은 `mcp/README.md`).
 
 ```
 화면 --REST/SSE--> backend --Outbox--> RabbitMQ(agent.tasks) --> agent --MCP(Streamable HTTP)--> business-mcp --> backend /internal/**
@@ -48,8 +50,8 @@
 ```bash
 # 단위 테스트 (네트워크, DB 없이)
 cd agent && python -m pytest -q
-cd ../callsheet-agent/mcp/business-mcp && python -m pytest -q   # MCP 서버는 D 담당 폴더에서 빌드한다
-cd ../callsheet-agent/mcp/rag-mcp && python -m pytest -q
+cd mcp/business-mcp && python -m pytest -q   # MCP 서버 코드는 mcp/ 폴더에 있다 (설명은 mcp/README.md)
+cd mcp/rag-mcp && python -m pytest -q
 cd backend && mvn -q test
 
 # 실제 서비스로 평가 시나리오 5개 실행 (compose 실행 중, .env의 INTERNAL_TOKEN과 같은 값을 넘긴다)

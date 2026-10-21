@@ -67,7 +67,8 @@ SCENARIOS = [
         "rain_reject_sound",
         {"type": "RAIN", "detail": "13시 이후 한강 강수확률 80%"},
         decisions=[("REJECT", "SOUND", "성수 스튜디오 오후 공사 소음, 동시녹음 불가", ["LOCATION"]), ("APPROVE",)],
-        expect_location_id=3,
+        # 장소 문제로 거절되면 남은 파주(3안)보다 먼저 대체 장소를 찾으므로 4안 장소가 확정된다.
+        expect_location_source=4,
     ),
     Scenario(
         "disaster_alert",

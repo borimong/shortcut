@@ -59,6 +59,12 @@ class ReplanState(TypedDict, total=False):
     stop_condition: str | None
     # 마지막 거절. {role, reason, issues, hash, location_id, equipment_ids, start, end}
     last_rejection: dict[str, Any] | None
+    # 이 작업에서 거절된 안 전부. 문제로 지목된 요소가 같은 후보를 다시 올리지 않으려고 쌓아 둔다
+    rejected_plans: list[dict[str, Any]]
+    # 거절된 안과 겹쳐 거른 뒤 남은 후보가 없으면, 거른 후보를 빼고 엔진에 다시 평가를 맡긴다
+    repeat_filtered: bool
+    # 장소 문제로 거절되면 남은 1/2/3안을 고르기 전에 4안 대체 장소부터 찾아 후보를 넓힌다
+    widen_search: bool
     # 4안 구성을 이미 시도했는지와 등록한 대체 장소
     alternatives_tried: bool
     # 자체 검토. 이번 루프의 회차, 회차별 점수와 피드백, 가장 점수가 높았던 안, 다음 회차에 반영할 피드백

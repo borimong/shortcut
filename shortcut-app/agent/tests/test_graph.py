@@ -12,7 +12,7 @@ from app.graph.builder import build_replan_graph
 from app.graph.nodes import constraints_for_issues, pick_after_rejection
 from app.graph.qa import build_qa_graph
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
-from tests.fakes import FakeBackendState, FakeModel, make_context
+from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
 
 CONFIG = {"configurable": {"thread_id": "event-1"}}
 
@@ -224,7 +224,7 @@ def test_registration_conflict_reevaluates_instead_of_failing():
     assert len(backend.evaluate_calls) == 2
 
 
-def test_after_one_two_three_run_out_the_fourth_plan_is_proposed():
+def test_location_rejection_searches_the_fourth_plan_before_the_remaining_options():
     ctx, backend, _, events = make_context()
     graph, _ = compile_graph(ctx)
 
@@ -246,8 +246,10 @@ def test_after_one_two_three_run_out_the_fourth_plan_is_proposed():
 
     state = run(scenario())
     assert state.next == ("await_approval",)
-    assert [p["candidate"]["location_id"] for p in backend.proposals] == [2, 3, 101]
-    assert backend.proposals[2]["candidate"]["source"]["location"] == 4
+    # 성수가 장소 문제로 거절되자 남은 파주(0.6)보다 먼저 대체 장소를 찾아, 점수가 더 높은 일산(0.66)을 올린다.
+    # 일산이 다시 거절되면 이미 찾아봤으므로 검색 없이 파주로 간다.
+    assert [p["candidate"]["location_id"] for p in backend.proposals] == [2, 101, 3]
+    assert backend.proposals[1]["candidate"]["source"]["location"] == 4
     assert backend.registered == [1]
     assert state.values["loop_counter"]["loops"] == 3
     assert state.values["last_rejection"]["issues"] == ["LOCATION"]
@@ -339,3 +341,105 @@ def test_review_switches_method_when_the_score_does_not_improve():
     history = backend.proposals[0]["review"]["history"]
     assert [h["action"] for h in history[:2]] == ["REWRITE", "NEXT_CANDIDATE"]
     assert backend.proposals[0]["candidate"]["location_id"] == 3
+
+
+def test_explanation_naming_another_candidate_is_rewritten_once():
+    ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."]))
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    assert ctx.model.structured_calls.count("PlanExplanation") == 2
+    assert "짐벌 세트" not in proposal["explanation"]
+    assert not any(u.startswith("설명 확인 필요") for u in proposal["unresolved"])
+
+
+def test_explanation_still_wrong_after_rewrite_goes_to_unresolved():
+    ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."] * 2))
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    assert any("짐벌 세트" in u for u in backend.proposals[0]["unresolved"] if u.startswith("설명 확인 필요"))
+
+
+def test_explanation_may_name_the_original_plan():
+    # 원래 확정안(한강 공원, 카메라 패키지 A)과 선택한 안의 이름만 있으면 문제가 없다.
+    from app.graph.nodes import explanation_problems
+    from tests.fakes import HANGANG, PAJU, SEONGSU
+
+    current = {"location": {"id": 1, "name": "한강 공원"}, "equipment": [{"id": 1}]}
+    text = "한강 공원에서 성수 스튜디오로 옮기고 카메라 패키지 A와 드론, 반사판을 씁니다."
+    assert explanation_problems(text, SEONGSU, [SEONGSU, PAJU, HANGANG], current) == []
+    assert explanation_problems("파주 세트장으로 옮깁니다.", SEONGSU, [SEONGSU, PAJU, HANGANG], current) == [
+        "설명에 선택한 장소가 없습니다: 성수 스튜디오",
+        "설명에 선택하지 않은 장소나 장비가 있습니다: 파주 세트장",
+    ]
+
+
+def _reject_location(graph, ctx):
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        await graph.ainvoke(
+            Command(
+                resume={"decision": "REJECTED", "role": "SOUND", "reason": "성수 스튜디오 공사 소음", "issues": ["LOCATION"]}
+            ),
+            CONFIG,
+            context=ctx,
+        )
+        return await graph.aget_state(CONFIG)
+
+    return run(scenario())
+
+
+def test_rejected_location_is_not_proposed_again_even_with_a_narrow_constraint():
+    ctx, backend, _, _ = make_context(FakeBackendState(narrow_constraints=True, no_alternatives=True))
+    graph, _ = compile_graph(ctx)
+    state = _reject_location(graph, ctx)
+    # 장소가 문제였으니 시간이 다른 성수 오전 후보(0.75)보다 점수가 낮아도 파주를 올린다.
+    assert backend.proposals[1]["candidate"]["location_id"] == 3
+    assert state.values["rejected_plans"][0]["location_id"] == 2
+
+
+def test_filtered_repeats_are_excluded_and_reevaluated_when_nothing_is_left():
+    ctx, backend, _, _ = make_context(FakeBackendState(narrow_constraints=True, top_k=1, no_alternatives=True))
+    graph, _ = compile_graph(ctx)
+    _reject_location(graph, ctx)
+    # 엔진이 성수 오전 후보 하나만 돌려줬으므로, 그 후보를 빼고 다시 평가해 파주를 받는다.
+    assert backend.proposals[1]["candidate"]["location_id"] == 3
+    assert SEONGSU_MORNING["hash"] in backend.evaluate_calls[-1]["exclude_hashes"]
+
+
+def test_repeats_follow_only_the_chosen_issues():
+    from app.graph.nodes import repeats_rejection
+
+    rejected = [
+        {"issues": ["TIME"], "location_id": 2, "equipment_ids": [1, 2, 3], "start": "14:00", "end": "16:00", "extra_cost": 150000}
+    ]
+    # 시간만 문제였으면 같은 장소의 다른 시간은 다시 올릴 수 있다.
+    assert repeats_rejection(SEONGSU_MORNING, rejected) is False
+    assert repeats_rejection(SEONGSU, rejected) is True
+    assert repeats_rejection(PAJU, [{**rejected[0], "issues": ["COST"], "extra_cost": 150000}]) is True
+
+
+def test_location_rejection_without_found_places_continues_with_remaining_options():
+    ctx, backend, _, _ = make_context(FakeBackendState(no_alternatives=True))
+    graph, _ = compile_graph(ctx)
+    state = _reject_location(graph, ctx)
+    # 일찍 찾은 대체 장소가 없어도 사람에게 넘기지 않고 남은 파주로 이어 간다.
+    assert [p["candidate"]["location_id"] for p in backend.proposals] == [2, 3]
+    assert state.values.get("stop_condition") is None
+
+
+def test_rejection_of_other_elements_does_not_search_new_places():
+    ctx, backend, _, events = make_context()
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        await graph.ainvoke(
+            Command(resume={"decision": "REJECTED", "role": "DOP", "reason": "드론 배터리 불량", "issues": ["EQUIPMENT"]}),
+            CONFIG,
+            context=ctx,
+        )
+
+    run(scenario())
+    nodes = [p["node"] for t, p in events.events if t == "NODE" and p["phase"] == "end"]
+    assert "suggest_alternatives" not in nodes

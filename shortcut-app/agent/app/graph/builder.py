@@ -10,7 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from app.config import Limits
 from app.graph import nodes
 from app.graph.state import ReplanState
-from app.harness.limits import new_counter, stop_condition
+from app.harness.limits import NO_FEASIBLE_PLAN, new_counter, stop_condition
 from app.runtime import RunContext
 
 
@@ -44,7 +44,7 @@ def after_reevaluate(state: dict[str, Any]) -> str:
 
 def after_compose(state: dict[str, Any]) -> str:
     if state.get("selected_plan") is None:
-        return when_exhausted(state)
+        return "reevaluate_plans" if state.get("repeat_filtered") else when_exhausted(state)
     if state.get("missing_info") and state.get("info_retries", 0) < nodes.MAX_INFO_RETRIES:
         return "collect_constraints"
     # 자체 검토에서 설명만 고친 경우에는 같은 후보라 검증 게이트를 다시 거치지 않는다.
@@ -66,11 +66,15 @@ def after_request(state: dict[str, Any]) -> str:
 
 
 def after_approval(state: dict[str, Any]) -> str:
-    return "commit_plan" if state["approvals"]["decision"] == "APPROVED" else "reevaluate_plans"
+    if state["approvals"]["decision"] == "APPROVED":
+        return "commit_plan"
+    # 후보를 빼기만 하면 다음 안은 점수가 같거나 낮아지므로, 장소가 문제였으면 대체 장소부터 찾아 후보를 넓힌다.
+    return "suggest_alternatives" if state.get("widen_search") else "reevaluate_plans"
 
 
 def after_alternatives(state: dict[str, Any]) -> str:
-    return "reevaluate_plans" if state.get("alternatives") else "report_human"
+    # 일찍 찾은 경우에는 대체 장소를 못 찾아도 남은 1/2/3안으로 이어 간다.
+    return "report_human" if state.get("stop_condition") == NO_FEASIBLE_PLAN else "reevaluate_plans"
 
 
 def after_commit(state: dict[str, Any]) -> str:
@@ -111,7 +115,7 @@ def build_replan_graph(limits: Limits) -> StateGraph:
     graph.add_conditional_edges(
         "compose_plan",
         guarded(limits, after_compose),
-        ["validation_gate", "self_review", "collect_constraints", "suggest_alternatives", "report_human"],
+        ["validation_gate", "self_review", "collect_constraints", "reevaluate_plans", "suggest_alternatives", "report_human"],
     )
     graph.add_conditional_edges(
         "validation_gate",
@@ -127,7 +131,9 @@ def build_replan_graph(limits: Limits) -> StateGraph:
         "request_approval", guarded(limits, after_request), ["await_approval", "reevaluate_plans", "report_human"]
     )
     graph.add_conditional_edges(
-        "await_approval", guarded(limits, after_approval), ["commit_plan", "reevaluate_plans", "report_human"]
+        "await_approval",
+        guarded(limits, after_approval),
+        ["commit_plan", "reevaluate_plans", "suggest_alternatives", "report_human"],
     )
     # 확정은 이미 사람이 승인한 결과라 한도를 넘었다는 이유로 멈추지 않는다.
     graph.add_conditional_edges("commit_plan", after_commit, ["publish", "reevaluate_plans"])

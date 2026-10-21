@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from typing import Any, Protocol
 
 import httpx
@@ -66,12 +67,15 @@ def langsmith_enabled() -> bool:
     return bool(os.getenv("LANGSMITH_API_KEY")) and os.getenv("LANGSMITH_TRACING", "true").lower() == "true"
 
 
-def run_config(task_id: str, trace_id: str, kind: str, prompt_versions: dict[str, str]) -> dict[str, Any]:
-    """LangSmith에서 작업 하나를 trace_id로 찾을 수 있게 실행 메타데이터를 붙입니다."""
+def run_config(task_id: str, trace_id: str, kind: str, prompt_versions: dict[str, str], thread_id: str) -> dict[str, Any]:
+    """LangSmith에서 작업 하나를 trace_id로 찾을 수 있게 실행 메타데이터를 붙입니다.
+
+    승인 전(START)과 승인 후(RESUME)는 별도 trace로 올라가므로 thread_id를 넣어 Threads 화면에서 한 작업으로 묶는다.
+    """
     return {
         "run_name": f"{kind.lower()}-{task_id}",
         "tags": ["shortcut", kind.lower()],
-        "metadata": {"task_id": task_id, "trace_id": trace_id, "prompt_versions": prompt_versions},
+        "metadata": {"task_id": task_id, "trace_id": trace_id, "thread_id": thread_id, "prompt_versions": prompt_versions},
     }
 
 
@@ -80,9 +84,18 @@ def trace_url_for(run_id: str | None) -> str | None:
     if not run_id or not langsmith_enabled():
         return None
     try:
+        from langchain_core.tracers.langchain import wait_for_all_tracers
         from langsmith import Client
 
-        return Client().read_run(run_id).url
+        # trace는 백그라운드로 모아 보내므로 전송을 마친 뒤 조회해야 404가 나지 않는다.
+        wait_for_all_tracers()
+        client = Client()
+        for attempt in range(3):
+            try:
+                return client.read_run(run_id).url
+            except Exception:
+                time.sleep(1 + attempt)
+        return None
     except Exception as error:
         log_event("trace_url_failed", run_id=run_id, error=str(error))
         return None

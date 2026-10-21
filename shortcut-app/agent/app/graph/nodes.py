@@ -80,6 +80,33 @@ def describe(candidate: dict[str, Any]) -> str:
     )
 
 
+def explanation_problems(
+    text: str, choice: dict[str, Any], candidates: list[dict[str, Any]], current: dict[str, Any]
+) -> list[str]:
+    """설명에 선택한 장소가 빠졌거나 선택하지 않은 장소나 장비 이름이 들어갔는지 봅니다.
+    원래 확정안의 이름은 무엇이 바뀌었는지 설명하는 데 필요하므로 허용합니다."""
+    locations = {c["location"]["id"]: c["location"]["name"] for c in candidates}
+    equipment = {item["id"]: item["name"] for c in candidates for item in c["equipment"]["items"]}
+    current_location = current.get("location") or {}
+    allowed = {
+        choice["location"]["name"],
+        *(item["name"] for item in choice["equipment"]["items"]),
+        current_location.get("name") or locations.get(current_location.get("id"), ""),
+        *(item.get("name") or equipment.get(item.get("id"), "") for item in current.get("equipment") or []),
+    } - {""}
+    problems = []
+    if choice["location"]["name"] not in text:
+        problems.append(f"설명에 선택한 장소가 없습니다: {choice['location']['name']}")
+    # "추가 조명 패키지" 안의 "조명 패키지"처럼 허용된 이름에 포함된 이름을 잘못 잡지 않도록 허용된 이름을 먼저 지운다.
+    rest = text
+    for name in sorted(allowed, key=len, reverse=True):
+        rest = rest.replace(name, " ")
+    foreign = [name for name in sorted({*locations.values(), *equipment.values()} - allowed) if name in rest]
+    if foreign:
+        problems.append(f"설명에 선택하지 않은 장소나 장비가 있습니다: {', '.join(foreign)}")
+    return problems
+
+
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     return {
         "location_id": candidate["location"]["id"],
@@ -99,6 +126,22 @@ def _evidence_lines(evidence: dict[str, dict[str, Any]], limit_chars: int = 220)
         "\n".join(f"[{cid}] {hit['title']} / {hit['heading']}: {hit['text'][:limit_chars]}" for cid, hit in evidence.items())
         or "검색된 근거 없음"
     )
+
+
+def repeats_rejection(candidate: dict[str, Any], rejected: list[dict[str, Any]]) -> bool:
+    """이전에 거절된 안에서 문제로 지목된 요소를 그대로 가진 후보인지 봅니다. 문제로 고르지 않은 요소는 같아도 됩니다."""
+    for plan in rejected:
+        issues = set(plan.get("issues") or [])
+        if "LOCATION" in issues and candidate["location"]["id"] == plan["location_id"]:
+            return True
+        if "TIME" in issues and (candidate["time"]["start"], candidate["time"]["end"]) == (plan["start"], plan["end"]):
+            return True
+        if "EQUIPMENT" in issues and sorted(i["id"] for i in candidate["equipment"]["items"]) == sorted(plan["equipment_ids"]):
+            return True
+        # 비용이 문제였다면 그보다 싸지 않은 안은 같은 이유로 다시 거절된다.
+        if "COST" in issues and candidate["extraCost"] >= plan["extra_cost"]:
+            return True
+    return False
 
 
 def pick_after_rejection(feasible: list[dict[str, Any]], rejection: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -330,16 +373,29 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
     failed = set(state.get("failed_hashes") or [])
     skipped = set(state.get("review_skipped") or [])
     feasible = [c for c in state["candidates"] if c["feasible"] and c["hash"] not in failed | skipped]
+    # 모델이 거절 사유를 좁은 제약으로 바꿔도, 문제로 지목된 요소가 같은 안은 승인자에게 다시 보이지 않게 거른다.
+    repeats = [c["hash"] for c in feasible if repeats_rejection(c, state.get("rejected_plans") or [])]
+    feasible = [c for c in feasible if c["hash"] not in repeats]
     choice = pick_after_rejection(feasible, state.get("last_rejection"))
     if choice is None:
-        return {"selected_plan": None, "_detail": "남은 실행 가능 후보 없음"}
+        if repeats:
+            # 엔진은 상위 후보만 돌려주므로, 거른 후보를 빼고 다시 평가해야 뒤에 있던 후보가 올라온다.
+            return {
+                "selected_plan": None,
+                "repeat_filtered": True,
+                "failed_hashes": [*(state.get("failed_hashes") or []), *repeats],
+                "_detail": f"거절된 안과 같은 요소를 가진 후보 {len(repeats)}개를 걸러 다시 평가합니다",
+            }
+        return {"selected_plan": None, "repeat_filtered": False, "_detail": "남은 실행 가능 후보 없음"}
 
     evidence = state.get("evidence") or {}
     others = [describe(c) for c in state["candidates"][1:4]]
     sections = [
+        # 검토 단계와 같은 사실(거리, 실내 여부, 비용)을 줘야 검토에서 지적한 점을 설명에 반영할 수 있다.
+        # 따로 떼어 두면 비교 후보와 섞어 읽는 경우가 있어 선택한 후보 안에 함께 적는다.
         Section(
             "선택한 후보",
-            f"{describe(choice)}\n항목별 점수: {_json(choice['softScores'])}\n경고: {_json(choice['warnings'])}\n추가 비용: {choice['extraCost']}원",
+            f"{describe(choice)}\n항목별 점수: {_json(choice['softScores'])}\n{review_facts(choice)}",
             0,
         ),
         Section("변경 이벤트", _json(state["event"]), 0),
@@ -352,9 +408,18 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         Section("비교 후보", "\n".join(others) or "없음", 3),
     ]
     body = fit_sections(sections, ctx.settings.context_token_budget)
-    explained = await ctx.model.structured(
-        ctx, [SystemMessage(_system()), HumanMessage(render("compose_plan", context=body))], PlanExplanation
-    )
+    messages = [SystemMessage(_system()), HumanMessage(render("compose_plan", context=body))]
+    explained = await ctx.model.structured(ctx, messages, PlanExplanation)
+    current = state["plan_set"].get("current") or {}
+    problems = explanation_problems(explained.explanation, choice, state["candidates"], current)
+    if problems:
+        # 다른 후보의 장비를 섞어 적으면 승인자가 잘못 판단하므로, 무엇이 틀렸는지 알려 주고 한 번 다시 쓰게 한다.
+        correction = HumanMessage(
+            f"방금 쓴 설명에 문제가 있습니다. {' '.join(problems)}\n"
+            f"선택한 후보는 {describe(choice)}입니다. 이 후보만 설명하도록 다시 쓰세요.\n방금 쓴 설명: {explained.explanation}"
+        )
+        explained = await ctx.model.structured(ctx, [*messages, correction], PlanExplanation)
+        problems = explanation_problems(explained.explanation, choice, state["candidates"], current)
 
     checklist = {}
     for entry in explained.checklist:
@@ -366,6 +431,8 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "evidenceIds": cited,
         }
     unresolved = list(explained.unresolved)
+    # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
+    unresolved.extend(f"설명 확인 필요, {problem}" for problem in problems)
     for constraint in HARD_CONSTRAINTS:
         item = checklist.get(constraint)
         # 근거 없이 통과라고 적은 항목은 검증할 수 없으므로 경고로 낮추고 사람이 확인할 항목에 올린다.
@@ -388,7 +455,8 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "unresolved": sorted(set(unresolved)),
         },
         "missing_info": missing,
-        "_detail": describe(choice),
+        "repeat_filtered": False,
+        "_detail": describe(choice) + (f" (거절된 안과 겹치는 후보 {len(repeats)}개 제외)" if repeats else ""),
     }
 
 
@@ -671,21 +739,24 @@ async def await_approval(state: dict[str, Any], ctx: RunContext) -> dict[str, An
             )
         ctx.counter["loops"] += 1
         ctx.counter["loop_elapsed_ms"] = 0
+        rejected = {
+            "role": decision.get("role"),
+            "reason": decision.get("reason", ""),
+            "issues": issues,
+            "hash": plan["hash"],
+            "location_id": candidate["location"]["id"],
+            "equipment_ids": [i["id"] for i in candidate["equipment"]["items"]],
+            "start": candidate["time"]["start"],
+            "end": candidate["time"]["end"],
+            "extra_cost": candidate["extraCost"],
+        }
         update.update(
             {
                 "extra_constraints": [*(state.get("extra_constraints") or []), *extras],
                 "failed_hashes": [*(state.get("failed_hashes") or []), plan["hash"]],
-                "last_rejection": {
-                    "role": decision.get("role"),
-                    "reason": decision.get("reason", ""),
-                    "issues": issues,
-                    "hash": plan["hash"],
-                    "location_id": candidate["location"]["id"],
-                    "equipment_ids": [i["id"] for i in candidate["equipment"]["items"]],
-                    "start": candidate["time"]["start"],
-                    "end": candidate["time"]["end"],
-                    "summary": rejection.summary,
-                },
+                "last_rejection": {**rejected, "summary": rejection.summary},
+                "rejected_plans": [*(state.get("rejected_plans") or []), rejected],
+                "widen_search": "LOCATION" in issues and not state.get("alternatives_tried"),
                 "loop_summaries": [
                     *(state.get("loop_summaries") or []),
                     f"루프 {ctx.counter['loops'] - 1}: {describe(candidate)} | 결과: {decision.get('role')} 거절({decision.get('reason')}) -> {rejection.summary}",
@@ -751,9 +822,16 @@ async def publish(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
 
 @harnessed("suggest_alternatives", "4안 구성")
 async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
-    """1/2/3안을 섞어도 실행 가능한 후보가 없으면 세 안의 장소 특징과 씬 의도에서 키워드를 뽑아
+    """1/2/3안을 섞어도 실행 가능한 후보가 없거나 장소 문제로 거절되면, 세 안의 장소 특징과 씬 의도에서 키워드를 뽑아
     아워플레이스 대체 장소를 찾고, 4안 장소로 등록해 업무 규칙 엔진이 다시 평가하게 합니다."""
     plan_set = state["plan_set"]
+    early = bool(state.get("widen_search"))
+    situation = (
+        "승인자가 장소를 문제 삼아 거절했습니다. 남은 1/2/3안 장소만으로는 거절 전보다 나은 안이 나올 수 없으니, "
+        "거절 사유를 피하는 대체 장소를 찾아 후보를 넓힙니다."
+        if early
+        else "1/2/3안을 어떻게 섞어도 하드 제약과 거절 사유를 모두 만족하는 후보가 없습니다."
+    )
     keywords = await ctx.model.structured(
         ctx,
         [
@@ -761,6 +839,7 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
             HumanMessage(
                 render(
                     "alternative_keywords",
+                    situation=situation,
                     plan_set=_json(plan_set["options"]),
                     scenes=_json(plan_set["block"]["scenes"]),
                     event=_json(state["event"]),
@@ -792,10 +871,12 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
     names = ", ".join(r["name"] for r in registered) or "없음"
     return {
         "alternatives_tried": True,
+        "widen_search": False,
         "alternatives": registered,
         "suggestions": suggestions,
-        "stop_condition": None if registered else NO_FEASIBLE_PLAN,
-        "_detail": f"키워드 {', '.join(keywords.keywords)}로 4안 장소 {len(registered)}곳 등록: {names}",
+        "stop_condition": None if registered or early else NO_FEASIBLE_PLAN,
+        "_detail": ("장소 거절로 후보를 넓힘, " if early else "")
+        + f"키워드 {', '.join(keywords.keywords)}로 4안 장소 {len(registered)}곳 등록: {names}",
     }
 
 

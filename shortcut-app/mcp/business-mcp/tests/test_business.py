@@ -130,6 +130,9 @@ def test_paths_for_read_tools():
 
     def handler(request):
         paths.append((request.method, request.url.path, dict(request.url.params)))
+        # 실제 backend의 /impact는 객체(ImpactResponse)를 돌려주고, 재난 문자와 장소 검색만 목록을 돌려준다.
+        if request.url.path == "/internal/ontology/impact":
+            return httpx.Response(200, json={"nodes": [], "edges": []})
         return httpx.Response(200, json=[])
 
     server = make_server(handler)
