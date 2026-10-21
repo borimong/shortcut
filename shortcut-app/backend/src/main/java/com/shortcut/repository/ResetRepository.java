@@ -21,7 +21,16 @@ public class ResetRepository {
             "DELETE FROM notifications",
             "DELETE FROM disaster_alerts",
             "DELETE FROM outbox",
-            "DELETE FROM ontology_edges WHERE created_by <> 'seed'",
+            // Agent가 만든 엣지 가운데 다른 촬영일 노드에만 닿는 것(그 촬영일의 4안 등)은 남긴다.
+            // 이 촬영일 노드에 닿거나 어느 촬영일에도 딸리지 않은 노드끼리 이은 엣지는 지운다.
+            """
+            DELETE FROM ontology_edges e
+            WHERE e.created_by <> 'seed'
+              AND (EXISTS (SELECT 1 FROM ontology_nodes n
+                           WHERE n.node_id IN (e.src, e.dst) AND n.props ->> 'shootDayId' = CAST(:id AS text))
+                   OR NOT EXISTS (SELECT 1 FROM ontology_nodes n
+                                  WHERE n.node_id IN (e.src, e.dst) AND n.props ->> 'shootDayId' IS NOT NULL))
+            """,
             "DELETE FROM distribution_logs WHERE callsheet_version_id IN "
                     + "(SELECT id FROM callsheet_versions WHERE shoot_day_id = :id AND version_no > 1)",
             "DELETE FROM callsheet_versions WHERE shoot_day_id = :id AND version_no > 1",
@@ -36,14 +45,27 @@ public class ResetRepository {
             """,
             // 오후 블록을 1안으로 되돌린 뒤에 지워야 4안 장소를 가리키던 블록이 남지 않는다.
             "DELETE FROM shoot_day_alternatives WHERE shoot_day_id = :id",
-            "DELETE FROM weather_forecasts WHERE location_id >= 100",
-            "DELETE FROM reservations WHERE location_id >= 100",
-            // Agent가 만든 엣지는 위에서 모두 지웠으므로 이 촬영일의 4안 노드와 업무 행이 사라진 대체 장소 노드만 남는다.
+            "DELETE FROM weather_forecasts WHERE shoot_day_id = :id AND location_id >= 100",
+            "DELETE FROM reservations WHERE shoot_day_id = :id AND location_id >= 100",
+            // 같은 대체 장소를 다른 촬영일도 4안으로 등록했으면 그 촬영일 행이 아직 가리키므로 장소 행을 남긴다.
+            """
+            DELETE FROM locations l
+            WHERE l.id >= 100 AND l.id NOT IN (
+                SELECT location_id FROM shoot_day_alternatives
+                UNION SELECT location_id FROM weather_forecasts
+                UNION SELECT location_id FROM reservations
+                UNION SELECT location_id FROM plan_options
+                UNION SELECT pm_location_id FROM callsheet_versions
+                UNION SELECT location_id FROM blocks WHERE location_id IS NOT NULL
+                UNION SELECT location_id FROM scenes WHERE location_id IS NOT NULL)
+            """,
+            // 이 촬영일 노드에 닿는 Agent 엣지는 위에서 지웠으므로 이 촬영일의 4안 노드를 지울 수 있다.
             "DELETE FROM ontology_nodes WHERE node_id = 'PLAN:' || :id || '-4'",
-            "DELETE FROM locations WHERE id >= 100",
+            // 업무 행이 사라진 대체 장소 노드를 지운다. 다른 촬영일 노드에서 이어진 엣지가 아직 있으면 외래키에 걸리므로 남긴다.
             """
             DELETE FROM ontology_nodes n
             WHERE n.type = 'LOCATION' AND NOT EXISTS (SELECT 1 FROM locations l WHERE n.node_id = 'LOCATION:' || l.id)
+              AND NOT EXISTS (SELECT 1 FROM ontology_edges e WHERE n.node_id IN (e.src, e.dst))
             """,
             // 변경 입력이 남긴 장비 고장, 배우 불참, 장소 취소, 강수량 덮어쓰기와 우천 알림 기록을 지운다.
             "DELETE FROM shoot_day_overrides WHERE shoot_day_id = :id",
