@@ -179,7 +179,7 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_weather(shoot_day_id: ShootDayId) -> dict:
-        """촬영일의 장소별 시간당 강수확률(%)을 돌려준다. 실내 장소인지도 함께 표시한다."""
+        """촬영일의 장소별 시간당 강수량(mm)과 촬영 불가 기준(rainBlockMm)을 돌려준다. 실내 장소인지도 함께 표시한다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/weather")
 
     @mcp.tool(annotations=READ_ONLY)

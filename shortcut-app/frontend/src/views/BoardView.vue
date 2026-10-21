@@ -1,11 +1,12 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { CircleAlert } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/ui/empty'
+import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -22,9 +23,25 @@ const error = ref(null)
 const loading = ref(true)
 
 const BLOCK_LABELS = { AM: '오전', PM: '오후' }
-// 엔진의 우천 하드 제약(70 이상)과 경고(30 이상) 기준을 화면 강조에도 똑같이 쓴다.
-const RAIN_HARD = 70
-const RAIN_SOFT = 30
+
+// 씬 진행과 현재 촬영지는 시계 기준이라 30초마다 다시 계산한다.
+const now = ref(new Date())
+let clock = null
+onMounted(() => {
+  clock = setInterval(() => (now.value = new Date()), 30_000)
+})
+onBeforeUnmount(() => clearInterval(clock))
+
+const pad = (n) => String(n).padStart(2, '0')
+const todayYmd = computed(() => `${now.value.getFullYear()}-${pad(now.value.getMonth() + 1)}-${pad(now.value.getDate())}`)
+const nowMinutes = computed(() => now.value.getHours() * 60 + now.value.getMinutes())
+const toMinutes = (hhmm) => {
+  const [h, m] = String(hhmm).split(':').map(Number)
+  return h * 60 + m
+}
+
+// 엔진과 같은 관리자 설정(시간당 촬영 불가, 경고 강수량)으로 날씨 칸 색을 정한다.
+const rainRule = computed(() => board.value?.rainRule ?? { blockMm: 5, warnMm: 1 })
 
 async function load() {
   error.value = null
@@ -54,6 +71,23 @@ const endTime = computed(() => {
   return ends.sort().at(-1) ?? ''
 })
 
+// 촬영일이 오늘보다 앞이면 모두 끝난 것으로, 뒤면 아직 시작 전으로 본다.
+const dayState = computed(() => {
+  const date = board.value?.shootDay?.date
+  if (!date) return 'future'
+  if (date < todayYmd.value) return 'past'
+  if (date > todayYmd.value) return 'future'
+  return 'today'
+})
+
+function sceneState(start, end) {
+  if (dayState.value === 'past') return 'done'
+  if (dayState.value === 'future') return 'upcoming'
+  if (nowMinutes.value >= toMinutes(end)) return 'done'
+  if (nowMinutes.value >= toMinutes(start)) return 'current'
+  return 'upcoming'
+}
+
 // 씬별 시작 시각은 API가 주지 않아서 블록 시작 시각부터 씬 길이를 차례로 더해 보여 준다.
 const sceneRows = computed(() =>
   (board.value?.blocks ?? []).map((block) => {
@@ -61,17 +95,42 @@ const sceneRows = computed(() =>
     const scenes = (block.scenes ?? []).map((s) => {
       const start = cursor
       cursor = addMinutes(cursor, s.durationMin ?? 0)
-      return { ...s, start, end: cursor }
+      return { ...s, start, end: cursor, state: sceneState(start, cursor) }
     })
     return { block, scenes }
   })
 )
 
+const allScenes = computed(() => sceneRows.value.flatMap((g) => g.scenes))
+const doneCount = computed(() => allScenes.value.filter((s) => s.state === 'done').length)
+const currentScene = computed(() => allScenes.value.find((s) => s.state === 'current') ?? null)
+const nextScene = computed(() => allScenes.value.find((s) => s.state === 'upcoming') ?? null)
+const progressPercent = computed(() =>
+  allScenes.value.length ? Math.round((doneCount.value / allScenes.value.length) * 100) : 0
+)
+
+// 지금 촬영 중인 블록, 없으면 다음 블록, 모두 끝났으면 마지막 블록의 촬영지를 현재 촬영지로 본다.
+const currentBlock = computed(() => {
+  const blocks = board.value?.blocks ?? []
+  if (!blocks.length) return null
+  if (dayState.value === 'past') return blocks.at(-1)
+  if (dayState.value === 'future') return blocks[0]
+  return (
+    blocks.find((b) => nowMinutes.value >= toMinutes(b.start) && nowMinutes.value < toMinutes(b.end)) ??
+    blocks.find((b) => nowMinutes.value < toMinutes(b.start)) ??
+    blocks.at(-1)
+  )
+})
+const currentWeather = computed(
+  () => board.value?.blockWeather?.find((w) => w.blockCode === currentBlock.value?.code) ?? board.value?.weather ?? null
+)
+const currentHour = computed(() => (dayState.value === 'today' ? now.value.getHours() : null))
+
 const recentHistory = computed(() => history.value.slice(0, 5))
 
-function rainTone(p) {
-  if (p >= RAIN_HARD) return 'tone-bad'
-  if (p >= RAIN_SOFT) return 'tone-stale'
+function rainTone(mm) {
+  if (mm >= rainRule.value.blockMm) return 'tone-bad'
+  if (mm >= rainRule.value.warnMm) return 'tone-stale'
   return 'tone-wait'
 }
 
@@ -139,7 +198,7 @@ function isInternal(link) {
                 <span>{{ c.name }}</span>
                 <span class="text-sm text-muted-foreground">{{ c.title }}</span>
               </div>
-              <span class="mono text-sm">{{ c.phoneMasked }}</span>
+              <a :href="`tel:${c.phone}`" class="mono text-sm text-foreground no-underline hover:text-primary">{{ c.phone }}</a>
             </li>
           </ul>
         </CardContent>
@@ -160,17 +219,21 @@ function isInternal(link) {
         </CardContent>
 
         <CardContent class="min-w-0 px-6 py-6">
-          <h2 class="mb-1 text-sm font-medium">{{ board.weather?.locationName }} 강수확률</h2>
-          <p v-if="board.weather?.summary" class="text-sm text-muted-foreground">{{ board.weather.summary }}</p>
+          <h2 class="mb-1 text-sm font-medium">
+            날씨 <span class="text-muted-foreground">현재 촬영지 {{ currentWeather?.locationName }}</span>
+            <span v-if="currentWeather?.indoor" class="text-muted-foreground">(실내)</span>
+          </h2>
+          <p class="text-xs text-muted-foreground">시간당 강수량(mm), 촬영 불가 기준 {{ rainRule.blockMm }}mm</p>
+          <p v-if="currentWeather?.summary" class="mt-1 text-sm text-muted-foreground">{{ currentWeather.summary }}</p>
           <div class="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(54px,1fr))] gap-1.5">
             <Badge
-              v-for="h in board.weather?.hourly ?? []"
+              v-for="h in currentWeather?.hourly ?? []"
               :key="h.hour"
-              :variant="TONE_VARIANT[rainTone(h.precipProb)]"
-              class="h-auto w-full flex-col gap-0 rounded-md py-1"
+              :variant="TONE_VARIANT[rainTone(h.precipMm)]"
+              :class="['h-auto w-full flex-col gap-0 rounded-md py-1', h.hour === currentHour && 'ring-2 ring-primary']"
             >
               <span class="font-normal">{{ h.hour }}시</span>
-              <span>{{ h.precipProb }}%</span>
+              <span>{{ h.precipMm }}mm</span>
             </Badge>
           </div>
 
@@ -212,7 +275,7 @@ function isInternal(link) {
                 <TableCell>{{ b.location?.address ?? b.location?.region }}</TableCell>
                 <TableCell class="mono">{{ b.start }}~{{ b.end }}</TableCell>
                 <TableCell class="min-w-45 whitespace-normal">
-                  {{ b.location?.indoor ? '실내' : '야외' }}<span v-if="b.equipment?.length" class="text-muted-foreground">, 장비 {{ b.equipment.map((e) => e.name).join(', ') }}</span>
+                  {{ b.location?.indoor ? '실내' : '야외' }}<span v-if="b.equipment?.length" class="text-muted-foreground">, 장비 {{ b.equipment.map((e) => (e.available === false ? `${e.name}(사용 불가)` : e.name)).join(', ') }}</span>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -223,7 +286,20 @@ function isInternal(link) {
       <Card>
         <CardHeader>
           <CardTitle>씬 스케줄</CardTitle>
+          <CardAction class="flex items-center gap-3">
+            <span class="text-sm text-muted-foreground">오늘 씬 진행</span>
+            <strong class="mono text-lg">{{ doneCount }}/{{ allScenes.length }}</strong>
+          </CardAction>
         </CardHeader>
+        <CardContent class="flex flex-col gap-2 pb-0">
+          <Progress :model-value="progressPercent" aria-label="오늘 씬 진행률" />
+          <p class="text-sm text-muted-foreground">
+            <template v-if="dayState === 'future'">촬영일 전입니다. 첫 씬은 {{ nextScene?.start }} {{ nextScene?.code }}입니다.</template>
+            <template v-else-if="dayState === 'past' || !nextScene && !currentScene">오늘 촬영할 씬을 모두 마쳤습니다.</template>
+            <template v-else-if="currentScene">지금 {{ currentScene.code }} {{ currentScene.title }} 촬영 중 ({{ currentScene.start }}~{{ currentScene.end }})</template>
+            <template v-else>다음 씬은 {{ nextScene?.start }} {{ nextScene?.code }} {{ nextScene?.title }}입니다.</template>
+          </p>
+        </CardContent>
         <CardContent>
           <Table>
             <TableHeader>
@@ -241,9 +317,21 @@ function isInternal(link) {
                     {{ BLOCK_LABELS[g.block.code] ?? g.block.code }} 블록, {{ g.block.location?.name }}, {{ g.block.start }}~{{ g.block.end }}
                   </TableCell>
                 </TableRow>
-                <TableRow v-for="s in g.scenes" :key="s.code">
+                <TableRow
+                  v-for="s in g.scenes"
+                  :key="s.code"
+                  :aria-current="s.state === 'current' ? 'true' : undefined"
+                  :class="[
+                    s.state === 'current' && 'bg-primary/10 shadow-[inset_4px_0_0_var(--color-primary)] hover:bg-primary/15',
+                    s.state === 'done' && 'text-muted-foreground'
+                  ]"
+                >
                   <TableCell class="mono">{{ s.start }}~{{ s.end }}</TableCell>
-                  <TableCell class="font-medium">{{ s.code }}</TableCell>
+                  <TableCell class="font-medium">
+                    {{ s.code }}
+                    <Badge v-if="s.state === 'current'" class="ml-1.5">촬영 중</Badge>
+                    <Badge v-else-if="s.state === 'done'" variant="secondary" class="ml-1.5">완료</Badge>
+                  </TableCell>
                   <TableCell>{{ s.title }}</TableCell>
                   <TableCell>{{ (s.actors ?? []).join(', ') }}</TableCell>
                 </TableRow>

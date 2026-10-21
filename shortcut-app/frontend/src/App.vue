@@ -16,6 +16,7 @@ watch(
   () => auth.token,
   (token) => {
     if (token) {
+      auth.refresh()
       notifications.refresh().catch(toast.error)
       notifications.connect()
     } else {

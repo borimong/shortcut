@@ -13,7 +13,7 @@ import org.springframework.security.oauth2.jwt.JwtException;
 class JwtServiceTest {
 
     private static final String SECRET = "test-secret-that-is-at-least-32-bytes-long";
-    private static final UserAccount AD1 = new UserAccount(4, "ad1", "hash", "윤하린", "AD1", "DIRECTING", "1조감독", null);
+    private static final UserAccount AD1 = new UserAccount(4, "ad1", "hash", "윤하린", "AD1", "DIRECTING", "1조감독", null, false, true);
 
     @Test
     void 발급한_토큰을_같은_키로_검증하면_역할과_이름이_나온다() {

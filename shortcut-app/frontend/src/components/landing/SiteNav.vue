@@ -13,7 +13,7 @@ const links = [
 <template>
   <header class="sticky top-0 z-20 border-b bg-background">
     <div class="flex h-16 items-center gap-7 px-5">
-      <a href="#top" aria-label="ShortCut 처음으로"><img :src="logoUrl" alt="ShortCut" width="86" height="28" class="h-7 w-auto" /></a>
+      <a href="#top" aria-label="ShortCut 처음으로"><img :src="logoUrl" alt="ShortCut" width="122" height="40" class="h-10 w-auto" /></a>
       <NavigationMenu class="ml-auto hidden md:flex">
         <NavigationMenuList>
           <NavigationMenuItem v-for="l in links" :key="l.href">

@@ -18,7 +18,7 @@ def guarded(limits: Limits, route: Callable[[dict[str, Any]], str]) -> Callable[
     """한도를 넘었으면 원래 분기 대신 사람에게 보고하는 노드로 보냅니다."""
 
     def wrapper(state: dict[str, Any]) -> str:
-        if stop_condition(state.get("loop_counter") or new_counter(), limits):
+        if stop_condition(state.get("loop_counter") or new_counter(), limits, state.get("max_loops")):
             return "report_human"
         return route(state)
 

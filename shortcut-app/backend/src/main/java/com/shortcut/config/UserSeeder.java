@@ -16,10 +16,11 @@ import org.springframework.stereotype.Component;
 public class UserSeeder implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "shortcut1234";
+    private static final List<String> SEED_ADMINS = List.of("pd", "director");
     private static final List<SeedUser> USERS = List.of(
             new SeedUser("pd", "한서윤", "PRODUCER", "PRODUCTION", "제작 PD (예산 권한자)", "010-7781-2045"),
             new SeedUser("manager", "오지훈", "PRODUCTION_MANAGER", "PRODUCTION", "제작실장", "010-6620-3318"),
-            new SeedUser("director", "강민재", "DIRECTOR", "DIRECTING", "연출감독", "010-4473-9902"),
+            new SeedUser("director", "강민재", "DIRECTOR", "DIRECTING", "연출 PD (연출감독)", "010-4473-9902"),
             new SeedUser("ad1", "윤하린", "AD1", "DIRECTING", "1조감독", "010-2219-5567"),
             new SeedUser("ad2", "서도현", "AD2", "DIRECTING", "2조감독", "010-8834-1206"),
             new SeedUser("dop", "문태오", "DOP", "TECH", "촬영감독 (장비)", null),
@@ -42,6 +43,8 @@ public class UserSeeder implements CommandLineRunner {
                         seed.dept(), seed.title(), seed.phone());
             }
         }
+        // 콜시트 수정 권한자(제작 PD, 연출 PD)를 처음 관리자로 둔다. 이후 권한은 관리자 페이지에서 바꾼다.
+        users.grantAdminsIfNone(SEED_ADMINS);
     }
 
     private record SeedUser(String username, String name, String role, String dept, String title, String phone) {

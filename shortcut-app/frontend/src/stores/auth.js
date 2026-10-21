@@ -20,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => Boolean(token.value))
   const canSubmitChange = computed(() => CHANGE_ROLES.includes(user.value?.role))
+  const isAdmin = computed(() => Boolean(user.value?.admin))
 
   async function login(username, password) {
     const res = await api('/auth/login', { method: 'POST', body: { username, password } })
@@ -28,11 +29,22 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: token.value, user: user.value }))
   }
 
+  // 관리자 지정이나 탈퇴는 로그인 뒤에도 바뀔 수 있어서 화면을 열 때 내 정보를 다시 읽는다.
+  async function refresh() {
+    if (!token.value) return
+    try {
+      user.value = await api('/me')
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ token: token.value, user: user.value }))
+    } catch {
+      // 401이면 api()가 이미 로그아웃시킨다. 그 밖의 오류는 저장된 정보를 그대로 쓴다.
+    }
+  }
+
   function logout() {
     token.value = null
     user.value = null
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  return { token, user, isLoggedIn, canSubmitChange, login, logout }
+  return { token, user, isLoggedIn, canSubmitChange, isAdmin, login, logout, refresh }
 })

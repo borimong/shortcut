@@ -4,7 +4,7 @@ VALUES (1, '드라마 숏컷 7화', 1000000, 40)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO shoot_days (id, project_id, shoot_date, call_time, data_version, notice, crew_calls)
-VALUES (1, 1, CURRENT_DATE + 1, '06:30', 1, '13시 이후 비 예보가 있습니다. 변동 시 알림으로 공지합니다.',
+VALUES (1, 1, CURRENT_DATE, '06:30', 1, '13시 이후 비 예보가 있습니다. 변동 시 알림으로 공지합니다.',
         '[{"team": "연출팀", "time": "06:30"}, {"team": "촬영팀", "time": "06:45"}, {"team": "조명팀", "time": "06:45"},
           {"team": "동시녹음팀", "time": "07:00"}, {"team": "미술팀", "time": "06:30"}]')
 ON CONFLICT DO NOTHING;
@@ -64,10 +64,32 @@ INSERT INTO callsheet_versions (shoot_day_id, version_no, proposal_id, pm_locati
 VALUES (1, 1, NULL, 1, '[1, 2, 3]', '13:00', '15:00', 300000)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob)
-SELECT 1, l.id, h, CASE WHEN l.id = 1 AND h >= 13 THEN 80 ELSE 20 END
+-- 한강 공원은 13시부터 시간당 8mm 비가 예보되어 있다(촬영 불가 기준 5mm 이상). 나머지 장소는 비가 오지 않는다.
+INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob, precip_mm)
+SELECT 1, l.id, h, CASE WHEN l.id = 1 AND h >= 13 THEN 80 ELSE 20 END,
+       CASE WHEN l.id = 1 AND h >= 13 THEN 8.0 WHEN l.id = 1 AND h = 12 THEN 0.5 ELSE 0 END
 FROM locations l CROSS JOIN generate_series(6, 18) AS h
 ON CONFLICT DO NOTHING;
+
+-- 강수량 열을 추가하기 전에 만든 DB는 확률만 있으므로, 강수량이 하나도 없을 때만 같은 예보로 채운다.
+UPDATE weather_forecasts SET precip_mm = CASE WHEN location_id = 1 AND hour >= 13 THEN 8.0
+                                               WHEN location_id = 1 AND hour = 12 THEN 0.5 ELSE 0 END
+WHERE shoot_day_id = 1 AND location_id < 100
+  AND NOT EXISTS (SELECT 1 FROM weather_forecasts WHERE precip_mm > 0);
+
+INSERT INTO app_settings (id, max_loops, rain_block_mm, rain_warn_mm, rain_alert_lead_hours)
+VALUES (1, 5, 5.0, 1.0, 3)
+ON CONFLICT DO NOTHING;
+
+-- 필수 승인자 기본값이다. 관리자가 지운 규칙이 재시작 때 되살아나지 않게 표가 비어 있을 때만 넣는다.
+INSERT INTO approver_rules (change_kind, role)
+SELECT v.change_kind, v.role
+FROM (VALUES ('ALWAYS', 'DIRECTOR'),
+             ('LOCATION', 'AD1'), ('LOCATION', 'SOUND'),
+             ('EQUIPMENT', 'DOP'),
+             ('TIME', 'AD1'), ('TIME', 'AD2'),
+             ('COST', 'PRODUCER')) AS v (change_kind, role)
+WHERE NOT EXISTS (SELECT 1 FROM approver_rules);
 
 INSERT INTO reservations (id, shoot_day_id, location_id, start_time, end_time, status, provider)
 VALUES ('R-2031', 1, 2, '14:00', '18:00', 'HELD', 'OURPLACE')

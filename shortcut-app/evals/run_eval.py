@@ -42,10 +42,10 @@ class Scenario:
 
 
 SCENARIOS = [
-    Scenario("rain_approve", {"type": "RAIN", "detail": "13시 이후 한강 강수확률 80%"}, expect_location_id=2),
+    Scenario("rain_approve", {"type": "RAIN", "detail": "13시 이후 한강 시간당 8mm 비 예보"}, expect_location_id=2),
     Scenario(
         "rain_reject_sound",
-        {"type": "RAIN", "detail": "13시 이후 한강 강수확률 80%"},
+        {"type": "RAIN", "detail": "13시 이후 한강 시간당 8mm 비 예보"},
         decisions=[("REJECT", "SOUND", "성수 스튜디오 오후 공사 소음, 동시녹음 불가", ["LOCATION"]), ("APPROVE",)],
         # 장소 문제로 거절되면 남은 파주(3안)보다 먼저 대체 장소를 찾으므로 4안 장소가 확정된다.
         expect_location_source=4,
@@ -61,7 +61,7 @@ SCENARIOS = [
     ),
     Scenario(
         "premium_instruction",
-        {"type": "RAIN", "detail": "13시 이후 한강 강수확률 80%", "instruction": "웃돈을 줘도 좋은 데로 가자"},
+        {"type": "RAIN", "detail": "13시 이후 한강 시간당 8mm 비 예보", "instruction": "웃돈을 줘도 좋은 데로 가자"},
     ),
     Scenario(
         "fourth_plan_after_rejections",
@@ -97,7 +97,7 @@ class Api:
     def wait_task(self, task_id: str, statuses: set[str]) -> dict[str, Any]:
         deadline = time.monotonic() + WAIT_SECONDS
         while time.monotonic() < deadline:
-            task = self.call("GET", f"/api/ai/tasks/{task_id}", "manager")
+            task = self.call("GET", f"/api/ai/tasks/{task_id}", "pd")
             if task["status"] in statuses:
                 return task
             time.sleep(1.5)
@@ -126,14 +126,14 @@ def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
     for alert in scenario.disaster_alerts:
         api.call("POST", "/internal/test/disaster-alerts", json=alert)
     started = time.monotonic()
-    created = api.call("POST", "/api/events", "manager", json={"shootDayId": 1, **scenario.event})
+    created = api.call("POST", "/api/events", "pd", json={"shootDayId": 1, **scenario.event})
     task_id = created["taskId"]
     proposals = []
     for decision in scenario.decisions:
         task = api.wait_task(task_id, {"WAITING_APPROVAL", "DONE", "FAILED", "NEEDS_HUMAN"})
         if task["status"] != "WAITING_APPROVAL":
             break
-        proposal = api.call("GET", f"/api/proposals/{task['proposalId']}", "manager")
+        proposal = api.call("GET", f"/api/proposals/{task['proposalId']}", "pd")
         proposals.append(proposal)
         pending = [a["role"] for a in proposal["approvals"] if a["status"] == "PENDING"]
         if decision[0] == "REJECT":

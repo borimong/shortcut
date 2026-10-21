@@ -2,7 +2,6 @@ package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
 import com.shortcut.common.JsonColumns;
-import com.shortcut.common.Phones;
 import com.shortcut.domain.Actor;
 import com.shortcut.domain.Approval;
 import com.shortcut.domain.Callsheet;
@@ -10,6 +9,7 @@ import com.shortcut.domain.ChangeEvent;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.Proposal;
 import com.shortcut.dto.BoardDtos.BlockView;
+import com.shortcut.dto.BoardDtos.BlockWeatherView;
 import com.shortcut.dto.BoardDtos.BoardResponse;
 import com.shortcut.dto.BoardDtos.CallsheetContent;
 import com.shortcut.dto.BoardDtos.CallsheetRef;
@@ -19,6 +19,7 @@ import com.shortcut.dto.BoardDtos.HistoryItem;
 import com.shortcut.dto.BoardDtos.LocationView;
 import com.shortcut.dto.BoardDtos.PendingProposalView;
 import com.shortcut.dto.BoardDtos.ProjectView;
+import com.shortcut.dto.BoardDtos.RainRuleView;
 import com.shortcut.dto.BoardDtos.SceneView;
 import com.shortcut.dto.BoardDtos.ShootDayView;
 import com.shortcut.dto.BoardDtos.WeatherView;
@@ -45,7 +46,7 @@ public class BoardService {
     private static final Set<String> CONTACT_ROLES = Set.of("PRODUCER", "PRODUCTION_MANAGER", "DIRECTOR", "AD1", "AD2");
     private static final Map<String, String> EVENT_LABELS = Map.of(
             "RAIN", "우천", "ACTOR_SCHEDULE", "배우 일정", "LOCATION_CANCEL", "장소 취소",
-            "EQUIPMENT_FAILURE", "장비 고장", "DISASTER", "천재지변");
+            "EQUIPMENT_FAILURE", "장비 고장", "DISASTER", "천재지변", "OTHER", "기타");
 
     private final PlanDataService planData;
     private final CallsheetRepository callsheets;
@@ -74,11 +75,11 @@ public class BoardService {
 
         List<ContactView> contacts = new ArrayList<>();
         users.findAll().stream()
-                .filter(u -> CONTACT_ROLES.contains(u.role()) && u.phone() != null)
-                .forEach(u -> contacts.add(new ContactView(u.title(), u.name(), Phones.mask(u.phone()))));
+                .filter(u -> u.active() && CONTACT_ROLES.contains(u.role()) && u.phone() != null)
+                .forEach(u -> contacts.add(new ContactView(u.title(), u.name(), u.phone())));
         for (Actor actor : data.actors().values()) {
             if (actor.managerPhone() != null) {
-                contacts.add(new ContactView("매니저", actor.name() + " 매니저", Phones.mask(actor.managerPhone())));
+                contacts.add(new ContactView("매니저", actor.name() + " 매니저", actor.managerPhone()));
             }
         }
         PendingProposalView pending = proposals.findOpen(shootDayId)
@@ -93,9 +94,11 @@ public class BoardService {
                 blockViews(data, current),
                 json.tree(data.shootDay().crewCallsJson()),
                 new WeatherView(pmLocation.name(), ShootDayQueryService.hourly(data, pmLocation.id()),
-                        weatherSummary(data, pmLocation, current)),
+                        weatherSummary(data, pmLocation, current.start(), current.end())),
                 contacts,
-                pending);
+                pending,
+                blockWeather(data, current),
+                new RainRuleView(data.settings().rainBlockMm(), data.settings().rainWarnMm()));
     }
 
     @Transactional(readOnly = true)
@@ -179,28 +182,44 @@ public class BoardService {
         }).toList();
     }
 
-    private static String weatherSummary(PlanData data, Location location, PlanSnapshot current) {
+    /** 블록마다 실제 촬영지(오후는 확정 콜시트 기준)의 날씨를 만든다. */
+    private static List<BlockWeatherView> blockWeather(PlanData data, PlanSnapshot current) {
+        return data.blocks().stream().map(block -> {
+            boolean changing = PlanData.CHANGING_BLOCK.equals(block.code());
+            Location l = data.locations().get(changing ? current.locationId() : block.locationId());
+            var start = changing ? current.start() : block.start();
+            var end = changing ? current.end() : block.end();
+            return new BlockWeatherView(block.code(), l.id(), l.name(), l.indoor(), ShootDayQueryService.hourly(data, l.id()),
+                    weatherSummary(data, l, start, end));
+        }).toList();
+    }
+
+    private static String weatherSummary(PlanData data, Location location, java.time.LocalTime start,
+                                         java.time.LocalTime end) {
         if (location.indoor()) {
             return location.name() + "은(는) 실내라 강수 영향이 없습니다.";
         }
-        Map<Integer, Integer> hourly = data.hourly(location.id());
-        int lastHour = (current.end().toSecondOfDay() / 60 - 1) / 60;
-        int max = 0;
+        double blockMm = data.settings().rainBlockMm();
+        double warnMm = data.settings().rainWarnMm();
+        Map<Integer, Double> hourly = data.hourly(location.id());
+        int lastHour = (end.toSecondOfDay() / 60 - 1) / 60;
+        double max = 0;
         Integer firstRainy = null;
-        for (int hour = current.start().getHour(); hour <= lastHour; hour++) {
-            int precip = hourly.getOrDefault(hour, 0);
+        for (int hour = start.getHour(); hour <= lastHour; hour++) {
+            double precip = hourly.getOrDefault(hour, 0.0);
             max = Math.max(max, precip);
-            if (firstRainy == null && precip >= PlanEngine.RAIN_SOFT_PROB) {
+            if (firstRainy == null && precip >= warnMm) {
                 firstRainy = hour;
             }
         }
-        if (max >= PlanEngine.RAIN_HARD_PROB) {
-            return firstRainy + "시부터 강수확률 " + max + "%로 야외 촬영이 어렵습니다.";
+        if (max >= blockMm) {
+            return firstRainy + "시부터 시간당 " + PlanEngine.mm(max) + "mm 비로 야외 촬영이 어렵습니다(기준 "
+                    + PlanEngine.mm(blockMm) + "mm).";
         }
-        if (max >= PlanEngine.RAIN_SOFT_PROB) {
-            return firstRainy + "시부터 강수확률 " + max + "%로 우천 대비가 필요합니다.";
+        if (max >= warnMm) {
+            return firstRainy + "시부터 시간당 " + PlanEngine.mm(max) + "mm 비로 우천 대비가 필요합니다.";
         }
-        return "촬영 시간대 강수확률 " + max + "%로 영향이 적습니다.";
+        return "촬영 시간대 강수량이 시간당 " + PlanEngine.mm(max) + "mm로 영향이 적습니다.";
     }
 
     private static String nullToEmpty(String value) {

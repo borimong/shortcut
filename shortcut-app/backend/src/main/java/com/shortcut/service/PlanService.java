@@ -65,7 +65,7 @@ public class PlanService {
     }
 
     private static CandidateView view(CandidateResult c) {
-        List<EquipmentView> items = c.equipment().stream().map(e -> new EquipmentView(e.id(), e.name())).toList();
+        List<EquipmentView> items = c.equipment().stream().map(e -> new EquipmentView(e.id(), e.name(), e.available())).toList();
         return new CandidateView(c.hash(),
                 new CandidateLocation(c.locationOptionNo(), c.location().id(), c.location().name(), c.location().indoor()),
                 new CandidateEquipment(c.equipmentOptionNo(), items),

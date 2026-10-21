@@ -64,7 +64,7 @@ public class ShootDayQueryService {
                 .toList();
         List<LocationAvailability> locations = data.locations().values().stream()
                 .map(l -> new LocationAvailability(l.id(), l.name(), l.indoor(), l.region(), l.openFrom(), l.openTo(),
-                        l.permitFrom(), l.permitTo(), l.noFlyZone(), l.note()))
+                        l.permitFrom(), l.permitTo(), l.noFlyZone(), l.note(), l.available()))
                 .toList();
         return new AvailabilityResponse(actors, locations, List.copyOf(data.equipment().values()),
                 data.shootDay().crewWeeklyHoursUsed());
@@ -75,7 +75,8 @@ public class ShootDayQueryService {
         List<LocationWeather> locations = data.locations().values().stream()
                 .map(l -> new LocationWeather(l.id(), l.name(), l.indoor(), hourly(data, l.id())))
                 .toList();
-        return new WeatherResponse(data.shootDay().shootDate(), locations);
+        return new WeatherResponse(data.shootDay().shootDate(), locations, data.settings().rainBlockMm(),
+                data.settings().rainWarnMm());
     }
 
     public List<DisasterAlert> disasterAlerts(long shootDayId) {
@@ -113,7 +114,10 @@ public class ShootDayQueryService {
     }
 
     static List<EquipmentView> equipment(PlanData data, List<Long> ids) {
-        return ids.stream().map(id -> new EquipmentView(id, data.equipment().get(id).name())).toList();
+        return ids.stream().map(id -> {
+            var item = data.equipment().get(id);
+            return new EquipmentView(id, item.name(), item.available());
+        }).toList();
     }
 
     private static PlanLocation planLocation(Location l) {

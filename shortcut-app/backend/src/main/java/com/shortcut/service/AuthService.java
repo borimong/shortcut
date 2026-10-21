@@ -28,15 +28,17 @@ public class AuthService {
      */
     public LoginResponse login(String username, String password) {
         UserAccount user = users.findByUsername(username)
-                .filter(u -> passwordEncoder.matches(password, u.passwordHash()))
+                .filter(u -> u.active() && passwordEncoder.matches(password, u.passwordHash()))
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS",
                         "아이디 또는 비밀번호가 올바르지 않습니다."));
         return new LoginResponse(jwtService.issue(user), UserView.of(user));
     }
 
     public UserView me(String username) {
+        // 탈퇴한 계정은 남은 토큰으로도 쓰지 못하게 화면이 로그아웃하도록 401을 준다.
         return users.findByUsername(username)
+                .filter(UserAccount::active)
                 .map(UserView::of)
-                .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "사용자가 없습니다: " + username));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "USER_INACTIVE", "탈퇴했거나 없는 계정입니다."));
     }
 }

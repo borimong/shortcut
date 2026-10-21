@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class EventControllerTest {
 
     private static final String BODY = """
-            {"type": "RAIN", "detail": "13시 이후 강수확률 80%", "instruction": "웃돈을 줘도 좋은 데로"}
+            {"type": "RAIN", "detail": "13시 이후 한강 시간당 8mm 비", "instruction": "웃돈을 줘도 좋은 데로"}
             """;
 
     @Autowired
@@ -96,7 +96,7 @@ class EventControllerTest {
     }
 
     private String token() {
-        UserAccount ad1 = new UserAccount(4, "ad1", "hash", "윤하린", "AD1", "DIRECTING", "1조감독", null);
+        UserAccount ad1 = new UserAccount(3, "director", "hash", "강민재", "DIRECTOR", "DIRECTING", "연출 PD (연출감독)", null, true, true);
         return new JwtService(properties).issue(ad1);
     }
 }

@@ -126,7 +126,7 @@ public class PlanRepository {
                 .query((rs, n) -> new Location(rs.getLong("id"), rs.getString("name"), rs.getString("address"),
                         rs.getBoolean("indoor"), rs.getString("region"), time(rs, "open_from"), time(rs, "open_to"),
                         time(rs, "permit_from"), time(rs, "permit_to"), rs.getLong("cost"), rs.getBoolean("no_fly_zone"),
-                        rs.getDouble("fit"), rs.getDouble("distance_km"), rs.getString("note")))
+                        rs.getDouble("fit"), rs.getDouble("distance_km"), rs.getString("note"), true))
                 .list();
     }
 
@@ -153,7 +153,7 @@ public class PlanRepository {
     public List<WeatherHour> findWeather(long shootDayId) {
         return jdbc.sql("SELECT * FROM weather_forecasts WHERE shoot_day_id = :id ORDER BY location_id, hour")
                 .param("id", shootDayId)
-                .query((rs, n) -> new WeatherHour(rs.getLong("location_id"), rs.getInt("hour"), rs.getInt("precip_prob")))
+                .query((rs, n) -> new WeatherHour(rs.getLong("location_id"), rs.getInt("hour"), rs.getDouble("precip_mm")))
                 .list();
     }
 
@@ -214,10 +214,10 @@ public class PlanRepository {
                 .param("fit", fit)
                 .param("distance", external.distanceKm())
                 .update();
-        // 대체 장소는 지점별 예보가 없으므로 같은 날 야외 장소 가운데 가장 높은 강수확률을 그대로 써서 보수적으로 판정한다.
+        // 대체 장소는 지점별 예보가 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
         jdbc.sql("""
-                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob)
-                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_prob)
+                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_prob, precip_mm)
+                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_prob), max(w.precip_mm)
                         FROM weather_forecasts w JOIN locations l ON l.id = w.location_id
                         WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base
                         GROUP BY w.shoot_day_id, w.hour

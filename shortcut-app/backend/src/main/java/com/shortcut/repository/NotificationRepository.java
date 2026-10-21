@@ -40,7 +40,7 @@ public class NotificationRepository {
     public void insertForAll(String kind, String title, String body, String link) {
         jdbc.sql("""
                         INSERT INTO notifications (user_id, kind, title, body, link)
-                        SELECT id, :kind, :title, :body, :link FROM users
+                        SELECT id, :kind, :title, :body, :link FROM users WHERE active
                         """)
                 .param("kind", kind)
                 .param("title", title)
