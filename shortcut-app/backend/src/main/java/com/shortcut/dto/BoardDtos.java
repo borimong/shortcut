@@ -13,7 +13,8 @@ public final class BoardDtos {
 
     public record BoardResponse(ProjectView project, ShootDayView shootDay, CallsheetRef callsheet,
                                 List<BlockView> blocks, JsonNode crewCallTimes, WeatherView weather,
-                                List<ContactView> contacts, PendingProposalView pendingProposal) {
+                                List<ContactView> contacts, PendingProposalView pendingProposal,
+                                List<BlockWeatherView> blockWeather, RainRuleView rainRule) {
     }
 
     public record ProjectView(long id, String name) {
@@ -32,7 +33,7 @@ public final class BoardDtos {
     public record LocationView(long id, String name, String address, boolean indoor, String region) {
     }
 
-    public record EquipmentView(long id, String name) {
+    public record EquipmentView(long id, String name, boolean available) {
     }
 
     public record SceneView(String code, String title, int durationMin, List<String> actors) {
@@ -41,10 +42,20 @@ public final class BoardDtos {
     public record WeatherView(String locationName, List<HourlyView> hourly, String summary) {
     }
 
-    public record HourlyView(int hour, int precipProb) {
+    /** 시각별 시간당 강수량(mm)이다. */
+    public record HourlyView(int hour, double precipMm) {
     }
 
-    public record ContactView(String title, String name, String phoneMasked) {
+    /** 블록마다 그 블록 촬영지의 날씨다. 화면은 지금 시각에 촬영 중인 블록의 날씨를 고른다. */
+    public record BlockWeatherView(String blockCode, long locationId, String locationName, boolean indoor,
+                                   List<HourlyView> hourly, String summary) {
+    }
+
+    /** 관리자 설정의 강수 기준이다. 화면 강조 색과 엔진 판정이 같은 값을 쓴다. */
+    public record RainRuleView(double blockMm, double warnMm) {
+    }
+
+    public record ContactView(String title, String name, String phone) {
     }
 
     public record PendingProposalView(long id, String versionNo, String status) {

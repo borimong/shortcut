@@ -1,4 +1,5 @@
-export const CHANGE_ROLES = ['PRODUCTION_MANAGER', 'AD1', 'DIRECTOR']
+// 콜시트를 바꿀 수 있는 사람은 제작 PD와 연출 PD다. 제작 조직은 제작자, 제작 PD, 제작실장, 제작부장, 제작부원 순이다.
+export const CHANGE_ROLES = ['PRODUCER', 'DIRECTOR']
 
 // 시드 계정이 모두 같은 촬영일 하나를 쓰므로 목록 조회 기준을 한 곳에 둔다.
 export const SHOOT_DAY_ID = 1
@@ -6,7 +7,7 @@ export const SHOOT_DAY_ID = 1
 export const DEMO_ACCOUNTS = [
   { username: 'pd', name: '한서윤', role: 'PRODUCER', title: '제작 PD (예산 권한자)' },
   { username: 'manager', name: '오지훈', role: 'PRODUCTION_MANAGER', title: '제작실장' },
-  { username: 'director', name: '강민재', role: 'DIRECTOR', title: '연출감독' },
+  { username: 'director', name: '강민재', role: 'DIRECTOR', title: '연출 PD (연출감독)' },
   { username: 'ad1', name: '윤하린', role: 'AD1', title: '1조감독' },
   { username: 'ad2', name: '서도현', role: 'AD2', title: '2조감독' },
   { username: 'dop', name: '문태오', role: 'DOP', title: '촬영감독 (장비)' },
@@ -23,12 +24,38 @@ export const DEPARTMENTS = [
   { name: '기술부서', roles: ['DOP', 'SOUND'] }
 ]
 
+// 유형마다 무엇을 적으면 Agent가 바로 판단할 수 있는지 보여 주는 예시다. 언제, 어디서, 무엇이, 얼마나, 누가 연락했는지를 담는다.
 export const EVENT_TYPES = [
-  { value: 'RAIN', label: '우천', hint: '13시 이후 한강 공원 강수확률이 80%로 올라갔습니다.' },
-  { value: 'ACTOR_SCHEDULE', label: '배우 일정', hint: '배우 A가 15시까지만 촬영 가능하다고 연락이 왔습니다.' },
-  { value: 'LOCATION_CANCEL', label: '장소 취소', hint: '성수 스튜디오 오후 대관이 취소되었습니다.' },
-  { value: 'EQUIPMENT_FAILURE', label: '장비 고장', hint: '드론 배터리 불량으로 오늘 비행이 어렵습니다.' },
-  { value: 'DISASTER', label: '천재지변', hint: '서울 영등포구에 호우 경보 재난 문자가 발송되었습니다.' }
+  {
+    value: 'RAIN',
+    label: '우천',
+    hint: '예) 기상청 단기예보 기준 13시부터 한강 공원에 시간당 8mm 비가 예보되었습니다. 오후 산책 씬(S12, S13)은 야외 촬영이 어렵고, 비는 17시쯤 그칠 것으로 보입니다.'
+  },
+  {
+    value: 'ACTOR_SCHEDULE',
+    label: '배우 일정',
+    hint: '예) 배우 A 매니저에게서 10시 40분에 연락이 왔습니다. 오전 광고 촬영이 길어져 오늘은 15시까지만 촬영할 수 있고, 현장 도착은 13시 30분 예정입니다.'
+  },
+  {
+    value: 'LOCATION_CANCEL',
+    label: '장소 취소',
+    hint: '예) 성수 스튜디오 담당자가 오늘 14~18시 대관을 취소했습니다(누수 공사). 가예약 R-2031도 함께 취소되었고, 대체 공간은 제공되지 않습니다.'
+  },
+  {
+    value: 'EQUIPMENT_FAILURE',
+    label: '장비 고장',
+    hint: '예) 촬영팀이 오전 점검 중 반사판 2개가 모두 파손된 것을 확인했습니다. 오늘 오후 촬영에는 쓸 수 없고, 렌탈사 대체품은 16시 이후에나 도착합니다.'
+  },
+  {
+    value: 'DISASTER',
+    label: '천재지변',
+    hint: '예) 12시 10분에 서울 영등포구에 호우 경보 긴급재난문자가 발송되었습니다. 13~17시 야외 활동 자제 권고이며, 한강 공원 출입이 통제될 수 있습니다.'
+  },
+  {
+    value: 'OTHER',
+    label: '기타',
+    hint: '예) 오후 촬영지 주변 도로가 마라톤 행사로 12~15시 통제됩니다. 장비 차량 진입이 어려워 촬영 시작이 1시간가량 늦어질 수 있습니다.'
+  }
 ]
 
 export const NODE_ORDER = [

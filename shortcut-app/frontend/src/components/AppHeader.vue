@@ -18,7 +18,8 @@ const menu = computed(() =>
     { to: '/callsheet', label: '콜시트' },
     auth.canSubmitChange && { to: '/changes/new', label: '변경 입력' },
     { to: '/proposals', label: '변경안' },
-    { to: '/history', label: '변동 이력' }
+    { to: '/history', label: '변동 이력' },
+    auth.isAdmin && { to: '/admin', label: '관리자' }
   ].filter(Boolean)
 )
 
@@ -34,7 +35,7 @@ function logout() {
   <header class="sticky top-0 z-50 border-b bg-background/90 backdrop-blur print:hidden">
     <div class="wrap flex h-16 items-center gap-6">
       <RouterLink to="/board" aria-label="오늘의 촬영판으로 이동">
-        <img :src="logoUrl" alt="ShortCut" class="h-6 w-auto" />
+        <img :src="logoUrl" alt="ShortCut" class="h-9 w-auto" />
       </RouterLink>
       <NavigationMenu class="hidden md:flex">
         <NavigationMenuList>

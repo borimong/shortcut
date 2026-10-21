@@ -95,10 +95,10 @@ public final class PlanDtos {
 
     public record LocationAvailability(long id, String name, boolean indoor, String region, LocalTime openFrom,
                                        LocalTime openTo, LocalTime permitFrom, LocalTime permitTo,
-                                       boolean noFlyZone, String note) {
+                                       boolean noFlyZone, String note, boolean available) {
     }
 
-    public record WeatherResponse(LocalDate date, List<LocationWeather> locations) {
+    public record WeatherResponse(LocalDate date, List<LocationWeather> locations, double rainBlockMm, double rainWarnMm) {
     }
 
     public record LocationWeather(long locationId, String name, boolean indoor, List<HourlyView> hourly) {

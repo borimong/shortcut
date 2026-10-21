@@ -144,6 +144,36 @@ class PlanEngineTest {
         assertThat(result.candidates().getFirst().feasible()).isFalse();
     }
 
+    @Test
+    void 강수량이_관리자_기준보다_적으면_야외안도_경고만_남는다() {
+        // 한강 공원은 13시부터 시간당 8mm라 기본 기준(5mm)에서는 막히지만, 기준을 10mm로 올리면 경고만 남는다.
+        CheckResult strict = engine.check(SeedPlan.input(List.of()), 1, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        assertThat(strict.violations()).extracting(Finding::code).contains("RAIN_HARD");
+
+        PlanInput lenient = SeedPlan.withRainRule(SeedPlan.input(List.of()), 10.0, 1.0);
+        CheckResult relaxed = engine.check(lenient, 1, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        assertThat(relaxed.violations()).extracting(Finding::code).doesNotContain("RAIN_HARD");
+        assertThat(relaxed.warnings()).extracting(Finding::code).contains("RAIN_SOFT");
+    }
+
+    @Test
+    void 변경_입력에서_취소한_장소는_후보에서_막힌다() {
+        PlanInput input = SeedPlan.withCancelledLocation(SeedPlan.input(List.of()), 2);
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+
+        assertThat(codes(find(result, "L2-E1,2,3-T14001600"))).contains("LOCATION_CANCELLED");
+        assertThat(result.candidates().getFirst().location().id()).isNotEqualTo(2);
+    }
+
+    @Test
+    void 불참_배우가_나오는_블록은_모든_후보가_막힌다() {
+        PlanInput input = SeedPlan.withAbsentActor(SeedPlan.input(List.of()), 1);
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+
+        assertThat(result.candidates()).allSatisfy(c -> assertThat(c.violations())
+                .anySatisfy(f -> assertThat(f.message()).contains("배우 A은(는) 오늘 촬영에 참여할 수 없습니다")));
+    }
+
     private static List<String> codes(CandidateResult candidate) {
         return candidate.violations().stream().map(Finding::code).toList();
     }

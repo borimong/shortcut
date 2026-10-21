@@ -5,8 +5,8 @@
 - LAW: search_regulation, doc_types ["LAW", "PERMIT"]로 주 52시간과 촬영 허가 시간
 - BUDGET: search_regulation, doc_types ["POLICY"]로 블록 예산 상한
 - NO_FLY_ZONE: search_regulation, doc_types ["NO_FLY"]로 비행금지구역과 드론
-- DISASTER, WEATHER: search_regulation, doc_types ["SAFETY"]로 재난 문자 기준과 강수확률 기준
-질의는 짧고 구체적으로 씁니다. 예: "주 52시간 연장 근로 한도", "강수확률 야외 촬영 제외 기준".
+- DISASTER, WEATHER: search_regulation, doc_types ["SAFETY"]로 재난 문자 기준과 강수량 기준
+질의는 짧고 구체적으로 씁니다. 예: "주 52시간 연장 근로 한도", "시간당 강수량 야외 촬영 제외 기준".
 아래 "근거가 부족했던 범주"가 있으면 그 범주만 검색하고, 이미 찾은 범주는 다시 검색하지 않습니다.
 근거가 모였으면 도구를 더 부르지 말고 끝내세요.
 

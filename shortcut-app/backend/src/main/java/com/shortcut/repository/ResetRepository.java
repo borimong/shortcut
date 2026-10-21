@@ -39,7 +39,11 @@ public class ResetRepository {
             "DELETE FROM ontology_edges WHERE dst LIKE 'LOCATION:1__'",
             "DELETE FROM ontology_nodes WHERE node_id LIKE 'LOCATION:1__' OR node_id = 'PLAN:4'",
             "DELETE FROM locations WHERE id >= 100",
-            "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE + 1 WHERE id = :id"
+            // 변경 입력이 남긴 장비 고장, 배우 불참, 장소 취소, 강수량 덮어쓰기와 우천 알림 기록을 지운다.
+            "DELETE FROM shoot_day_overrides WHERE shoot_day_id = :id",
+            "DELETE FROM rain_alerts_sent WHERE shoot_day_id = :id",
+            // 씬 진행 표시가 시계 기준이라 시연 촬영일은 항상 오늘로 둔다.
+            "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE WHERE id = :id"
     };
 
     private final JdbcClient jdbc;

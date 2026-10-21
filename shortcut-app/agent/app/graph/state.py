@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 # 하드 제약 범주다. 노션 설계의 5개(계약서, 스케줄, 규제/법, 예산, 촬영 금지 구역)에
-# 천재지변(재난 문자)과 강수확률 기준 날씨를 더했다.
+# 천재지변(재난 문자)과 시간당 강수량 기준 날씨를 더했다.
 HARD_CONSTRAINTS = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER")
 
 DEFAULT_WEIGHTS = {"location": 0.25, "equipment": 0.15, "weather": 0.20, "budget": 0.15, "time": 0.10, "distance": 0.15}
@@ -17,8 +17,11 @@ class ReplanState(TypedDict, total=False):
     task_id: int
     thread_id: str
     shoot_day_id: int
-    # 변경 이벤트와 요청자. {id, type, detail, instruction, requested_by}
+    # 변경 이벤트와 요청자. {id, type, detail, instruction, requested_by, changes}
+    # changes는 변경 입력에서 고른 구조화된 변경(장비 고장, 배우 불참 등)의 요약이고, backend가 이미 업무 데이터에 반영했다.
     event: dict[str, Any]
+    # 이 안건의 재계획 루프 한도. 관리자 페이지 설정이고, 없으면 환경 변수 기본값을 쓴다.
+    max_loops: int
     # 1/2/3안과 현재 확정안, 업무 데이터 버전
     plan_set: dict[str, Any]
     data_version: int

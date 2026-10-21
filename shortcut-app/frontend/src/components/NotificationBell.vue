@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription } from '@/components/ui/empty'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useNotificationStore } from '../stores/notifications.js'
@@ -22,7 +21,8 @@ const KIND = {
   CHANGE_NOTICE: ['변경 공지', 'warning'],
   APPROVAL_REQUEST: ['승인 요청', 'info'],
   DECISION: ['승인 결과', 'secondary'],
-  CALLSHEET: ['콜시트', 'success']
+  CALLSHEET: ['콜시트', 'success'],
+  WEATHER: ['우천 알림', 'destructive']
 }
 
 async function select(n) {
@@ -54,16 +54,17 @@ async function readAll() {
         </Badge>
       </Button>
     </PopoverTrigger>
-    <PopoverContent align="end" class="w-[min(360px,calc(100vw-32px))] p-0">
+    <PopoverContent align="end" class="flex max-h-[min(560px,calc(100vh-96px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden p-0">
       <div class="flex items-center justify-between px-4 py-3">
         <h2 class="text-sm font-medium">알림</h2>
         <Button variant="link" size="sm" :disabled="store.unreadCount === 0" @click="readAll">모두 읽음</Button>
       </div>
       <Separator />
-      <ScrollArea v-if="store.items.length" class="max-h-[420px]">
+      <!-- 알림이 많아도 창 밖으로 넘치지 않게 목록만 스크롤한다. -->
+      <div v-if="store.items.length" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <ul class="flex flex-col p-1">
           <li v-for="n in store.items" :key="n.id">
-            <button type="button" :class="cn('grid w-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 rounded-md px-3 py-2.5 text-left text-sm hover:bg-muted', !n.read && 'bg-accent/60')" @click="select(n)">
+            <button type="button" :class="cn('grid w-full grid-cols-[auto_minmax(0,1fr)] gap-x-2 gap-y-0.5 rounded-md px-3 py-2.5 text-left text-sm break-words [overflow-wrap:anywhere] hover:bg-muted', !n.read && 'bg-accent/60')" @click="select(n)">
               <Badge :variant="KIND[n.kind]?.[1] ?? 'secondary'" class="row-span-3 self-start">{{ KIND[n.kind]?.[0] ?? n.kind }}</Badge>
               <span class="font-medium">{{ n.title }}</span>
               <span v-if="n.body" class="text-muted-foreground">{{ n.body }}</span>
@@ -71,7 +72,7 @@ async function readAll() {
             </button>
           </li>
         </ul>
-      </ScrollArea>
+      </div>
       <Empty v-else class="py-8"><EmptyDescription>새 알림이 없습니다.</EmptyDescription></Empty>
     </PopoverContent>
   </Popover>

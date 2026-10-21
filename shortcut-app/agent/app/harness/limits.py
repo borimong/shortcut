@@ -38,9 +38,12 @@ def new_counter() -> dict[str, Any]:
     }
 
 
-def stop_condition(counter: dict[str, Any], limits: Limits) -> str | None:
-    """한도를 넘었으면 멈춤 조건 코드를, 아니면 None을 돌려줍니다."""
-    if counter["loops"] > limits.max_loops:
+def stop_condition(counter: dict[str, Any], limits: Limits, max_loops: int | None = None) -> str | None:
+    """한도를 넘었으면 멈춤 조건 코드를, 아니면 None을 돌려줍니다.
+
+    max_loops는 안건별 루프 한도(관리자 설정)다. 없으면 환경 변수로 정한 기본 한도를 쓴다.
+    """
+    if counter["loops"] > (max_loops or limits.max_loops):
         return LOOP_LIMIT
     if counter["tool_calls"] > limits.max_tool_calls:
         return TOOL_LIMIT

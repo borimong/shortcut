@@ -30,6 +30,7 @@ import com.shortcut.engine.PlanSnapshot;
 import com.shortcut.repository.CallsheetRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.ProposalRepository;
+import com.shortcut.repository.SettingsRepository;
 import com.shortcut.repository.ProposalRepository.NewProposal;
 import com.shortcut.repository.TaskRepository;
 import com.shortcut.repository.UserRepository;
@@ -70,11 +71,13 @@ public class ProposalService {
     private final OutboxService outbox;
     private final SseHub hub;
     private final ObjectMapper mapper;
+    private final SettingsRepository settings;
 
     public ProposalService(ProposalRepository proposals, TaskRepository tasks, PlanRepository plans,
                            CallsheetRepository callsheets, UserRepository users, PlanDataService planData,
                            PlanService planService, NotificationService notifications, OutboxService outbox,
-                           SseHub hub, ObjectMapper mapper) {
+                           SseHub hub, ObjectMapper mapper, SettingsRepository settings) {
+        this.settings = settings;
         this.proposals = proposals;
         this.tasks = tasks;
         this.plans = plans;
@@ -114,7 +117,8 @@ public class ProposalService {
         PlanSnapshot original = data.current();
         PlanSnapshot proposed = data.snapshot(candidate.locationId(), candidate.equipmentIds(),
                 candidate.start(), candidate.end());
-        List<String> roles = ApproverRule.requiredApprovers(original, proposed);
+        // 필수 승인자는 관리자 페이지에서 바꾼 규칙을 따른다.
+        List<String> roles = ApproverRule.requiredApprovers(original, proposed, settings.approverRules());
         int versionNo = callsheets.findLatest(shootDayId).map(Callsheet::versionNo).orElse(0) + 1;
         Long eventId = request.eventId() != null ? request.eventId() : task.eventId();
         double score = request.score() == null ? 0.0 : request.score();

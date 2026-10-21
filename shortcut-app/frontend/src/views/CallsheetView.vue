@@ -24,9 +24,6 @@ const error = ref(null)
 const loading = ref(true)
 
 const BLOCK_LABELS = { AM: '오전', PM: '오후' }
-// 촬영판과 같은 우천 기준 (엔진 하드 제약 70, 경고 30)
-const RAIN_HARD = 70
-const RAIN_SOFT = 30
 // 일출, 일몰 데이터가 없어서 씬 시작 시각으로 낮과 밤을 나눈다
 const DAY_START_HOUR = 6
 const NIGHT_START_HOUR = 18
@@ -147,7 +144,7 @@ const cast = computed(() => {
     }
   }
   const managers = new Map(
-    (board.value?.contacts ?? []).filter((c) => c.title === '매니저').map((c) => [c.name, c.phoneMasked])
+    (board.value?.contacts ?? []).filter((c) => c.title === '매니저').map((c) => [c.name, c.phone])
   )
   return [...byName.values()]
     .sort((a, b) => a.first.start.localeCompare(b.first.start) || a.name.localeCompare(b.name, 'ko'))
@@ -161,11 +158,12 @@ const crewCalls = computed(() =>
 )
 
 const weather = computed(() => board.value?.weather ?? null)
-const maxPrecip = computed(() => Math.max(0, ...(weather.value?.hourly ?? []).map((h) => h.precipProb)))
+const maxPrecip = computed(() => Math.max(0, ...(weather.value?.hourly ?? []).map((h) => h.precipMm)))
+const rainRule = computed(() => board.value?.rainRule ?? { blockMm: 5, warnMm: 1 })
 
-function rainVariant(p) {
-  if (p >= RAIN_HARD) return 'destructive'
-  if (p >= RAIN_SOFT) return 'warning'
+function rainVariant(mm) {
+  if (mm >= rainRule.value.blockMm) return 'destructive'
+  if (mm >= rainRule.value.warnMm) return 'warning'
   return 'secondary'
 }
 
@@ -243,7 +241,7 @@ function print() {
                   <span class="text-xs text-muted-foreground">{{ c.title }}</span>
                   <span class="block text-sm font-medium">{{ c.name }}</span>
                 </span>
-                <span class="mono shrink-0 text-sm">{{ c.phoneMasked }}</span>
+                <span class="mono shrink-0 text-sm">{{ c.phone }}</span>
               </li>
             </ul>
           </section>
@@ -268,17 +266,17 @@ function print() {
 
           <section v-if="weather" class="min-w-0 p-5 print:p-3">
             <h2 class="sheet-label">날씨</h2>
-            <p class="mt-2 text-sm font-medium">{{ weather.locationName }} 기준, 최고 강수확률 {{ maxPrecip }}%</p>
+            <p class="mt-2 text-sm font-medium">{{ weather.locationName }} 기준, 최대 시간당 강수량 {{ maxPrecip }}mm</p>
             <p v-if="weather.summary" class="text-sm text-muted-foreground">{{ weather.summary }}</p>
             <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-1">
               <Badge
                 v-for="h in weather.hourly ?? []"
                 :key="h.hour"
-                :variant="rainVariant(h.precipProb)"
+                :variant="rainVariant(h.precipMm)"
                 class="h-auto w-full flex-col gap-0 rounded-md py-1"
               >
                 <span class="font-normal">{{ h.hour }}시</span>
-                <span>{{ h.precipProb }}%</span>
+                <span>{{ h.precipMm }}mm</span>
               </Badge>
             </div>
           </section>

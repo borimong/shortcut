@@ -15,6 +15,7 @@ import com.shortcut.dto.TaskDtos.TaskCreated;
 import com.shortcut.dto.TaskDtos.TaskEventRequest;
 import com.shortcut.dto.TaskDtos.TaskView;
 import com.shortcut.repository.ProposalRepository;
+import com.shortcut.repository.SettingsRepository;
 import com.shortcut.repository.TaskRepository;
 import com.shortcut.security.CurrentUser;
 import java.util.List;
@@ -38,9 +39,11 @@ public class TaskService {
     private final OutboxService outbox;
     private final SseHub hub;
     private final JsonColumns json;
+    private final SettingsRepository settings;
 
     public TaskService(TaskRepository tasks, ProposalRepository proposals, PlanDataService planData,
-                       OutboxService outbox, SseHub hub, JsonColumns json) {
+                       OutboxService outbox, SseHub hub, JsonColumns json, SettingsRepository settings) {
+        this.settings = settings;
         this.tasks = tasks;
         this.proposals = proposals;
         this.planData = planData;
@@ -83,7 +86,9 @@ public class TaskService {
                 event == null ? null : event.instruction(),
                 event == null ? null : event.type(),
                 event == null ? null : event.detail(),
-                task.shootDayId());
+                task.shootDayId(),
+                event == null ? List.of() : tasks.findEventChangeSummaries(event.id()),
+                settings.settings().maxLoops());
     }
 
     /**

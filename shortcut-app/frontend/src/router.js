@@ -19,6 +19,7 @@ const router = createRouter({
     { path: '/proposals', name: 'proposals', component: () => import('./views/ProposalListView.vue') },
     { path: '/proposals/:id', name: 'proposal', component: () => import('./views/ProposalView.vue') },
     { path: '/history', name: 'history', component: () => import('./views/HistoryView.vue') },
+    { path: '/admin', name: 'admin', component: () => import('./views/AdminView.vue'), meta: { admin: true } },
     { path: '/:pathMatch(.*)*', redirect: '/' }
   ],
   scrollBehavior: (to) => (to.hash ? { el: to.hash, top: 72, behavior: 'smooth' } : { top: 0 })
@@ -33,6 +34,9 @@ router.beforeEach((to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.meta.roles && !to.meta.roles.includes(auth.user?.role)) {
+    return '/board'
+  }
+  if (to.meta.admin && !auth.isAdmin) {
     return '/board'
   }
   return true

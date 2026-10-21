@@ -1,6 +1,7 @@
 package com.shortcut.service;
 
 import com.shortcut.domain.Actor;
+import com.shortcut.domain.AppSettings;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.DisasterAlert;
 import com.shortcut.domain.Equipment;
@@ -33,7 +34,8 @@ public record PlanData(
         List<PlanOption> options,
         List<WeatherHour> weather,
         List<DisasterAlert> alerts,
-        List<Long> alternativeLocationIds) {
+        List<Long> alternativeLocationIds,
+        AppSettings settings) {
 
     public static final String CHANGING_BLOCK = "PM";
 
@@ -65,11 +67,12 @@ public record PlanData(
         return List.copyOf(ids);
     }
 
-    public Map<Integer, Integer> hourly(long locationId) {
-        Map<Integer, Integer> hourly = new TreeMap<>();
+    /** 장소의 시각별 시간당 강수량(mm)이다. */
+    public Map<Integer, Double> hourly(long locationId) {
+        Map<Integer, Double> hourly = new TreeMap<>();
         weather.stream()
                 .filter(w -> w.locationId() == locationId)
-                .forEach(w -> hourly.put(w.hour(), w.precipProb()));
+                .forEach(w -> hourly.put(w.hour(), w.precipMm()));
         return hourly;
     }
 
@@ -83,7 +86,7 @@ public record PlanData(
                 otherMinutes.merge(actorId, block.minutes(), Integer::sum);
             }
         }
-        Map<Long, Map<Integer, Integer>> precip = new HashMap<>();
+        Map<Long, Map<Integer, Double>> precip = new HashMap<>();
         locations.keySet().forEach(id -> precip.put(id, hourly(id)));
         LocalTime morningEnd = blocks.stream()
                 .filter(block -> !CHANGING_BLOCK.equals(block.code()) && block.end().isBefore(changingBlock().end()))
@@ -92,6 +95,7 @@ public record PlanData(
                 .orElse(shootDay.callTime());
         return new PlanInput(shootDay.callTime(), morningEnd, shootDay.blockBudgetCap(),
                 shootDay.crewWeeklyHoursUsed(), current(), actorIdsOf(CHANGING_BLOCK), otherMinutes,
-                actors, locations, equipment, options, precip, alerts, alternativeLocationIds);
+                actors, locations, equipment, options, precip, alerts, alternativeLocationIds,
+                settings.rainBlockMm(), settings.rainWarnMm());
     }
 }

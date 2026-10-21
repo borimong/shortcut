@@ -46,6 +46,21 @@ public class TaskRepository {
                 .optional();
     }
 
+    public void updateEventChanges(long eventId, String changesJson) {
+        jdbc.sql("UPDATE change_events SET changes = CAST(:changes AS jsonb) WHERE id = :id")
+                .param("changes", changesJson)
+                .param("id", eventId)
+                .update();
+    }
+
+    /** 변경 입력에서 반영한 구조화된 변경의 한 줄 요약 목록이다. Agent에게 그대로 넘긴다. */
+    public List<String> findEventChangeSummaries(long eventId) {
+        return jdbc.sql("SELECT c ->> 'summary' FROM change_events, jsonb_array_elements(changes) c WHERE id = :id")
+                .param("id", eventId)
+                .query(String.class)
+                .list();
+    }
+
     public Optional<ChangeEvent> findEventByDedupKey(String dedupKey) {
         return jdbc.sql("SELECT * FROM change_events WHERE dedup_key = :key")
                 .param("key", dedupKey)

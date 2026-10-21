@@ -14,10 +14,12 @@ public final class AuthDtos {
     public record LoginResponse(String accessToken, UserView user) {
     }
 
-    public record UserView(long id, String username, String name, String role, String dept, String title) {
+    public record UserView(long id, String username, String name, String role, String dept, String title,
+                           boolean admin) {
 
         public static UserView of(UserAccount user) {
-            return new UserView(user.id(), user.username(), user.name(), user.role(), user.dept(), user.title());
+            return new UserView(user.id(), user.username(), user.name(), user.role(), user.dept(), user.title(),
+                    user.admin());
         }
     }
 }

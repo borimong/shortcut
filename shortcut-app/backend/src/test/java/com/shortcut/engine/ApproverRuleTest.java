@@ -4,11 +4,31 @@ import static com.shortcut.engine.SeedPlan.t;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ApproverRuleTest {
 
     private static final PlanSnapshot CURRENT = new PlanSnapshot(1, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), 300000);
+
+    @Test
+    void 관리자가_바꾼_규칙을_따른다() {
+        // 장소가 바뀌면 제작실장도 승인하고, 항상 승인자는 제작 PD로 바꾼 규칙이다.
+        Map<String, List<String>> rules = Map.of(
+                "ALWAYS", List.of("PRODUCER"),
+                "LOCATION", List.of("SOUND", "PRODUCTION_MANAGER"),
+                "EQUIPMENT", List.of(), "TIME", List.of(), "COST", List.of());
+        PlanSnapshot paju = new PlanSnapshot(3, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), 600000);
+
+        assertThat(ApproverRule.requiredApprovers(CURRENT, paju, rules))
+                .containsExactly("PRODUCER", "PRODUCTION_MANAGER", "SOUND");
+    }
+
+    @Test
+    void 규칙이_모두_비어도_연출감독_한_명은_승인한다() {
+        Map<String, List<String>> empty = Map.of("ALWAYS", List.of());
+        assertThat(ApproverRule.requiredApprovers(CURRENT, CURRENT, empty)).containsExactly("DIRECTOR");
+    }
 
     @Test
     void 아무것도_안_바뀌면_감독만_승인한다() {

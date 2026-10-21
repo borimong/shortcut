@@ -8,5 +8,7 @@ public record UserAccount(
         String role,
         String dept,
         String title,
-        String phone) {
+        String phone,
+        boolean admin,
+        boolean active) {
 }

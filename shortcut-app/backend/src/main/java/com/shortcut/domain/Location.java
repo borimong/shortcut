@@ -16,5 +16,12 @@ public record Location(
         boolean noFlyZone,
         double fit,
         double distanceKm,
-        String note) {
+        String note,
+        boolean available) {
+
+    /** 변경 입력의 장소 취소를 반영해 이용할 수 없는 장소로 바꾼다. */
+    public Location unavailable() {
+        return new Location(id, name, address, indoor, region, openFrom, openTo, permitFrom, permitTo, cost, noFlyZone,
+                fit, distanceKm, note, false);
+    }
 }

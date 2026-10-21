@@ -33,10 +33,9 @@ public final class PlanEngine {
     private static final int WRAP_MINUTES = 30;
     private static final double WEEKLY_LIMIT_HOURS = 52.0;
     private static final LocalTime NIGHT_LIMIT = LocalTime.of(22, 0);
-    // 강수확률 70 이상이면 야외 촬영이 사실상 불가능해 하드 제약으로 막는다.
-    public static final int RAIN_HARD_PROB = 70;
-    // 30 이상 70 미만은 진행은 가능하지만 우비, 방수 준비가 필요해 경고만 남긴다.
-    public static final int RAIN_SOFT_PROB = 30;
+    // 강수 기준은 관리자 설정이라 입력으로 받는다. 설정이 없을 때 쓰는 기본값은 시간당 5mm(촬영 불가)와 1mm(경고)다.
+    public static final double DEFAULT_RAIN_BLOCK_MM = 5.0;
+    public static final double DEFAULT_RAIN_WARN_MM = 1.0;
     // 50km를 넘으면 당일 이동으로는 모두 같은 부담이라 거리 점수는 0으로 둔다.
     private static final double DISTANCE_SCALE_KM = 50.0;
     // 점심 이후 시작하는 오후 블록이라 12시 종료를 만점, 20시 종료를 0점으로 본다.
@@ -140,7 +139,9 @@ public final class PlanEngine {
         Map<String, Double> soft = new LinkedHashMap<>();
         soft.put("location", round(location.fit()));
         soft.put("equipment", round(equipmentOption.equipmentFit()));
-        soft.put("weather", round(location.indoor() ? 1.0 : 1.0 - maxPrecip(input, location, start, end) / 100.0));
+        // 촬영 불가 기준만큼 비가 오면 날씨 점수는 0이고, 비가 없으면 1이다.
+        soft.put("weather", round(location.indoor() ? 1.0
+                : 1.0 - Math.min(maxPrecip(input, location, start, end) / input.rainBlockMm(), 1.0)));
         soft.put("budget", round(Math.max(0.0, 1.0 - (double) cost / input.budgetCap())));
         soft.put("time", round(clamp(1.0 - (hours(end) - TIME_BASE_HOUR) / TIME_SPAN_HOURS)));
         soft.put("distance", round(1.0 - Math.min(location.distanceKm() / DISTANCE_SCALE_KM, 1.0)));
@@ -167,11 +168,19 @@ public final class PlanEngine {
 
         for (long actorId : input.blockActorIds()) {
             Actor actor = input.actors().get(actorId);
-            if (start.isBefore(actor.availableFrom()) || end.isAfter(actor.availableTo())) {
+            // 변경 입력에서 불참으로 고른 배우는 가용 시작과 끝이 같게 저장된다.
+            if (actor.availableFrom().equals(actor.availableTo())) {
+                violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
+                        actor.name() + "은(는) 오늘 촬영에 참여할 수 없습니다.", "SCHEDULE_ACTOR"));
+            } else if (start.isBefore(actor.availableFrom()) || end.isAfter(actor.availableTo())) {
                 violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
                         actor.name() + " 가용 시간(" + fmt(actor.availableFrom()) + "~" + fmt(actor.availableTo()) + ") 밖입니다.",
                         "SCHEDULE_ACTOR"));
             }
+        }
+        if (!location.available()) {
+            violations.add(new Finding("LOCATION_CANCELLED", "SCHEDULE",
+                    location.name() + "은(는) 변경 입력에서 취소되어 쓸 수 없습니다.", "SCHEDULE_LOCATION"));
         }
         if (start.isBefore(location.openFrom()) || end.isAfter(location.openTo())) {
             violations.add(new Finding("LOCATION_CLOSED", "SCHEDULE",
@@ -234,13 +243,14 @@ public final class PlanEngine {
             }
         }
         if (!location.indoor()) {
-            int precip = maxPrecip(input, location, start, end);
-            if (precip >= RAIN_HARD_PROB) {
+            double precip = maxPrecip(input, location, start, end);
+            if (precip >= input.rainBlockMm()) {
                 violations.add(new Finding("RAIN_HARD", "WEATHER",
-                        location.name() + " 시간대 최대 강수확률 " + precip + "%로 야외 촬영이 불가합니다.", "WEATHER_RAIN"));
-            } else if (precip >= RAIN_SOFT_PROB) {
+                        location.name() + " 시간대 최대 강수량 시간당 " + mm(precip) + "mm로 기준 " + mm(input.rainBlockMm())
+                                + "mm 이상이라 야외 촬영이 불가합니다.", "WEATHER_RAIN"));
+            } else if (precip >= input.rainWarnMm()) {
                 warnings.add(new Finding("RAIN_SOFT", "WEATHER",
-                        location.name() + " 시간대 최대 강수확률 " + precip + "%로 우천 대비가 필요합니다.", "WEATHER_RAIN"));
+                        location.name() + " 시간대 최대 강수량 시간당 " + mm(precip) + "mm로 우천 대비가 필요합니다.", "WEATHER_RAIN"));
             }
         }
 
@@ -284,17 +294,24 @@ public final class PlanEngine {
     }
 
     /**
-     * 시간대와 겹치는 정시 구간의 최대 강수확률이다.
+     * 시간대와 겹치는 정시 구간의 최대 시간당 강수량(mm)이다.
      * 12:30~14:30이면 12시, 13시, 14시 예보를 모두 본다.
      */
-    private static int maxPrecip(PlanInput input, Location location, LocalTime start, LocalTime end) {
-        Map<Integer, Integer> hourly = input.precipByLocation().getOrDefault(location.id(), Map.of());
+    public static double maxPrecip(Map<Integer, Double> hourly, LocalTime start, LocalTime end) {
         int lastHour = (minutes(end) - 1) / 60;
-        int max = 0;
+        double max = 0;
         for (int hour = start.getHour(); hour <= lastHour; hour++) {
-            max = Math.max(max, hourly.getOrDefault(hour, 0));
+            max = Math.max(max, hourly.getOrDefault(hour, 0.0));
         }
         return max;
+    }
+
+    private static double maxPrecip(PlanInput input, Location location, LocalTime start, LocalTime end) {
+        return maxPrecip(input.precipByLocation().getOrDefault(location.id(), Map.of()), start, end);
+    }
+
+    public static String mm(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) : String.valueOf(Math.round(value * 10) / 10.0);
     }
 
     private static boolean overlaps(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {
