@@ -80,6 +80,33 @@ def describe(candidate: dict[str, Any]) -> str:
     )
 
 
+def explanation_problems(
+    text: str, choice: dict[str, Any], candidates: list[dict[str, Any]], current: dict[str, Any]
+) -> list[str]:
+    """설명에 선택한 장소가 빠졌거나 선택하지 않은 장소나 장비 이름이 들어갔는지 봅니다.
+    원래 확정안의 이름은 무엇이 바뀌었는지 설명하는 데 필요하므로 허용합니다."""
+    locations = {c["location"]["id"]: c["location"]["name"] for c in candidates}
+    equipment = {item["id"]: item["name"] for c in candidates for item in c["equipment"]["items"]}
+    current_location = current.get("location") or {}
+    allowed = {
+        choice["location"]["name"],
+        *(item["name"] for item in choice["equipment"]["items"]),
+        current_location.get("name") or locations.get(current_location.get("id"), ""),
+        *(item.get("name") or equipment.get(item.get("id"), "") for item in current.get("equipment") or []),
+    } - {""}
+    problems = []
+    if choice["location"]["name"] not in text:
+        problems.append(f"설명에 선택한 장소가 없습니다: {choice['location']['name']}")
+    # "추가 조명 패키지" 안의 "조명 패키지"처럼 허용된 이름에 포함된 이름을 잘못 잡지 않도록 허용된 이름을 먼저 지운다.
+    rest = text
+    for name in sorted(allowed, key=len, reverse=True):
+        rest = rest.replace(name, " ")
+    foreign = [name for name in sorted({*locations.values(), *equipment.values()} - allowed) if name in rest]
+    if foreign:
+        problems.append(f"설명에 선택하지 않은 장소나 장비가 있습니다: {', '.join(foreign)}")
+    return problems
+
+
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     return {
         "location_id": candidate["location"]["id"],
@@ -337,9 +364,11 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
     evidence = state.get("evidence") or {}
     others = [describe(c) for c in state["candidates"][1:4]]
     sections = [
+        # 검토 단계와 같은 사실(거리, 실내 여부, 비용)을 줘야 검토에서 지적한 점을 설명에 반영할 수 있다.
+        # 따로 떼어 두면 비교 후보와 섞어 읽는 경우가 있어 선택한 후보 안에 함께 적는다.
         Section(
             "선택한 후보",
-            f"{describe(choice)}\n항목별 점수: {_json(choice['softScores'])}\n경고: {_json(choice['warnings'])}\n추가 비용: {choice['extraCost']}원",
+            f"{describe(choice)}\n항목별 점수: {_json(choice['softScores'])}\n{review_facts(choice)}",
             0,
         ),
         Section("변경 이벤트", _json(state["event"]), 0),
@@ -352,9 +381,18 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         Section("비교 후보", "\n".join(others) or "없음", 3),
     ]
     body = fit_sections(sections, ctx.settings.context_token_budget)
-    explained = await ctx.model.structured(
-        ctx, [SystemMessage(_system()), HumanMessage(render("compose_plan", context=body))], PlanExplanation
-    )
+    messages = [SystemMessage(_system()), HumanMessage(render("compose_plan", context=body))]
+    explained = await ctx.model.structured(ctx, messages, PlanExplanation)
+    current = state["plan_set"].get("current") or {}
+    problems = explanation_problems(explained.explanation, choice, state["candidates"], current)
+    if problems:
+        # 다른 후보의 장비를 섞어 적으면 승인자가 잘못 판단하므로, 무엇이 틀렸는지 알려 주고 한 번 다시 쓰게 한다.
+        correction = HumanMessage(
+            f"방금 쓴 설명에 문제가 있습니다. {' '.join(problems)}\n"
+            f"선택한 후보는 {describe(choice)}입니다. 이 후보만 설명하도록 다시 쓰세요.\n방금 쓴 설명: {explained.explanation}"
+        )
+        explained = await ctx.model.structured(ctx, [*messages, correction], PlanExplanation)
+        problems = explanation_problems(explained.explanation, choice, state["candidates"], current)
 
     checklist = {}
     for entry in explained.checklist:
@@ -366,6 +404,8 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "evidenceIds": cited,
         }
     unresolved = list(explained.unresolved)
+    # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
+    unresolved.extend(f"설명 확인 필요, {problem}" for problem in problems)
     for constraint in HARD_CONSTRAINTS:
         item = checklist.get(constraint)
         # 근거 없이 통과라고 적은 항목은 검증할 수 없으므로 경고로 낮추고 사람이 확인할 항목에 올린다.

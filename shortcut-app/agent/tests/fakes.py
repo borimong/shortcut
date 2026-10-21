@@ -342,8 +342,10 @@ def _hit(constraint: str) -> dict:
 class FakeModel:
     """노드 프롬프트의 첫 줄을 보고 정해진 행동을 돌려주는 가짜 LLM입니다."""
 
-    def __init__(self, *, cite_evidence: bool = True, review_scores=None, review_actions=None):
+    def __init__(self, *, cite_evidence: bool = True, review_scores=None, review_actions=None, explanation_extras=None):
         self.cite_evidence = cite_evidence
+        # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
+        self.explanation_extras = list(explanation_extras or [])
         # 자체 검토 회차마다 돌려줄 총점과 행동이다. 다 쓰면 마지막 값을 반복한다.
         self.review_scores = list(review_scores or [90])
         self.review_actions = list(review_actions or ["REWRITE"])
@@ -399,8 +401,13 @@ class FakeModel:
                 }
                 for c in HARD_CONSTRAINTS
             ]
+            chosen = re.search(r"## 선택한 후보\n장소 (.+?)\(", text).group(1)
+            extra = self.explanation_extras.pop(0) if self.explanation_extras else ""
             return PlanExplanation(
-                explanation="우천으로 실내로 옮깁니다.", checklist=checklist, unresolved=["예약 확정"], needs_more_info=False
+                explanation=f"우천으로 {chosen}로 옮깁니다. {extra}".strip(),
+                checklist=checklist,
+                unresolved=["예약 확정"],
+                needs_more_info=False,
             )
         if schema is RejectionPlan:
             location_id = int(re.search(r"장소 ID (\d+)", text).group(1))

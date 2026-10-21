@@ -339,3 +339,34 @@ def test_review_switches_method_when_the_score_does_not_improve():
     history = backend.proposals[0]["review"]["history"]
     assert [h["action"] for h in history[:2]] == ["REWRITE", "NEXT_CANDIDATE"]
     assert backend.proposals[0]["candidate"]["location_id"] == 3
+
+
+def test_explanation_naming_another_candidate_is_rewritten_once():
+    ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."]))
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    assert ctx.model.structured_calls.count("PlanExplanation") == 2
+    assert "짐벌 세트" not in proposal["explanation"]
+    assert not any(u.startswith("설명 확인 필요") for u in proposal["unresolved"])
+
+
+def test_explanation_still_wrong_after_rewrite_goes_to_unresolved():
+    ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."] * 2))
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    assert any("짐벌 세트" in u for u in backend.proposals[0]["unresolved"] if u.startswith("설명 확인 필요"))
+
+
+def test_explanation_may_name_the_original_plan():
+    # 원래 확정안(한강 공원, 카메라 패키지 A)과 선택한 안의 이름만 있으면 문제가 없다.
+    from app.graph.nodes import explanation_problems
+    from tests.fakes import HANGANG, PAJU, SEONGSU
+
+    current = {"location": {"id": 1, "name": "한강 공원"}, "equipment": [{"id": 1}]}
+    text = "한강 공원에서 성수 스튜디오로 옮기고 카메라 패키지 A와 드론, 반사판을 씁니다."
+    assert explanation_problems(text, SEONGSU, [SEONGSU, PAJU, HANGANG], current) == []
+    assert explanation_problems("파주 세트장으로 옮깁니다.", SEONGSU, [SEONGSU, PAJU, HANGANG], current) == [
+        "설명에 선택한 장소가 없습니다: 성수 스튜디오",
+        "설명에 선택하지 않은 장소나 장비가 있습니다: 파주 세트장",
+    ]
