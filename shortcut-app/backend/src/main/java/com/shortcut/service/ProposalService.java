@@ -1,5 +1,11 @@
 package com.shortcut.service;
 
+import static com.shortcut.domain.ProposalStatus.APPROVED;
+import static com.shortcut.domain.ProposalStatus.COMMITTED;
+import static com.shortcut.domain.ProposalStatus.PENDING;
+import static com.shortcut.domain.ProposalStatus.REJECTED;
+import static com.shortcut.domain.ProposalStatus.STALE;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -52,10 +58,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProposalService {
 
-    private static final String PENDING = "PENDING";
-    private static final String APPROVED = "APPROVED";
-    private static final String REJECTED = "REJECTED";
-    private static final String STALE = "STALE";
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
     private static final int MIN_REASON_LENGTH = 5;
 
@@ -100,8 +102,7 @@ public class ProposalService {
         AiTask task = tasks.findTask(request.taskId())
                 .orElseThrow(() -> ApiException.notFound("TASK_NOT_FOUND", "작업이 없습니다: " + request.taskId()));
         long shootDayId = request.shootDayId();
-        int current = plans.lockDataVersion(shootDayId)
-                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId));
+        int current = plans.lockDataVersion(shootDayId).orElseThrow(() -> PlanDataService.shootDayNotFound(shootDayId));
         if (request.dataVersion() != current) {
             throw ApiException.conflict("VERSION_CONFLICT", "촬영 데이터가 바뀌었습니다. 현재 버전 " + current);
         }
@@ -270,7 +271,7 @@ public class ProposalService {
         // "변경안 v4 확정"이 "콜시트 v4"가 되도록 변경안 번호를 그대로 쓴다. 거절된 안의 번호는 콜시트에서 건너뛴다.
         int versionNo = p.versionNo();
         Callsheet callsheet = callsheets.insert(shootDayId, versionNo, p.id(), proposed);
-        proposals.updateStatus(id, "COMMITTED");
+        proposals.updateStatus(id, COMMITTED);
 
         String reservationStatus;
         if (callsheets.hasHeldReservation(shootDayId, proposed.locationId())) {

@@ -2,6 +2,7 @@ package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
 import com.shortcut.domain.AppSettings;
+import com.shortcut.domain.Role;
 import com.shortcut.domain.UserAccount;
 import com.shortcut.dto.AdminDtos.ApproverRulesView;
 import com.shortcut.dto.AdminDtos.MemberView;
@@ -25,15 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AdminService {
 
-    // 승인자로 지정할 수 있는 역할이다. 열람 전용 연출부원은 넣지 않는다.
-    private static final List<RoleOption> ROLES = List.of(
-            new RoleOption("PRODUCER", "제작 PD"),
-            new RoleOption("PRODUCTION_MANAGER", "제작실장"),
-            new RoleOption("DIRECTOR", "연출 PD (연출감독)"),
-            new RoleOption("AD1", "1조감독"),
-            new RoleOption("AD2", "2조감독"),
-            new RoleOption("DOP", "촬영감독"),
-            new RoleOption("SOUND", "동시녹음팀장"));
+    // 승인자로 지정할 수 있는 역할이다.
+    private static final List<RoleOption> ROLES = Role.APPROVER_CANDIDATES.stream()
+            .map(r -> new RoleOption(r.name(), r.label()))
+            .toList();
 
     private final UserRepository users;
     private final SettingsRepository settings;

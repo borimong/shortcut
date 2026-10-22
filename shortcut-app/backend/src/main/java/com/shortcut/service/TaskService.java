@@ -9,6 +9,7 @@ import com.shortcut.domain.AiTask;
 import com.shortcut.domain.ChangeEvent;
 import com.shortcut.domain.Proposal;
 import com.shortcut.domain.TaskEvent;
+import com.shortcut.domain.TaskStatus;
 import com.shortcut.dto.TaskDtos.AskRequest;
 import com.shortcut.dto.TaskDtos.InternalTaskView;
 import com.shortcut.dto.TaskDtos.TaskCreated;
@@ -105,14 +106,14 @@ public class TaskService {
         switch (request.type()) {
             case "NODE" -> tasks.markRunning(id);
             case "APPROVAL_REQUIRED" -> tasks.markWaitingApproval(id, longOrNull(payload, "proposalId"));
-            case "DONE" -> tasks.markFinished(id, "DONE", textOrNull(payload, "answer"),
+            case "DONE" -> tasks.markFinished(id, TaskStatus.DONE, textOrNull(payload, "answer"),
                     payload.hasNonNull("sources") ? json.write(payload.get("sources")) : null,
                     textOrNull(payload, "traceUrl"), longOrNull(payload, "proposalId"));
-            case "FAILED" -> tasks.markFinished(id, "FAILED", null, null, textOrNull(payload, "traceUrl"), null);
+            case "FAILED" -> tasks.markFinished(id, TaskStatus.FAILED, null, null, textOrNull(payload, "traceUrl"), null);
             case "NEEDS_HUMAN" -> {
                 // NEEDS_HUMAN은 answer 대신 reason을 보내는 경우가 많아 사람이 읽을 문장으로 reason을 쓴다.
                 String answer = payload.hasNonNull("answer") ? textOrNull(payload, "answer") : textOrNull(payload, "reason");
-                tasks.markFinished(id, "NEEDS_HUMAN", answer, null, textOrNull(payload, "traceUrl"), null);
+                tasks.markFinished(id, TaskStatus.NEEDS_HUMAN, answer, null, textOrNull(payload, "traceUrl"), null);
             }
             default -> {
             }

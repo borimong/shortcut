@@ -4,6 +4,8 @@ import com.shortcut.common.AfterCommit;
 import com.shortcut.common.JsonColumns;
 import com.shortcut.domain.Approval;
 import com.shortcut.domain.Proposal;
+import com.shortcut.domain.ProposalStatus;
+import com.shortcut.domain.TaskStatus;
 import com.shortcut.domain.TaskEvent;
 import com.shortcut.repository.ProposalRepository;
 import com.shortcut.repository.TaskRepository;
@@ -18,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SupersedeService {
 
-    public static final String SUPERSEDED = "SUPERSEDED";
 
     private final ProposalRepository proposals;
     private final TaskRepository tasks;
@@ -48,22 +49,22 @@ public class SupersedeService {
     public int supersedeOlder(long shootDayId, int dataVersion, String reason) {
         int count = 0;
         for (Proposal p : proposals.findByShootDay(shootDayId)) {
-            if (!"PENDING".equals(p.status()) || p.dataVersion() >= dataVersion) {
+            if (!ProposalStatus.PENDING.equals(p.status()) || p.dataVersion() >= dataVersion) {
                 continue;
             }
             List<String> waitingRoles = proposals.findApprovals(p.id()).stream()
-                    .filter(a -> "PENDING".equals(a.status()))
+                    .filter(a -> ProposalStatus.PENDING.equals(a.status()))
                     .map(Approval::role)
                     .toList();
-            proposals.updateStatus(p.id(), "STALE");
+            proposals.updateStatus(p.id(), ProposalStatus.STALE);
             proposals.cancelPending(p.id());
 
             Set<String> related = new LinkedHashSet<>();
             tasks.findTask(p.taskId()).ifPresent(task -> {
                 related.add(task.requestedBy());
-                if ("WAITING_APPROVAL".equals(task.status())) {
-                    tasks.markFinished(task.id(), SUPERSEDED, null, null, null, null);
-                    TaskEvent event = tasks.insertTaskEvent(task.id(), SUPERSEDED,
+                if (TaskStatus.WAITING_APPROVAL.equals(task.status())) {
+                    tasks.markFinished(task.id(), TaskStatus.SUPERSEDED, null, null, null, null);
+                    TaskEvent event = tasks.insertTaskEvent(task.id(), TaskStatus.SUPERSEDED,
                             json.write(Map.of("proposalId", p.id(), "reason", reason)));
                     AfterCommit.run(() -> hub.publishTask(event));
                 }

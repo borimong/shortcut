@@ -23,6 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PlanDataService {
 
+    // 화면이 shootDayId를 보내지 않는 단일 촬영일 시연을 위해 기본값을 둔다.
+    public static final long DEFAULT_SHOOT_DAY = 1L;
+
     private final PlanRepository plans;
     private final OverrideRepository overrides;
     private final SettingsRepository settings;
@@ -40,8 +43,7 @@ public class PlanDataService {
      */
     @Transactional(readOnly = true)
     public PlanData load(long shootDayId) {
-        ShootDay shootDay = plans.findShootDay(shootDayId)
-                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId));
+        ShootDay shootDay = plans.findShootDay(shootDayId).orElseThrow(() -> shootDayNotFound(shootDayId));
         Map<Long, Actor> actors = byId(plans.findActors(), Actor::id);
         Map<Long, Location> locations = byId(plans.findLocations(), Location::id);
         Map<Long, Equipment> equipment = byId(plans.findEquipment(), Equipment::id);
@@ -65,6 +67,14 @@ public class PlanDataService {
     public long boardShootDayId() {
         return plans.findBoardShootDayId()
                 .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다."));
+    }
+
+    public static long orDefault(Long shootDayId) {
+        return shootDayId == null ? DEFAULT_SHOOT_DAY : shootDayId;
+    }
+
+    public static ApiException shootDayNotFound(long shootDayId) {
+        return ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId);
     }
 
     private static void apply(DataOverride o, Map<Long, Actor> actors, Map<Long, Location> locations,

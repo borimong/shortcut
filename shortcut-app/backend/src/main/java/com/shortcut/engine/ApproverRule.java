@@ -1,6 +1,8 @@
 package com.shortcut.engine;
 
+import com.shortcut.domain.Role;
 import java.text.NumberFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -21,10 +23,6 @@ public final class ApproverRule {
 
     /** 관리자가 규칙을 바꾸기 전의 기본값이다. data.sql의 approver_rules 시드와 같다. */
     public static final Map<String, List<String>> DEFAULT_RULES = defaultRules();
-
-    // 같은 종류 안에서는 승인 화면에 부서 순서(제작부, 연출부, 기술부서)로 보이게 정렬한다.
-    private static final List<String> ROLE_ORDER = List.of("PRODUCER", "PRODUCTION_MANAGER", "DIRECTOR", "AD1", "AD2",
-            "DOP", "SOUND", "CREW");
 
     private ApproverRule() {
     }
@@ -53,7 +51,7 @@ public final class ApproverRule {
             addSorted(roles, rules.get("COST"));
         }
         if (roles.isEmpty()) {
-            roles.add("DIRECTOR");
+            roles.add(Role.DIRECTOR.name());
         }
         return List.copyOf(roles);
     }
@@ -62,32 +60,29 @@ public final class ApproverRule {
         if (add == null) {
             return;
         }
-        add.stream()
-                .sorted(Comparator.comparingInt(role -> ROLE_ORDER.indexOf(role) < 0 ? ROLE_ORDER.size() : ROLE_ORDER.indexOf(role)))
-                .forEach(roles::add);
+        // 같은 종류 안에서는 승인 화면에 부서 순서(제작부, 연출부, 기술부서)로 보이게 정렬한다.
+        add.stream().sorted(Comparator.comparingInt(Role::order)).forEach(roles::add);
     }
 
     private static Map<String, List<String>> defaultRules() {
         Map<String, List<String>> rules = new LinkedHashMap<>();
-        rules.put("ALWAYS", List.of("DIRECTOR"));
-        rules.put("LOCATION", List.of("AD1", "SOUND"));
-        rules.put("EQUIPMENT", List.of("DOP"));
-        rules.put("TIME", List.of("AD1", "AD2"));
-        rules.put("COST", List.of("PRODUCER"));
+        rules.put("ALWAYS", names(Role.DIRECTOR));
+        rules.put("LOCATION", names(Role.AD1, Role.SOUND));
+        rules.put("EQUIPMENT", names(Role.DOP));
+        rules.put("TIME", names(Role.AD1, Role.AD2));
+        rules.put("COST", names(Role.PRODUCER));
         return Collections.unmodifiableMap(rules);
     }
 
     public static String scope(String role, long extraCost) {
-        return switch (role) {
-            case "DIRECTOR" -> "전체 계획, 장소";
-            case "AD1" -> "촬영 순서, 시간";
-            case "AD2" -> "동선, 이동";
-            case "SOUND" -> "장소 소음";
-            case "DOP" -> "장비 변경";
-            case "PRODUCER" -> "추가 비용 " + NumberFormat.getIntegerInstance(Locale.KOREA).format(extraCost) + "원";
-            case "PRODUCTION_MANAGER" -> "제작 일정, 현장 운영";
-            case "CREW" -> "현장 확인";
-            default -> "";
-        };
+        return Role.find(role)
+                .map(r -> r == Role.PRODUCER
+                        ? r.scope() + " " + NumberFormat.getIntegerInstance(Locale.KOREA).format(extraCost) + "원"
+                        : r.scope())
+                .orElse("");
+    }
+
+    private static List<String> names(Role... roles) {
+        return Arrays.stream(roles).map(Enum::name).toList();
     }
 }

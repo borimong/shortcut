@@ -21,8 +21,7 @@ public record AiTask(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 
-    // SUPERSEDED: 승인을 기다리던 중 촬영 데이터가 바뀌어 다른 변경으로 대체된 작업이다(SupersedeService).
-    public static final Set<String> TERMINAL = Set.of("DONE", "FAILED", "NEEDS_HUMAN", "SUPERSEDED");
+    public static final Set<String> TERMINAL = TaskStatus.TERMINAL;
 
     public boolean finished() {
         return TERMINAL.contains(status);
