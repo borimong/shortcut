@@ -32,6 +32,7 @@ const CHANGE_KINDS = [
   { value: 'LOCATION', label: '장소 변경', hint: '촬영지가 바뀔 때' },
   { value: 'EQUIPMENT', label: '장비 변경', hint: '장비 구성이 바뀔 때' },
   { value: 'TIME', label: '시간 변경', hint: '촬영 시간대가 바뀔 때' },
+  { value: 'SCENE', label: '씬 순서 변경', hint: '블록 안 씬 순서가 바뀔 때' },
   { value: 'COST', label: '추가 비용', hint: '비용이 늘어날 때' }
 ]
 

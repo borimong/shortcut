@@ -339,7 +339,11 @@ function print() {
         <section class="sheet-section">
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 class="sheet-label">씬 스케줄</h2>
-            <span class="text-xs text-muted-foreground">총 {{ scenes.length }}씬, {{ totalMinutes }}분</span>
+            <div class="flex items-baseline gap-2">
+              <!-- 직전 버전과 오후 블록 씬 순서가 다르면 배우 콜타임이 바뀌었을 수 있어 표시한다 -->
+              <Badge v-if="sheet?.sceneOrderChanged" variant="info">씬 순서 변경</Badge>
+              <span class="text-xs text-muted-foreground">총 {{ scenes.length }}씬, {{ totalMinutes }}분</span>
+            </div>
           </div>
           <Table class="mt-2 min-w-[760px] print:min-w-0">
             <TableHeader>

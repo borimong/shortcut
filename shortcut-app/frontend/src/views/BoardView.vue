@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { CircleAlert } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -13,11 +14,16 @@ import ForecastSource from '../components/ForecastSource.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useAuthStore } from '../stores/auth.js'
 import { useShootDayStore } from '../stores/shootDay.js'
+import { useToastStore } from '../stores/toast.js'
 import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
 
 const notifications = useNotificationStore()
 const shootDay = useShootDayStore()
+const auth = useAuthStore()
+const toast = useToastStore()
+const router = useRouter()
 
 const board = ref(null)
 const history = ref([])
@@ -153,6 +159,29 @@ const TONE_VARIANT = { 'tone-bad': 'destructive', 'tone-stale': 'warning', 'tone
 function isInternal(link) {
   return typeof link === 'string' && link.startsWith('/')
 }
+
+// 점검에서 걸린 확정안을 구조화 변경 없이 그대로 재계획에 넘긴다. 엔진이 최신 일정으로 다시 평가하고,
+// 씬 순서만 바꿔 풀리면 장소를 그대로 둔 안이 나온다.
+const replanning = ref(false)
+async function requestReplan() {
+  const violations = planCheck.value?.violations ?? []
+  if (!violations.length || replanning.value) return
+  replanning.value = true
+  try {
+    const actor = violations.some((f) => f.code.startsWith('ACTOR_'))
+    const detail = `촬영판 점검: ${violations.map((f) => f.message).join(' ')}`.slice(0, 500)
+    const res = await api('/events', {
+      method: 'POST',
+      body: { shootDayId: board.value.shootDay.id, type: actor ? 'ACTOR_SCHEDULE' : 'OTHER', detail, changes: [] }
+    })
+    if (res.duplicate) toast.info('같은 재계획이 이미 접수되어 있어 기존 진행 화면으로 이동합니다.')
+    router.push(`/tasks/${res.taskId}`)
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    replanning.value = false
+  }
+}
 </script>
 
 <template>
@@ -191,7 +220,9 @@ function isInternal(link) {
           <ul class="list-disc pl-5">
             <li v-for="(f, i) in planCheck.violations" :key="i">{{ f.message }}</li>
           </ul>
-          <RouterLink to="/changes/new" class="text-foreground underline underline-offset-4">변경 입력에서 재계획 요청</RouterLink>
+          <Button v-if="auth.canSubmitChange" size="sm" class="mt-2" :disabled="replanning" @click="requestReplan">
+            <Spinner v-if="replanning" />재계획 요청
+          </Button>
         </AlertDescription>
       </Alert>
       <Alert v-else-if="planCheck?.warnings?.length" class="border-transparent bg-muted">
