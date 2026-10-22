@@ -87,6 +87,8 @@ CREATE TABLE IF NOT EXISTS scenes (
     block_code     varchar(10) NOT NULL,
     title          varchar(80) NOT NULL,
     duration_min   integer     NOT NULL,
+    -- 세트 고정 씬(script_scenes.setting_locked)을 꼭 찍어야 하는 세트 장소다. 엔진은 고정 씬에만 이 장소를 강제한다.
+    -- 고정이 아닌 씬은 블록 장소(blocks.location_id)에서 찍고, 이 값은 촬영 예정지 표시에만 쓴다.
     location_id    bigint REFERENCES locations (id),
     sort           integer     NOT NULL,
     PRIMARY KEY (shoot_day_id, code)
@@ -626,3 +628,29 @@ ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS scenes jsonb;
 ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS restored_from integer;
 ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS note text;
 ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS created_by varchar(40);
+
+-- ===== 블록 참조와 상태값 제약 =====
+-- 씬과 1/2/3안은 블록을 (촬영일, 블록 코드)로 가리킨다. blocks에 이 두 칸의 유일 제약이 있어 외래키로 건다.
+SELECT ensure_constraint('scenes', 'scenes_block_fkey',
+                         'FOREIGN KEY (shoot_day_id, block_code) REFERENCES blocks (shoot_day_id, code)');
+SELECT ensure_constraint('plan_options', 'plan_options_block_fkey',
+                         'FOREIGN KEY (shoot_day_id, block_code) REFERENCES blocks (shoot_day_id, code)');
+
+-- 상태값은 코드가 쓰는 값만 받는다. 새 상태를 쓰려면 여기 목록부터 늘린다.
+-- 작업: 접수, 실행, 승인 대기, 완료, 실패, 사람에게 보고, 새 변경에 밀림, 사람이 중단
+SELECT ensure_constraint('ai_tasks', 'ai_tasks_status_check',
+    'CHECK (status IN (''QUEUED'', ''RUNNING'', ''WAITING_APPROVAL'', ''DONE'', ''FAILED'', ''NEEDS_HUMAN'', ''SUPERSEDED'', ''CANCELLED''))');
+-- 변경안: 승인 대기, 전원 승인, 거절, 데이터가 바뀌어 무효, 확정, 중단으로 철회
+SELECT ensure_constraint('proposals', 'proposals_status_check',
+    'CHECK (status IN (''PENDING'', ''APPROVED'', ''REJECTED'', ''STALE'', ''COMMITTED'', ''WITHDRAWN''))');
+SELECT ensure_constraint('approvals', 'approvals_status_check',
+    'CHECK (status IN (''PENDING'', ''APPROVED'', ''REJECTED'', ''CANCELLED''))');
+SELECT ensure_constraint('outbox', 'outbox_status_check', 'CHECK (status IN (''NEW'', ''SENT''))');
+SELECT ensure_constraint('job_logs', 'job_logs_status_check', 'CHECK (status IN (''SUCCESS'', ''RETRY'', ''DLQ''))');
+SELECT ensure_constraint('distribution_logs', 'distribution_logs_status_check', 'CHECK (status IN (''SENT''))');
+-- 예약: 아워플레이스 가예약, 대체 장소를 직접 잡아 확인을 기다리는 예약
+SELECT ensure_constraint('reservations', 'reservations_status_check',
+    'CHECK (status IN (''HELD'', ''MANUAL_PENDING''))');
+
+-- DB 도구에서도 씬 장소의 뜻이 보이게 칸 설명을 단다.
+COMMENT ON COLUMN scenes.location_id IS '세트 고정 씬(script_scenes.setting_locked)의 세트 장소. 엔진은 고정 씬에만 강제하고, 고정이 아닌 씬은 블록 장소(blocks.location_id)에서 찍는다.';

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * 온톨로지 노드는 업무 행을 외래키 없이 ID 글자로 가리키므로, 업무 행이 지워지거나 ID 규칙이 바뀌면 그래프만 낡는다.
  * 기동할 때 한 번 맞춰 보고 어긋난 노드를 경고로 남긴다. data.sql을 실행하는 api 프로세스에서만 돈다.
+ * 반대로 노드가 없는 씬 배정도 경고한다. 씬 노드가 빠지면 영향 조회가 그 씬에 닿지 못한다.
  */
 @Component
 @Profile("api")
@@ -31,6 +32,10 @@ public class OntologyIntegrityCheck implements CommandLineRunner {
             log.info("온톨로지 정합성 검사: 모든 노드가 업무 행과 맞습니다.");
         } else {
             log.warn("온톨로지 정합성 검사: 업무 행과 맞지 않는 노드 {}개 {}", orphans.size(), orphans);
+        }
+        List<String> missing = ontology.findScenesWithoutNode();
+        if (!missing.isEmpty()) {
+            log.warn("온톨로지 정합성 검사: 노드가 없는 씬 {}개 {}", missing.size(), missing);
         }
     }
 }

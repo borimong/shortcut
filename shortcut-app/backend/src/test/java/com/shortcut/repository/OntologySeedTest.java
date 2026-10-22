@@ -64,6 +64,22 @@ class OntologySeedTest {
         }
     }
 
+    @Test
+    void 배정된_씬은_모두_노드가_있고_블록이_포함한다() {
+        Set<String> nodes = rows("ontology_nodes").stream().map(n -> n.get("node_id")).collect(Collectors.toSet());
+        Set<String> contains = rows("ontology_edges").stream()
+                .filter(e -> e.get("relation").equals("포함"))
+                .map(e -> e.get("src") + " → " + e.get("dst"))
+                .collect(Collectors.toSet());
+        List<Map<String, String>> scenes = rows("scenes");
+        assertThat(scenes).extracting(s -> s.get("block_code")).contains("AM", "PM");
+        for (Map<String, String> scene : scenes) {
+            String id = "SCENE:" + scene.get("code");
+            assertThat(nodes).as("씬 노드").contains(id);
+            assertThat(contains).contains("BLOCK:" + scene.get("shoot_day_id") + "-" + scene.get("block_code") + " → " + id);
+        }
+    }
+
     /**
      * 업무 시드 행에서 있어야 할 노드 ID와 그 행의 촬영일(촬영일에 딸리지 않으면 null)을 모은다.
      * 2회차 촬영일은 1회차 날짜에서 계산해 SELECT로 넣으므로, 촬영일은 외래키로 촬영일을 가리키는 블록 시드에서 모은다.

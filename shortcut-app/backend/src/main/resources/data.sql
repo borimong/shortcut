@@ -416,7 +416,7 @@ VALUES ('SHOOT_DAY:3', '포함', 'BLOCK:3-AM', 'seed'),
        ('ACTOR:5', '계약', 'CONTRACT:contract-actor-e-v1', 'seed')
 ON CONFLICT DO NOTHING;
 
--- 배역: 씬에 등장하는 배역(씬 노드가 있는 오후 블록 씬만)과 배역을 연기하는 배우(characters.actor_id)
+-- 배역: 씬에 등장하는 배역과 배역을 연기하는 배우(characters.actor_id). 오전 블록 씬은 아래 묶음에 있다.
 INSERT INTO ontology_edges (src, relation, dst, created_by)
 VALUES ('SCENE:S12', '등장', 'CHARACTER:1', 'seed'),
        ('SCENE:S12', '등장', 'CHARACTER:2', 'seed'),
@@ -432,4 +432,61 @@ VALUES ('SCENE:S12', '등장', 'CHARACTER:1', 'seed'),
        ('CHARACTER:3', '캐스팅', 'ACTOR:3', 'seed'),
        ('CHARACTER:4', '캐스팅', 'ACTOR:4', 'seed'),
        ('CHARACTER:5', '캐스팅', 'ACTOR:5', 'seed')
+ON CONFLICT DO NOTHING;
+
+-- 오전 블록 씬(scenes 배정 시드의 AM 씬). 씬 노드가 오후 씬에만 있어 배우 일정이 오전 씬에 닿는지 그래프로 찾을 수 없었다.
+-- 세트 고정 씬이 아니므로 씬 → 장소(촬영지) 엣지는 두지 않고, 장소는 블록의 촬영지로 따라간다.
+INSERT INTO ontology_nodes (node_id, type, label, props)
+VALUES ('SCENE:S01', 'SCENE', 'S01 출근길 로비', '{"code": "S01", "shootDayId": 1, "block": "AM", "durationMin": 30, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S02', 'SCENE', 'S02 회의실 브리핑', '{"code": "S02", "shootDayId": 1, "block": "AM", "durationMin": 35, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S03', 'SCENE', 'S03 탕비실 대화', '{"code": "S03", "shootDayId": 1, "block": "AM", "durationMin": 30, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S04', 'SCENE', 'S04 복도 통화', '{"code": "S04", "shootDayId": 1, "block": "AM", "durationMin": 30, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S05', 'SCENE', 'S05 팀장실 면담', '{"code": "S05", "shootDayId": 1, "block": "AM", "durationMin": 40, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S06', 'SCENE', 'S06 사무실 언쟁', '{"code": "S06", "shootDayId": 1, "block": "AM", "durationMin": 35, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S07', 'SCENE', 'S07 엘리베이터 침묵', '{"code": "S07", "shootDayId": 1, "block": "AM", "durationMin": 35, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S08', 'SCENE', 'S08 퇴근 준비', '{"code": "S08", "shootDayId": 1, "block": "AM", "durationMin": 35, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S14', 'SCENE', 'S14 편집실 회의', '{"code": "S14", "shootDayId": 2, "block": "AM", "durationMin": 60, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S15', 'SCENE', 'S15 복도 재회', '{"code": "S15", "shootDayId": 2, "block": "AM", "durationMin": 60, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S16', 'SCENE', 'S16 노무사 상담', '{"code": "S16", "shootDayId": 3, "block": "AM", "durationMin": 90, "intExt": "INT", "timeOfDay": "DAY"}'),
+       ('SCENE:S17', 'SCENE', 'S17 노무사 복도 통화', '{"code": "S17", "shootDayId": 3, "block": "AM", "durationMin": 30, "intExt": "INT", "timeOfDay": "DAY"}')
+ON CONFLICT DO NOTHING;
+
+-- 오전 블록이 씬을 포함하고, 씬에 배역이 등장하며, 그 배역을 연기하는 배우가 출연한다(scene_characters, 캐스팅 시드).
+INSERT INTO ontology_edges (src, relation, dst, created_by)
+VALUES ('BLOCK:1-AM', '포함', 'SCENE:S01', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S02', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S03', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S04', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S05', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S06', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S07', 'seed'),
+       ('BLOCK:1-AM', '포함', 'SCENE:S08', 'seed'),
+       ('BLOCK:2-AM', '포함', 'SCENE:S14', 'seed'),
+       ('BLOCK:2-AM', '포함', 'SCENE:S15', 'seed'),
+       ('BLOCK:3-AM', '포함', 'SCENE:S16', 'seed'),
+       ('BLOCK:3-AM', '포함', 'SCENE:S17', 'seed'),
+       ('SCENE:S01', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S01', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S02', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S02', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S03', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S03', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S04', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S04', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S05', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S05', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S06', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S06', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S07', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S07', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S08', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S08', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S14', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S14', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S15', '등장', 'CHARACTER:3', 'seed'),
+       ('SCENE:S16', '등장', 'CHARACTER:2', 'seed'), ('SCENE:S16', '등장', 'CHARACTER:5', 'seed'),
+       ('SCENE:S17', '등장', 'CHARACTER:5', 'seed'),
+       ('SCENE:S01', '출연', 'ACTOR:2', 'seed'), ('SCENE:S01', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S02', '출연', 'ACTOR:2', 'seed'), ('SCENE:S02', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S03', '출연', 'ACTOR:2', 'seed'), ('SCENE:S03', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S04', '출연', 'ACTOR:2', 'seed'), ('SCENE:S04', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S05', '출연', 'ACTOR:2', 'seed'), ('SCENE:S05', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S06', '출연', 'ACTOR:2', 'seed'), ('SCENE:S06', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S07', '출연', 'ACTOR:2', 'seed'), ('SCENE:S07', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S08', '출연', 'ACTOR:2', 'seed'), ('SCENE:S08', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S14', '출연', 'ACTOR:2', 'seed'), ('SCENE:S14', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S15', '출연', 'ACTOR:3', 'seed'),
+       ('SCENE:S16', '출연', 'ACTOR:2', 'seed'), ('SCENE:S16', '출연', 'ACTOR:5', 'seed'),
+       ('SCENE:S17', '출연', 'ACTOR:5', 'seed')
 ON CONFLICT DO NOTHING;

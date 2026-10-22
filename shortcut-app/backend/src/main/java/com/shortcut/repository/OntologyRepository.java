@@ -84,6 +84,19 @@ public class OntologyRepository {
     }
 
     /**
+     * 씬 배정은 있는데 씬 노드(SCENE:씬 코드)가 없는 노드 ID를 돌려준다.
+     */
+    public List<String> findScenesWithoutNode() {
+        return jdbc.sql("""
+                        SELECT DISTINCT 'SCENE:' || s.code AS node_id FROM scenes s
+                        WHERE NOT EXISTS (SELECT 1 FROM ontology_nodes n WHERE n.node_id = 'SCENE:' || s.code)
+                        ORDER BY node_id
+                        """)
+                .query(String.class)
+                .list();
+    }
+
+    /**
      * 이미 있는 관계면 비어 있는 값을 돌려 호출한 쪽이 409로 답하게 한다.
      */
     public Optional<OntologyEdge> insertEdge(String src, String relation, String dst, String createdBy) {
