@@ -321,14 +321,16 @@ public final class PlanEngine {
                     "씬 길이 합 " + sceneMinutes + "분이 " + fmt(start) + "~" + fmt(end) + "(" + blockMinutes + "분)보다 깁니다.",
                     "SCHEDULE_BLOCK"));
         }
-        for (ScenePlan scene : scenes) {
-            if (scene.settingLocked() && scene.locationId() != null && scene.locationId() != location.id()) {
-                Location set = input.locations().get(scene.locationId());
-                violations.add(new Finding("SCRIPT_SETTING_LOCKED", "SCRIPT",
-                        scene.code() + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있어 "
-                                + location.name() + "에서 찍을 수 없습니다.", "SCRIPT_SETTING"));
-            }
-        }
+        Map<Long, String> lockedElsewhere = scenes.stream()
+                .filter(s -> s.settingLocked() && s.locationId() != null && s.locationId() != location.id())
+                .collect(Collectors.groupingBy(ScenePlan::locationId, LinkedHashMap::new,
+                        Collectors.mapping(ScenePlan::code, Collectors.joining(", "))));
+        lockedElsewhere.forEach((setId, codes) -> {
+            Location set = input.locations().get(setId);
+            violations.add(new Finding("SCRIPT_SETTING_LOCKED", "SCRIPT",
+                    codes + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있어 "
+                            + location.name() + "에서 찍을 수 없습니다.", "SCRIPT_SETTING"));
+        });
         List<String> uncast = scenes.stream().flatMap(s -> s.uncastCharacters().stream()).distinct().toList();
         if (!uncast.isEmpty()) {
             violations.add(new Finding("CHARACTER_UNCAST", "SCRIPT",

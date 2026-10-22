@@ -126,6 +126,7 @@ export const CONSTRAINT_LABELS = {
   NO_FLY_ZONE: '비행금지 구역',
   DISASTER: '재난 문자',
   WEATHER: '날씨',
+  SCRIPT: '대본 요구',
   EXTRA: '추가 제약'
 }
 

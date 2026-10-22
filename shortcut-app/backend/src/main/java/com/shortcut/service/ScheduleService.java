@@ -105,11 +105,12 @@ public class ScheduleService {
                 List<AvailabilityEntry> mine = entries.getOrDefault(date, Map.of()).getOrDefault(actor.id(), List.of());
                 List<ScheduledSlot> shoots = slots.getOrDefault(date, Map.of()).getOrDefault(actor.id(), List.of());
                 PlanData data = shootDays.get(date);
-                if (mine.isEmpty() && shoots.isEmpty() && data == null) {
-                    continue;
-                }
                 // 촬영일이면 변경 입력까지 얹은 하루를 쓴다. 엔진이 판정한 값과 같아야 한다.
                 ActorDay day = data != null ? data.actorDay(actor.id()) : ActorDay.of(actor, mine);
+                // 다른 일정도 우리 촬영도 없고 계약 기본 시간 그대로인 날은 빼서 응답을 짧게 한다.
+                if (mine.isEmpty() && shoots.isEmpty() && day.equals(ActorDay.of(actor, List.of()))) {
+                    continue;
+                }
                 dayViews.add(dayView(date, day, mine, shoots, withMemo));
             }
             views.add(new ActorScheduleView(actor.id(), actor.name(), actor.availableFrom(), actor.availableTo(),

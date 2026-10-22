@@ -30,7 +30,14 @@ const error = ref(null)
 const options = ref(null)
 const weather = ref(null)
 const rain = ref({ locationId: null, fromHour: 13, toHour: 17, mm: 8 })
-const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00' })
+const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00', reasonKind: 'OTHER_PRODUCTION' })
+// 배우 다른 일정의 사유 종류다. 개인 사정은 적지 않고 종류만 고른다.
+const REASON_OPTIONS = [
+  ['OTHER_PRODUCTION', '타 작품'],
+  ['PROMOTION', '광고·행사'],
+  ['PERSONAL', '개인 일정'],
+  ['TRAVEL', '이동·해외 일정']
+]
 const cancelLocationId = ref(null)
 const brokenEquipment = ref([])
 const disaster = ref({ region: '', alertKind: '호우 경보', from: '13:00', to: '17:00' })
@@ -101,9 +108,11 @@ const changes = computed(() => {
         : []
     case 'ACTOR_SCHEDULE':
       if (!actor.value.actorId) return []
-      return actor.value.mode === 'ABSENT'
-        ? [{ kind: 'ACTOR_ABSENT', targetId: actor.value.actorId }]
-        : [{ kind: 'ACTOR_WINDOW', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to }]
+      if (actor.value.mode === 'ABSENT') return [{ kind: 'ACTOR_ABSENT', targetId: actor.value.actorId }]
+      if (actor.value.mode === 'BUSY') {
+        return [{ kind: 'ACTOR_BUSY', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to, reasonKind: actor.value.reasonKind }]
+      }
+      return [{ kind: 'ACTOR_WINDOW', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to }]
     case 'LOCATION_CANCEL':
       return cancelLocationId.value ? [{ kind: 'LOCATION_UNAVAILABLE', targetId: cancelLocationId.value }] : []
     case 'EQUIPMENT_FAILURE':
@@ -126,6 +135,8 @@ const summary = computed(() =>
         return `${nameOf('actors', c.targetId)} 오늘 촬영 불참`
       case 'ACTOR_WINDOW':
         return `${nameOf('actors', c.targetId)} 가용 시간 ${c.from}~${c.to}`
+      case 'ACTOR_BUSY':
+        return `${nameOf('actors', c.targetId)} ${c.from}~${c.to} 다른 일정(${REASON_OPTIONS.find(([k]) => k === c.reasonKind)?.[1] ?? ''})`
       case 'LOCATION_UNAVAILABLE':
         return `${nameOf('locations', c.targetId)} 사용 불가`
       case 'EQUIPMENT_UNAVAILABLE':
@@ -251,16 +262,23 @@ async function submit() {
                   <select id="actor-mode" v-model="actor.mode" :class="selectClass">
                     <option value="ABSENT">오늘 불참</option>
                     <option value="WINDOW">가용 시간 변경</option>
+                    <option value="BUSY">다른 일정 추가(소속사 회신)</option>
                   </select>
                 </Field>
-                <template v-if="actor.mode === 'WINDOW'">
+                <template v-if="actor.mode === 'WINDOW' || actor.mode === 'BUSY'">
                   <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-from">가용 시작</FieldLabel>
+                    <FieldLabel for="actor-from">{{ actor.mode === 'BUSY' ? '다른 일정 시작' : '가용 시작' }}</FieldLabel>
                     <Input id="actor-from" v-model="actor.from" type="time" />
                   </Field>
                   <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-to">가용 끝</FieldLabel>
+                    <FieldLabel for="actor-to">{{ actor.mode === 'BUSY' ? '다른 일정 끝' : '가용 끝' }}</FieldLabel>
                     <Input id="actor-to" v-model="actor.to" type="time" />
+                  </Field>
+                  <Field v-if="actor.mode === 'BUSY'" class="sm:col-span-2">
+                    <FieldLabel for="actor-reason">사유 종류</FieldLabel>
+                    <select id="actor-reason" v-model="actor.reasonKind" :class="selectClass">
+                      <option v-for="[value, label] in REASON_OPTIONS" :key="value" :value="value">{{ label }}</option>
+                    </select>
                   </Field>
                 </template>
               </div>

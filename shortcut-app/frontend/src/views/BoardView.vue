@@ -21,10 +21,17 @@ const shootDay = useShootDayStore()
 
 const board = ref(null)
 const history = ref([])
+// 오후 블록 현재 확정안을 최신 배우 일정과 대본 요구로 다시 검사한 결과다. 확정 뒤 들어온 일정 충돌을 먼저 보인다.
+const planCheck = ref(null)
 const error = ref(null)
 const loading = ref(true)
 
 const BLOCK_LABELS = { AM: '오전', PM: '오후' }
+// 대본의 실내/실외와 낮/밤이다. 씬 제목 옆에 짧게 붙인다.
+const SETTING_LABELS = { INT: '실내', EXT: '야외' }
+const TIME_LABELS = { DAY: '낮', NIGHT: '밤' }
+const sceneSetting = (s) =>
+  s.intExt ? `${SETTING_LABELS[s.intExt] ?? s.intExt}·${TIME_LABELS[s.timeOfDay] ?? s.timeOfDay}` : ''
 
 // 씬 진행과 현재 촬영지는 시계 기준이라 30초마다 다시 계산한다.
 const now = ref(new Date())
@@ -53,6 +60,8 @@ async function load() {
     shootDay.setFromBoard(b)
     board.value = b
     history.value = (await api(`/history?shootDayId=${b.shootDay.id}`)) ?? []
+    // 점검은 촬영판 보조 정보라 실패해도 촬영판은 그대로 보인다.
+    planCheck.value = await api(`/resources/plan-check?shootDayId=${b.shootDay.id}`).catch(() => null)
   } catch (e) {
     error.value = e
   } finally {
@@ -175,6 +184,25 @@ function isInternal(link) {
     </Card>
 
     <template v-if="board">
+      <Alert v-if="planCheck?.violations?.length" variant="destructive">
+        <CircleAlert />
+        <AlertTitle>오후 확정안 점검: 지금 그대로는 찍을 수 없습니다</AlertTitle>
+        <AlertDescription>
+          <ul class="list-disc pl-5">
+            <li v-for="(f, i) in planCheck.violations" :key="i">{{ f.message }}</li>
+          </ul>
+          <RouterLink to="/changes/new" class="text-foreground underline underline-offset-4">변경 입력에서 재계획 요청</RouterLink>
+        </AlertDescription>
+      </Alert>
+      <Alert v-else-if="planCheck?.warnings?.length" class="border-transparent bg-muted">
+        <AlertTitle>오후 확정안 점검: 확인할 점</AlertTitle>
+        <AlertDescription class="text-foreground">
+          <ul class="list-disc pl-5">
+            <li v-for="(f, i) in planCheck.warnings" :key="i">{{ f.message }}</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
       <RouterLink
         v-if="board.pendingProposal"
         :to="`/proposals/${board.pendingProposal.id}`"
@@ -339,8 +367,11 @@ function isInternal(link) {
                     </Badge>
                     <Badge v-else-if="s.state === 'done'" variant="secondary" class="ml-1.5">완료</Badge>
                   </TableCell>
-                  <TableCell>{{ s.title }}</TableCell>
-                  <TableCell>{{ (s.actors ?? []).join(', ') }}</TableCell>
+                  <TableCell>
+                    {{ s.title }}
+                    <Badge v-if="sceneSetting(s)" variant="outline" class="ml-1.5 font-normal">{{ sceneSetting(s) }}</Badge>
+                  </TableCell>
+                  <TableCell>{{ (s.characters?.length ? s.characters : s.actors ?? []).join(', ') }}</TableCell>
                 </TableRow>
               </template>
             </TableBody>
