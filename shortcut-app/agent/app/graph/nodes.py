@@ -29,16 +29,17 @@ IMPACT_TOOLS = [
     "business_find_impacted_entities",
     "business_get_entity_context",
     "business_get_availability",
+    "business_get_actor_schedule",
     "business_get_weather",
     "business_get_disaster_alerts",
 ]
-CONSTRAINT_TOOLS = ["rag_search_regulation", "rag_search_contract_clause"]
+CONSTRAINT_TOOLS = ["rag_search_regulation", "rag_search_contract_clause", "rag_search_script"]
 
 MEMORY_NAMESPACE = ("shortcut", "rejections")
 ISSUE_LABELS = {"LOCATION": "장소", "TIME": "시간대", "EQUIPMENT": "장비", "COST": "비용", "OTHER": "기타"}
 # 문제 요소마다 만들 수 있는 제약 유형이다. 고르지 않은 요소를 건드리는 제약은 버린다.
 ISSUE_CONSTRAINT_TYPES = {
-    "LOCATION": {"EXCLUDE_LOCATION", "EXCLUDE_LOCATION_TIME", "REQUIRE_INDOOR"},
+    "LOCATION": {"EXCLUDE_LOCATION", "EXCLUDE_LOCATION_TIME", "REQUIRE_INDOOR", "REQUIRE_SETTING_MATCH"},
     "TIME": {"EXCLUDE_TIME", "LATEST_END"},
     "EQUIPMENT": {"EXCLUDE_EQUIPMENT"},
     "COST": {"MAX_EXTRA_COST"},
@@ -292,6 +293,7 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         "constraint_collection",
         event=_json(state["event"]),
         contracts=", ".join(impacted["contract_doc_ids"]),
+        scenes=", ".join(scene["code"] for scene in state["plan_set"]["block"]["scenes"]) or "없음",
         risks="\n".join(impacted["risks"]) or "없음",
         alerts=_json(state["conditions"]["disaster_alerts"]),
         missing=", ".join(state.get("missing_info") or []) or "없음",

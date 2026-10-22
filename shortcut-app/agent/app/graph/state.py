@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 
 # 하드 제약 범주다. 노션 설계의 5개(계약서, 스케줄, 규제/법, 예산, 촬영 금지 구역)에
 # 천재지변(재난 문자)과 시간당 강수량 기준 날씨를 더했다.
-HARD_CONSTRAINTS = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER")
+HARD_CONSTRAINTS = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER", "SCRIPT")
 
 DEFAULT_WEIGHTS = {"location": 0.25, "equipment": 0.15, "weather": 0.20, "budget": 0.15, "time": 0.10, "distance": 0.15}
 

@@ -34,6 +34,9 @@ DESTRUCTIVE = ToolAnnotations(read_only_hint=False, destructive_hint=True, idemp
 REGULATION_TYPES = ["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY"]
 RegulationType = Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY"]
 DocId = Annotated[str, Field(pattern=r"^[a-z0-9\-]+$", max_length=80)]
+SceneCode = Annotated[str, Field(pattern=r"^S\d{1,3}$", description="씬 코드, 예: S12")]
+# 대본 문서는 씬마다 "S#12. 장소 (낮, 실외)" 머리말로 잘린다. 대본 한 편의 씬 수보다 넉넉하게 잡는다.
+MAX_SCRIPT_CHUNKS = 200
 
 
 def format_error(code: str, message: str, retryable: bool) -> str:
@@ -46,8 +49,8 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
     mcp = FastMCP(
         "rag-mcp",
         instructions=(
-            "촬영 관련 규정(근로기준법, 촬영 허가, 비행 금지 구역, 재난과 기상 안전 기준, 예산과 승인 규정)과 "
-            "배우 계약서 조항을 검색합니다. 결과의 chunk_id를 근거 ID로 인용하세요."
+            "촬영 관련 규정(근로기준법, 촬영 허가, 비행 금지 구역, 재난과 기상 안전 기준, 예산과 승인 규정), "
+            "배우 계약서 조항, 대본 씬 원문을 검색합니다. 결과의 chunk_id를 근거 ID로 인용하세요."
         ),
     )
 
@@ -88,7 +91,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         ] = None,
     ) -> list[dict]:
         """법규와 사내 규정에서 질의와 가까운 조항을 찾아 chunk_id, 제목, 조항 제목, 원문, 유사도를 돌려준다.
-        계약서는 포함하지 않는다. 계약서 조항은 search_contract_clause를 쓴다."""
+        계약서와 대본은 포함하지 않는다. 계약서 조항은 search_contract_clause, 대본 씬은 search_script를 쓴다."""
         types = list(doc_types) if doc_types else REGULATION_TYPES
         return run_search(embed_query(query), k, doc_types=types)
 
@@ -112,11 +115,28 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
             ))
         return run_search(embed_query(query), k, doc_id=contract_doc_id)
 
+    @mcp.tool(annotations=READ_ONLY)
+    def search_script(
+        query: Annotated[str, Field(min_length=2, max_length=200, description="찾을 내용, 예: 한강 산책 장면의 낮밤과 장소")],
+        scene_codes: Annotated[
+            list[SceneCode] | None, Field(max_length=10, description="씬 코드를 주면 그 씬 원문만 씬 순서대로 돌려준다")
+        ] = None,
+        k: Annotated[int, Field(ge=1, le=8)] = 4,
+    ) -> list[dict]:
+        """대본(SCRIPT 문서)에서 씬 원문을 찾는다. 씬 머리말(heading)에 극 중 장소, 낮/밤, 실내/실외가 있다.
+        영향 받는 씬의 대본 요구(야외 장면인지, 밤 장면인지, 누가 나오는지)를 근거로 인용할 때 쓴다."""
+        if not scene_codes:
+            return run_search(embed_query(query), k, doc_types=["SCRIPT"])
+        hits = run_search(embed_query(query), MAX_SCRIPT_CHUNKS, doc_types=["SCRIPT"])
+        order = {f"S#{int(code[1:]):02d}.": i for i, code in enumerate(scene_codes)}
+        picked = [hit for hit in hits if hit["heading"].split(" ", 1)[0] in order]
+        return sorted(picked, key=lambda hit: (order[hit["heading"].split(" ", 1)[0]], hit["chunk_id"]))
+
     @mcp.tool(annotations=WRITE)
     def index_document(
         doc_id: DocId,
         title: Annotated[str, Field(min_length=1, max_length=200)],
-        doc_type: Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY", "CONTRACT"],
+        doc_type: Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY", "CONTRACT", "SCRIPT"],
         version: Annotated[str, Field(min_length=1, max_length=40)],
         text: Annotated[str, Field(min_length=20)],
     ) -> dict:

@@ -18,7 +18,7 @@ class Document:
 
     doc_id: str
     title: str
-    doc_type: str  # LAW, PERMIT, NO_FLY, SAFETY, POLICY, CONTRACT
+    doc_type: str  # LAW, PERMIT, NO_FLY, SAFETY, POLICY, CONTRACT, SCRIPT
     version: str
     text: str
 

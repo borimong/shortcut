@@ -15,7 +15,7 @@ from rag_mcp.server import build_server
 from rag_mcp.store import MemoryStore
 
 # shortcut-app/agent가 부르는 도구 (접두어 rag_ 제외)
-AGENT_TOOLS = {"search_regulation", "search_contract_clause", "index_document", "delete_document"}
+AGENT_TOOLS = {"search_regulation", "search_contract_clause", "search_script", "index_document", "delete_document"}
 
 
 class FailingEmbedder(HashEmbedder):
@@ -89,7 +89,7 @@ def test_regulation_search_never_returns_contracts(indexed_server):
     server, _ = indexed_server
     hits = data(tool_call(server, "search_regulation", {"query": "야간 촬영 22시 이후", "k": 8}))
     assert hits
-    assert all(hit["doc_type"] != "CONTRACT" for hit in hits)
+    assert all(hit["doc_type"] not in ("CONTRACT", "SCRIPT") for hit in hits)
     assert {"chunk_id", "doc_id", "title", "heading", "text", "score"} <= set(hits[0])
 
 
@@ -160,3 +160,20 @@ def test_delete_is_destructive_and_reports_missing(indexed_server):
     with pytest.raises(ToolError) as error:
         tool_call(server, "delete_document", {"doc_id": "budget-approval-policy"})
     assert "[DOCUMENT_NOT_FOUND]" in str(error.value)
+
+
+def test_script_is_split_by_scene_heading():
+    document = parse_markdown((CORPUS_DIR / "script-ep07-v1.md").read_text(encoding="utf-8"))
+    headings = [c.heading for c in split_into_chunks(document)]
+    assert document.doc_type == "SCRIPT"
+    assert "S#12. 한강 공원 산책로 (낮, 실외)" in headings
+    assert "S#21. 합정 루프탑 (밤, 실외)" in headings
+
+
+def test_script_search_returns_requested_scenes_in_order(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_script", {"query": "밤 장면", "scene_codes": ["S21", "S12"]}))
+    assert [hit["heading"] for hit in hits] == ["S#21. 합정 루프탑 (밤, 실외)", "S#12. 한강 공원 산책로 (낮, 실외)"]
+    assert all(hit["doc_type"] == "SCRIPT" for hit in hits)
+    free = data(tool_call(server, "search_script", {"query": "한강 산책", "k": 3}))
+    assert len(free) == 3 and {hit["doc_type"] for hit in free} == {"SCRIPT"}

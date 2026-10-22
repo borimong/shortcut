@@ -40,7 +40,8 @@ DataVersion = Annotated[int, Field(ge=1, description="evaluate_plans 결과의 d
 
 
 class ExtraConstraint(BaseModel):
-    """승인자 거절 사유나 감독 지시에서 만든 추가 제약. 다음 평가부터 하드 제약으로 검사된다."""
+    """승인자 거절 사유나 감독 지시에서 만든 추가 제약. 다음 평가부터 하드 제약으로 검사된다.
+    REQUIRE_SETTING_MATCH는 대본의 실내/실외와 장소가 어긋나는 후보(예: 야외 장면을 실내 스튜디오에서)를 뺀다."""
 
     type: Literal[
         "EXCLUDE_LOCATION",
@@ -50,6 +51,7 @@ class ExtraConstraint(BaseModel):
         "REQUIRE_INDOOR",
         "LATEST_END",
         "EXCLUDE_TIME",
+        "REQUIRE_SETTING_MATCH",
     ]
     location_id: int | None = Field(default=None, description="EXCLUDE_LOCATION, EXCLUDE_LOCATION_TIME")
     equipment_id: int | None = Field(default=None, description="EXCLUDE_EQUIPMENT")
@@ -179,13 +181,44 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_plan_set(shoot_day_id: ShootDayId) -> dict:
-        """변경 대상 블록의 씬과 배우, 현재 확정안, 제작사가 미리 만든 1/2/3안(장소, 장비, 시간대)을 돌려준다."""
+        """변경 대상 블록의 씬과 배우, 현재 확정안, 제작사가 미리 만든 1/2/3안(장소, 장비, 시간대)을 돌려준다.
+        씬마다 대본 분해 값이 있다: intExt(INT 실내, EXT 실외), timeOfDay(DAY, NIGHT), settingLocked(지정 세트에서만 촬영),
+        characters(배역과 캐스팅된 배우 id), requirements(장비·소품·보조출연, level MUST 필수, WANT 선호).
+        블록의 sunrise, sunset은 낮/밤 장면 판정에 쓰는 그날 일출과 일몰이다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/plan-set")
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_availability(shoot_day_id: ShootDayId) -> dict:
-        """배우 가용 시간과 주간 누적 근로시간, 계약서 문서 ID, 장소 이용·허가 시간, 장비 가용 여부를 돌려준다."""
+        """배우 가용 시간과 주간 누적 근로시간, 계약서 문서 ID, 장소 이용·허가 시간, 장비 가용 여부를 돌려준다.
+        배우의 그날 실제 일정은 off(종일 불가), windows(가능 시간대), busy(다른 일정과 사유 종류)다.
+        availableFrom~availableTo는 계약 기본 시간이고, 날짜별 일정과 변경 입력이 있으면 windows가 그보다 우선한다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/availability")
+
+    @mcp.tool(annotations=READ_ONLY)
+    async def get_actor_schedule(
+        shoot_day_id: ShootDayId,
+        actor_ids: Annotated[list[int] | None, Field(description="볼 배우 id. 비우면 모든 배우")] = None,
+        from_date: Annotated[
+            str | None, Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="시작 날짜 YYYY-MM-DD. 비우면 이 촬영일 날짜")
+        ] = None,
+        days: Annotated[int, Field(ge=1, le=31, description="볼 날 수, 기본 14")] = 14,
+    ) -> dict:
+        """배우들의 날짜별 일정을 돌려준다. 날마다 off(종일 불가), windows(가능 시간대), busy(다른 작품, 광고·행사,
+        개인 일정, 이동 같은 사유 종류), shoots(우리 촬영에 배정된 블록과 씬)가 있다. 일정이 없는 날은 빠지고,
+        그런 날은 계약 기본 시간(contractFrom~contractTo)에 촬영할 수 있다. 다른 날로 씬을 옮기거나 배우 일정을 물을 때 쓴다.
+        개인 사정은 옮기지 않으려고 사유 종류만 준다."""
+        params: dict[str, Any] = {"days": days}
+        if actor_ids:
+            params["actorIds"] = ",".join(str(i) for i in actor_ids)
+        if from_date:
+            params["from"] = from_date
+        return await call("GET", f"/internal/shoot-days/{shoot_day_id}/actor-schedule", params=params)
+
+    @mcp.tool(annotations=READ_ONLY)
+    async def find_unplaceable_scenes(shoot_day_id: ShootDayId) -> dict:
+        """아직 촬영 배정하지 않은 대본 씬마다 배우 날짜별 일정 안에서 찍을 수 있는 첫 날(firstDate)이나,
+        어느 날에도 못 찍는 이유(reason)를 돌려준다. 예: 계약상 낮에만 되는 배우가 나오는 밤 야외 장면."""
+        return await call("GET", f"/internal/shoot-days/{shoot_day_id}/unplaceable-scenes")
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_weather(shoot_day_id: ShootDayId) -> dict:

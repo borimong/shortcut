@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-HardConstraint = Literal["CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER"]
+HardConstraint = Literal["CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER", "SCRIPT"]
 
 
 class ImpactedEntity(BaseModel):
@@ -74,6 +74,7 @@ class ConstraintItem(BaseModel):
         "EXCLUDE_EQUIPMENT",
         "MAX_EXTRA_COST",
         "REQUIRE_INDOOR",
+        "REQUIRE_SETTING_MATCH",
         "LATEST_END",
     ]
     location_id: int | None = None

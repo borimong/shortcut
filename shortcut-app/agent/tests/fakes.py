@@ -82,6 +82,14 @@ EVIDENCE_BY_CONSTRAINT = {
         "70퍼센트 이상이면 제외한다.",
         "SAFETY",
     ),
+    "SCRIPT": (
+        "script-ep07-v1#13",
+        "script-ep07-v1",
+        "드라마 숏컷 7화 「봄, 봄」 대본 1고",
+        "S#12. 한강 공원 산책로 (낮, 실외)",
+        "강바람. 텀블러 두 개를 든 도현과 지우가 나란히 걷는다.",
+        "SCRIPT",
+    ),
 }
 
 
@@ -321,7 +329,16 @@ class FakeMcpClient:
         return {"id": args["proposal_id"], "proposed": {"location": {"name": "성수 스튜디오"}}}
 
     def _search_regulation(self, args):
-        return [_hit(c) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] != "CONTRACT"]
+        return [_hit(c) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] not in ("CONTRACT", "SCRIPT")]
+
+    def _search_script(self, args):
+        return [_hit("SCRIPT")]
+
+    def _get_actor_schedule(self, args):
+        return {"from": "2026-10-22", "to": "2026-11-04", "actors": []}
+
+    def _find_unplaceable_scenes(self, args):
+        return {"from": "2026-10-22", "to": "2027-01-21", "scenes": []}
 
     def _search_contract_clause(self, args):
         return [_hit(c) for c in ("CONTRACT", "SCHEDULE") if EVIDENCE_BY_CONSTRAINT[c][1] == args["contract_doc_id"]]
@@ -339,6 +356,8 @@ BUSINESS_TOOLS = [
     "get_availability",
     "get_weather",
     "get_disaster_alerts",
+    "get_actor_schedule",
+    "find_unplaceable_scenes",
     "search_locations",
     "register_alternative_locations",
     "evaluate_plans",
@@ -347,7 +366,7 @@ BUSINESS_TOOLS = [
     "submit_proposal",
     "commit_plan",
 ]
-RAG_TOOLS = ["search_regulation", "search_contract_clause", "index_document", "delete_document"]
+RAG_TOOLS = ["search_regulation", "search_contract_clause", "search_script", "index_document", "delete_document"]
 
 
 def _hit(constraint: str) -> dict:
@@ -392,6 +411,7 @@ class FakeModel:
             return _tool_calls(
                 ("rag_search_regulation", {"query": "주 52시간"}),
                 ("rag_search_contract_clause", {"query": "야간 촬영", "contract_doc_id": "contract-actor-a-v3"}),
+                ("rag_search_script", {"query": "변경 대상 씬", "scene_codes": ["S12", "S13"]}),
             )
         if "근거 조회" in task:
             return _tool_calls(("rag_search_regulation", {"query": "강수확률"}), ("business_get_proposal", {"proposal_id": 10}))
