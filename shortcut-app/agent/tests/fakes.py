@@ -191,6 +191,10 @@ class FakeBackendState:
     top_k: int | None = None
     # 아워플레이스 검색 결과가 없는 상황
     no_alternatives: bool = False
+    # 엔진이 새 장소로는 풀 수 없다고 알려 준 원인(실행 가능한 후보가 없을 때)
+    location_blockers: list[str] = field(default_factory=list)
+    # 아워플레이스 검색 결과를 바꿔 넣는다
+    search_results: list[dict] | None = None
 
 
 class FakeMcpClient:
@@ -265,7 +269,8 @@ class FakeMcpClient:
     def _evaluate_plans(self, args):
         self.backend.evaluate_calls.append(args)
         if self.backend.no_feasible:
-            return {"dataVersion": 1, "weights": args["weights"], "feasibleCount": 0, "candidates": [HANGANG]}
+            return {"dataVersion": 1, "weights": args["weights"], "feasibleCount": 0, "candidates": [HANGANG],
+                    "locationProofBlockers": self.backend.location_blockers}
         if self.backend.narrow_constraints:
             excluded = set()
             ranked = [SEONGSU, SEONGSU_MORNING, PAJU]
@@ -323,6 +328,8 @@ class FakeMcpClient:
     def _search_locations(self, args):
         if self.backend.no_alternatives:
             return {"locations": []}
+        if self.backend.search_results is not None:
+            return {"locations": self.backend.search_results}
         return {"locations": [{"id": 1, "name": "일산 실내 스튜디오", "distanceKm": 25, "source": "OURPLACE_MOCK"}]}
 
     def _get_proposal(self, args):

@@ -9,7 +9,7 @@ from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
-from app.graph.nodes import constraints_for_issues, pick_after_rejection
+from app.graph.nodes import by_setting_fit, constraints_for_issues, pick_after_rejection
 from app.graph.qa import build_qa_graph
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
 from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
@@ -451,3 +451,65 @@ def test_rejection_of_other_elements_does_not_search_new_places():
     run(scenario())
     nodes = [p["node"] for t, p in events.events if t == "NODE" and p["phase"] == "end"]
     assert "suggest_alternatives" not in nodes
+
+
+def handoff_state(event, shoot_day_id):
+    state = initial_state()
+    state["shoot_day_id"] = shoot_day_id
+    state["event"] = {"id": 1, "instruction": "", "requested_by": "pd", **event}
+    return state
+
+
+def run_to_end(ctx, state):
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(state, CONFIG, context=ctx)
+        return await graph.aget_state(CONFIG)
+
+    return run(scenario())
+
+
+def test_cancelled_studio_with_actor_schedule_is_not_solved_by_a_new_place():
+    # 미리보기 2회차: 성수 대관 취소인데 모든 후보가 배우 C 일정과 성수 세트 고정에 막혀 새 장소로는 풀리지 않는다.
+    blockers = ["배우 C 일정(10:30~14:30 타 작품)과 겹칩니다.",
+                "S18, S19은(는) 세트가 성수 스튜디오에만 있어 파주 세트장에서 찍을 수 없습니다."]
+    ctx, backend, clients, _ = make_context(FakeBackendState(no_feasible=True, location_blockers=blockers))
+    state = run_to_end(ctx, handoff_state(
+        {"type": "LOCATION_CANCEL", "detail": "성수 스튜디오 대관 취소 통보",
+         "changes": [{"kind": "LOCATION_UNAVAILABLE", "targetId": 2}]}, 2))
+
+    result = state.values["result"]
+    assert state.values["stop_condition"] == NO_FEASIBLE_PLAN
+    assert not state.values.get("alternatives_tried")
+    assert "search_locations" not in [name for name, _ in clients["business"].calls]
+    assert result["suggestions"] == []
+    assert result["blockers"] == blockers
+    assert "배우 C 일정" in result["reason"] and "성수 스튜디오에만" in result["reason"]
+    assert backend.proposals == []
+
+
+def test_broken_reflector_with_actor_promotion_is_not_solved_by_a_new_place():
+    # 미리보기 3회차: 반사판 고장에 배우 B 18:30~21:00 광고 일정이 모든 밤 후보와 겹친다.
+    blockers = ["배우 B 일정(18:30~21:00 광고, 행사)과 겹칩니다."]
+    ctx, _, clients, _ = make_context(FakeBackendState(no_feasible=True, location_blockers=blockers))
+    state = run_to_end(ctx, handoff_state(
+        {"type": "EQUIPMENT_FAILURE", "detail": "반사판 고장, 배우 B 저녁 광고 일정",
+         "changes": [{"kind": "EQUIPMENT_UNAVAILABLE", "targetId": 3},
+                     {"kind": "ACTOR_BUSY", "targetId": 2, "from": "18:30", "to": "21:00", "reasonKind": "PROMOTION"}]}, 3))
+
+    assert "search_locations" not in [name for name, _ in clients["business"].calls]
+    assert state.values["result"]["suggestions"] == []
+    assert state.values["result"]["blockers"] == blockers
+
+
+def test_alternatives_follow_the_scene_setting_unless_weather_blocks_outdoors():
+    places = [{"id": 1, "name": "상암 호리존 스튜디오", "indoor": True, "keywords": ["실내"]},
+              {"id": 5, "name": "망원 루프탑", "indoor": False, "keywords": ["야외", "도심 야경"]}]
+    night_exterior = {"plan_set": {"block": {"scenes": [{"code": "S21", "intExt": "EXT", "timeOfDay": "NIGHT"}]}},
+                      "event": {"type": "LOCATION_CANCEL"}, "candidates": []}
+    assert [p["id"] for p in by_setting_fit(places, night_exterior)] == [5, 1]
+    rain = {**night_exterior, "event": {"type": "RAIN"}}
+    assert [p["id"] for p in by_setting_fit(places, rain)] == [1, 5]
+    interior = {**night_exterior, "plan_set": {"block": {"scenes": [{"code": "S18", "intExt": "INT", "timeOfDay": "DAY"}]}}}
+    assert [p["id"] for p in by_setting_fit(places, interior)] == [1, 5]

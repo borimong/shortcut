@@ -46,6 +46,15 @@ public final class PlanEngine {
     private static final double TIME_SPAN_HOURS = 8.0;
     private static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HHmm");
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
+    // 새 장소(4안)를 더해도 풀리지 않는 위반이다. 4안 장소도 1/2/3안의 장비와 시간대를 그대로 쓰므로 배우 일정과 계약,
+    // 장비 고장, 시간 제약은 장소와 상관없이 같은 조합에 다시 걸린다. 세트 고정은 새 장소가 그 세트일 수 없어서 넣는다.
+    private static final Set<String> LOCATION_PROOF_CODES = Set.of("ACTOR_UNAVAILABLE", "ACTOR_BUSY", "ACTOR_OVERLAP",
+            "NIGHT_SHOOT", "DAILY_HOURS", "WEEKLY_52H", "EQUIPMENT_UNAVAILABLE", "SCRIPT_SETTING_LOCKED",
+            "SCRIPT_EQUIPMENT_MISSING", "CHARACTER_UNCAST", "BLOCK_OVERFLOW");
+    private static final Set<String> LOCATION_PROOF_EXTRAS = Set.of("EXTRA_EXCLUDE_TIME", "EXTRA_LATEST_END",
+            "EXTRA_EXCLUDE_EQUIPMENT");
+    // 사람에게 넘길 때 적는 원인 문장 수다. 같은 규칙은 한 줄만 쓴다.
+    private static final int MAX_BLOCKERS = 5;
 
     public EvaluationResult evaluate(PlanInput input, Map<String, Double> requestedWeights,
                                      List<ExtraConstraint> extras) {
@@ -95,6 +104,37 @@ public final class PlanEngine {
             return item;
         }).toList();
         return check(input, location, items, start, end, constraints);
+    }
+
+    /**
+     * 실행 가능한 후보가 없고 모든 후보에 새 장소로는 풀 수 없는 위반이 하나 이상 있으면, 그 원인을 규칙마다 한 문장씩
+     * 많은 후보를 막는 순서로 돌려준다. 하나라도 장소만 문제인 후보가 있으면 빈 목록이다(4안 장소를 찾아볼 가치가 있다).
+     * Agent는 이 목록이 있으면 대체 장소를 찾지 않고 사람에게 원인을 넘긴다.
+     */
+    public static List<String> locationProofBlockers(List<CandidateResult> candidates) {
+        if (candidates.isEmpty() || candidates.stream().anyMatch(CandidateResult::feasible)) {
+            return List.of();
+        }
+        Map<String, Integer> hits = new LinkedHashMap<>();
+        Map<String, String> firstMessage = new LinkedHashMap<>();
+        for (CandidateResult candidate : candidates) {
+            List<Finding> proof = candidate.violations().stream().filter(PlanEngine::locationProof).toList();
+            if (proof.isEmpty()) {
+                return List.of();
+            }
+            proof.stream().map(Finding::code).distinct().forEach(code -> hits.merge(code, 1, Integer::sum));
+            proof.forEach(f -> firstMessage.putIfAbsent(f.code(), f.message()));
+        }
+        return hits.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(MAX_BLOCKERS)
+                .map(e -> firstMessage.get(e.getKey()))
+                .toList();
+    }
+
+    private static boolean locationProof(Finding finding) {
+        return LOCATION_PROOF_CODES.contains(finding.code())
+                || "EXCLUDED_BY_CONSTRAINT".equals(finding.code()) && LOCATION_PROOF_EXTRAS.contains(finding.ruleRef());
     }
 
     public static String hash(long locationId, List<Long> equipmentIds, LocalTime start, LocalTime end) {

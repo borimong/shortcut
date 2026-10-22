@@ -46,7 +46,8 @@ public class PlanService {
                 .toList();
         long feasibleCount = remaining.stream().filter(CandidateResult::feasible).count();
         List<CandidateView> top = remaining.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
-        return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top);
+        return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top,
+                PlanEngine.locationProofBlockers(remaining));
     }
 
     public ValidateResponse validate(ValidateRequest request) {

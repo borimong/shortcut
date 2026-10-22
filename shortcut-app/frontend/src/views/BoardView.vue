@@ -31,7 +31,7 @@ const BLOCK_LABELS = { AM: '오전', PM: '오후' }
 const SETTING_LABELS = { INT: '실내', EXT: '야외' }
 const TIME_LABELS = { DAY: '낮', NIGHT: '밤' }
 const sceneSetting = (s) =>
-  s.intExt ? `${SETTING_LABELS[s.intExt] ?? s.intExt}·${TIME_LABELS[s.timeOfDay] ?? s.timeOfDay}` : ''
+  s.intExt ? `${SETTING_LABELS[s.intExt] ?? s.intExt}, ${TIME_LABELS[s.timeOfDay] ?? s.timeOfDay}` : ''
 
 // 씬 진행과 현재 촬영지는 시계 기준이라 30초마다 다시 계산한다.
 const now = ref(new Date())

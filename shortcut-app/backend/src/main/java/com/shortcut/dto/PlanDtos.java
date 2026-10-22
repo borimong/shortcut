@@ -28,8 +28,12 @@ public final class PlanDtos {
                                   List<ExtraConstraint> extraConstraints, List<String> excludeHashes) {
     }
 
+    /**
+     * locationProofBlockers는 실행 가능한 후보가 없을 때 새 장소(4안)로는 풀 수 없는 원인이다(배우 일정, 세트 고정 등).
+     * 비어 있지 않으면 대체 장소를 찾지 말고 사람에게 이 원인을 넘긴다. 잘라 낸 후보까지 모두 보고 정한다.
+     */
     public record EvaluateResponse(int dataVersion, Map<String, Double> weights, long feasibleCount,
-                                   List<CandidateView> candidates) {
+                                   List<CandidateView> candidates, List<String> locationProofBlockers) {
     }
 
     public record CandidateView(String hash, CandidateLocation location, CandidateEquipment equipment,

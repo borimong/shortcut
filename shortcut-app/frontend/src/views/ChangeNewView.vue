@@ -34,9 +34,9 @@ const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00', r
 // 배우 다른 일정의 사유 종류다. 개인 사정은 적지 않고 종류만 고른다.
 const REASON_OPTIONS = [
   ['OTHER_PRODUCTION', '타 작품'],
-  ['PROMOTION', '광고·행사'],
+  ['PROMOTION', '광고, 행사'],
   ['PERSONAL', '개인 일정'],
-  ['TRAVEL', '이동·해외 일정']
+  ['TRAVEL', '이동 일정']
 ]
 const cancelLocationId = ref(null)
 const brokenEquipment = ref([])

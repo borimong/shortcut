@@ -366,6 +366,7 @@ async def reevaluate_plans(state: dict[str, Any], ctx: RunContext) -> dict[str, 
         "weight_rationale": rationale,
         "candidates": result["candidates"],
         "feasible_count": result["feasibleCount"],
+        "location_blockers": result.get("locationProofBlockers") or [],
         "data_version": result["dataVersion"],
         "_detail": detail,
     }
@@ -490,6 +491,24 @@ async def validation_gate(state: dict[str, Any], ctx: RunContext) -> dict[str, A
             "_detail": f"위반 {', '.join(codes)}",
         }
     return {"gate_result": "PASS", "validated_hash": plan["hash"], "_detail": "하드 제약 위반 없음"}
+
+
+def by_setting_fit(locations: list[dict[str, Any]], state: dict[str, Any]) -> list[dict[str, Any]]:
+    """대체 장소를 씬의 실내/실외에 맞는 곳부터 세운다. 같은 쪽 안에서는 검색 순서(키워드가 많이 맞는 순)를 지킨다.
+    비나 재난 때문에 막혔으면 야외 장면이라도 실내가 먼저다. 밤 야외 장면이면 야경을 볼 수 있는 곳을 더 앞에 둔다."""
+    scenes = state["plan_set"]["block"]["scenes"]
+    exterior = any(scene.get("intExt") == "EXT" for scene in scenes)
+    night = any(scene.get("timeOfDay") == "NIGHT" for scene in scenes)
+    codes = {v["code"] for c in state.get("candidates") or [] for v in c.get("violations") or []}
+    weather = state["event"].get("type") in {"RAIN", "DISASTER"} or bool(codes & {"RAIN_HARD", "DISASTER_ALERT"})
+    want_indoor = weather or not exterior
+
+    def rank(location: dict[str, Any]) -> tuple[int, int]:
+        indoor = location.get("indoor")
+        night_view = night and not want_indoor and any("야경" in k or "야간" in k for k in location.get("keywords") or [])
+        return (0 if indoor is None or indoor == want_indoor else 1, 0 if night_view else 1)
+
+    return sorted(locations, key=rank)
 
 
 def review_facts(candidate: dict[str, Any]) -> str:
@@ -860,7 +879,7 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
         {"keywords": keywords.keywords, "max_distance_km": keywords.max_distance_km},
         allowed=["business_search_locations"],
     )
-    suggestions = (found.data or {}).get("locations", []) if found.ok else []
+    suggestions = by_setting_fit((found.data or {}).get("locations", []) if found.ok else [], state)
     registered = []
     if suggestions:
         # 검색 결과는 키워드가 많이 맞는 순이라 앞의 세 곳만 4안 후보로 올려 평가 범위를 좁힌다.
@@ -889,12 +908,18 @@ async def report_human(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
     """멈춤 조건에 걸리면 지금까지의 최선안, 위반, 추천을 정리합니다. NEEDS_HUMAN 이벤트는 worker가 보냅니다."""
     stop = stop_condition(ctx.counter, ctx.settings.limits) or state.get("stop_condition") or NO_FEASIBLE_PLAN
     best = next(iter(state.get("candidates") or []), None)
+    blockers = state.get("location_blockers") or []
+    reason = STOP_MESSAGES[stop]
+    if blockers:
+        # 새 장소로는 풀리지 않으니 대체 장소를 권하지 않고, 무엇이 막는지 그대로 적어 사람이 일정이나 대본을 조정하게 한다.
+        reason += ". 새 장소로는 풀 수 없는 원인: " + " ".join(blockers)
     payload = {
-        "reason": STOP_MESSAGES[stop],
+        "reason": reason,
         "stopCondition": stop,
         "best": {"summary": describe(best), "violations": best["violations"]} if best else None,
         "violations": state.get("violations") or [],
-        "suggestions": state.get("suggestions") or [],
+        "blockers": blockers,
+        "suggestions": [] if blockers else state.get("suggestions") or [],
         "extraConstraints": state.get("extra_constraints") or [],
     }
     return {"stop_condition": stop, "result": payload, "_detail": payload["reason"]}

@@ -35,6 +35,9 @@ def after_collect(state: dict[str, Any]) -> str:
 
 def when_exhausted(state: dict[str, Any]) -> str:
     # 1/2/3안이 바닥나면 한 번은 4안을 구성해 보고, 4안까지 막히면 사람에게 넘긴다.
+    # 배우 일정이나 세트 고정처럼 새 장소로는 풀 수 없는 원인이 모든 후보를 막으면 4안을 찾지 않고 바로 넘긴다.
+    if state.get("location_blockers"):
+        return "report_human"
     return "report_human" if state.get("alternatives_tried") else "suggest_alternatives"
 
 

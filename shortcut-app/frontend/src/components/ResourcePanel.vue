@@ -37,7 +37,7 @@ const tab = ref('all')
 const schedule = ref(null)
 const placeability = ref(null)
 const scheduleError = ref(null)
-const REASON_LABELS = { OTHER_PRODUCTION: '타 작품', PROMOTION: '광고·행사', PERSONAL: '개인 일정', TRAVEL: '이동·해외 일정' }
+const REASON_LABELS = { OTHER_PRODUCTION: '타 작품', PROMOTION: '광고, 행사', PERSONAL: '개인 일정', TRAVEL: '이동 일정' }
 const unplaceable = computed(() => (placeability.value?.scenes ?? []).filter((s) => !s.placeable))
 
 watch(tab, async (value) => {
@@ -56,8 +56,8 @@ watch(tab, async (value) => {
   }
 })
 
-// 계약 기본 시간과 같은 가능 시간은 적지 않는다. 다른 날과 달라진 것만 보이게 하려는 것이다.
-function dayText(day, actor) {
+// 그날 일정을 한 줄씩 돌려준다. 계약 기본 시간과 같은 가능 시간은 적지 않는다. 다른 날과 달라진 것만 보이게 하려는 것이다.
+function dayLines(day, actor) {
   const parts = []
   if (day.off) parts.push(`종일 불가(${REASON_LABELS[day.offReason] ?? '변경 입력'}${day.offMemo ? `, ${day.offMemo}` : ''})`)
   for (const b of day.busy ?? []) {
@@ -67,7 +67,7 @@ function dayText(day, actor) {
   const contract = `${hhmm(actor.contractFrom)}~${hhmm(actor.contractTo)}`
   if (!day.off && windows.length && !(windows.length === 1 && windows[0] === contract)) parts.push(`가능 ${windows.join(', ')}`)
   for (const s of day.shoots ?? []) parts.push(`촬영 ${s.blockCode === 'AM' ? '오전' : '오후'} ${hhmm(s.start)}~${hhmm(s.end)} ${s.scenes}`)
-  return parts.join(' · ')
+  return parts
 }
 const editing = ref(null)
 const form = reactive({ status: 'OK', scope: 'day', untilDate: '', memo: '', from: '', to: '' })
@@ -360,7 +360,9 @@ async function save() {
                 <ul v-if="a.days.length" class="flex flex-col gap-1 text-sm">
                   <li v-for="d in a.days" :key="d.date" class="flex gap-3">
                     <span class="mono w-12 shrink-0 text-muted-foreground">{{ d.date.slice(5).replace('-', '.') }}</span>
-                    <span class="min-w-0">{{ dayText(d, a) }}</span>
+                    <span class="flex min-w-0 flex-col">
+                      <span v-for="(line, i) in dayLines(d, a)" :key="i">{{ line }}</span>
+                    </span>
                   </li>
                 </ul>
                 <p v-else class="text-sm text-muted-foreground">이 기간에 다른 일정이 없습니다.</p>

@@ -203,7 +203,7 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         ] = None,
         days: Annotated[int, Field(ge=1, le=31, description="볼 날 수, 기본 14")] = 14,
     ) -> dict:
-        """배우들의 날짜별 일정을 돌려준다. 날마다 off(종일 불가), windows(가능 시간대), busy(다른 작품, 광고·행사,
+        """배우들의 날짜별 일정을 돌려준다. 날마다 off(종일 불가), windows(가능 시간대), busy(다른 작품, 광고나 행사,
         개인 일정, 이동 같은 사유 종류), shoots(우리 촬영에 배정된 블록과 씬)가 있다. 일정이 없는 날은 빠지고,
         그런 날은 계약 기본 시간(contractFrom~contractTo)에 촬영할 수 있다. 다른 날로 씬을 옮기거나 배우 일정을 물을 때 쓴다.
         개인 사정은 옮기지 않으려고 사유 종류만 준다."""
