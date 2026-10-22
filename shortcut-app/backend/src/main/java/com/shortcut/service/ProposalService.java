@@ -21,12 +21,14 @@ import com.shortcut.dto.ProposalDtos.PlanSide;
 import com.shortcut.dto.ProposalDtos.ProposalCandidate;
 import com.shortcut.dto.ProposalDtos.ProposalCreated;
 import com.shortcut.dto.ProposalDtos.ProposalLocation;
+import com.shortcut.dto.ProposalDtos.ProposalScene;
 import com.shortcut.dto.ProposalDtos.ProposalSummary;
 import com.shortcut.dto.ProposalDtos.ProposalView;
 import com.shortcut.engine.ApproverRule;
 import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.engine.PlanSnapshot;
+import com.shortcut.engine.SceneSlot;
 import com.shortcut.repository.CallsheetRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.ProposalRepository;
@@ -111,15 +113,16 @@ public class ProposalService {
         PlanData data = planData.load(shootDayId);
         ProposalCandidate candidate = request.candidate();
         CheckResult check = planService.check(data, candidate.locationId(), candidate.equipmentIds(),
-                candidate.start(), candidate.end(), List.of());
+                candidate.start(), candidate.end(), List.of(), candidate.sceneOrder());
         if (!check.feasible()) {
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "PLAN_INVALID", "하드 제약을 위반한 후보입니다.",
                     Map.of("violations", check.violations()));
         }
 
         PlanSnapshot original = data.current();
+        // 씬 순서는 엔진이 판정에 쓴 순서다. Agent가 순서를 비워 보내도 평가 때와 같은 순서가 남는다.
         PlanSnapshot proposed = data.snapshot(candidate.locationId(), candidate.equipmentIds(),
-                candidate.start(), candidate.end());
+                candidate.start(), candidate.end(), check.sceneOrder());
         // 필수 승인자는 관리자 페이지에서 바꾼 규칙을 따른다.
         List<String> roles = ApproverRule.requiredApprovers(original, proposed, settings.approverRules());
         // 위에서 촬영일 행을 잠갔으므로 동시에 만든 변경안끼리 번호가 겹치지 않는다.
@@ -137,7 +140,7 @@ public class ProposalService {
 
         String label = "v" + versionNo;
         String link = "/proposals/" + id;
-        String summary = summary(data, proposed);
+        String summary = summary(data, original, proposed);
         long extraCost = proposed.cost() - original.cost();
         for (String role : roles) {
             notifications.notifyRoles(List.of(role), NotificationService.APPROVAL_REQUEST,
@@ -159,7 +162,7 @@ public class ProposalService {
                 p.dataVersion(), side(data, p.original(), null), side(data, p.proposed(), p.source()), extraCost,
                 distanceDelta, p.score(), p.scoreBreakdown(), p.weights(), p.explanation(), p.checklist(),
                 p.evidence(), p.unresolved(), p.review(), approvalViews(approvals, extraCost), approvedCount(approvals),
-                approvals.size());
+                approvals.size(), !p.original().sameSceneOrder(p.proposed()));
     }
 
     @Transactional(readOnly = true)
@@ -269,6 +272,10 @@ public class ProposalService {
         PlanData data = planData.load(shootDayId);
         PlanSnapshot proposed = p.proposed();
         plans.updateBlock(shootDayId, PlanData.CHANGING_BLOCK, proposed);
+        // 씬 순서는 촬영판(scenes.sort)과 새 콜시트 스냅숏에 함께 남는다. 옛 콜시트 버전은 자기 스냅숏의 순서를 그대로 보인다.
+        if (!proposed.scenes().isEmpty()) {
+            plans.updateSceneOrder(shootDayId, PlanData.CHANGING_BLOCK, SceneSlot.codes(proposed.scenes()));
+        }
         plans.bumpDataVersion(shootDayId);
         // "변경안 v4 확정"이 "콜시트 v4"가 되도록 변경안 번호를 그대로 쓴다. 거절된 안의 번호는 콜시트에서 건너뛴다.
         int versionNo = p.versionNo();
@@ -288,7 +295,7 @@ public class ProposalService {
         AiTask task = tasks.findTask(p.taskId()).orElseThrow();
         outbox.callsheetJob(callsheet.id(), shootDayId, versionNo, task.traceId());
         notifications.notifyAll(NotificationService.CHANGE_NOTICE, "확정 콜시트 v" + versionNo + " 배포",
-                summary(data, proposed), "/");
+                summary(data, p.original(), proposed), "/");
         return new CommitResult(versionNo, reservationStatus, false);
     }
 
@@ -315,14 +322,23 @@ public class ProposalService {
 
     private static PlanSide side(PlanData data, PlanSnapshot plan, JsonNode source) {
         Location location = data.locations().get(plan.locationId());
+        Map<String, String> titles = new LinkedHashMap<>();
+        data.scenes().forEach(scene -> titles.put(scene.code(), scene.title()));
+        List<ProposalScene> scenes = plan.scenes().stream()
+                .map(s -> new ProposalScene(s.code(), titles.get(s.code()), s.start(), s.end())).toList();
         return new PlanSide(new ProposalLocation(location.id(), location.name(), location.indoor()),
                 ShootDayQueryService.equipment(data, plan.equipmentIds()), plan.start(), plan.end(), plan.cost(),
-                source);
+                source, scenes);
     }
 
-    private static String summary(PlanData data, PlanSnapshot plan) {
-        return "오후 블록: " + data.locations().get(plan.locationId()).name() + " "
+    /** 알림 한 줄 요약이다. 씬 순서가 바뀌면 새 순서를 붙인다. */
+    private static String summary(PlanData data, PlanSnapshot original, PlanSnapshot plan) {
+        String summary = "오후 블록: " + data.locations().get(plan.locationId()).name() + " "
                 + plan.start().format(HH_MM) + "~" + plan.end().format(HH_MM);
+        if (!original.sameSceneOrder(plan)) {
+            summary += ", 씬 순서 " + String.join(" → ", SceneSlot.codes(plan.scenes()));
+        }
+        return summary;
     }
 
     private static JsonNode orEmptyObject(JsonNode node) {

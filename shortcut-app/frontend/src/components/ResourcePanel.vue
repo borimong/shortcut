@@ -37,7 +37,7 @@ const tab = ref('all')
 const schedule = ref(null)
 const placeability = ref(null)
 const scheduleError = ref(null)
-const REASON_LABELS = { OTHER_PRODUCTION: '타 작품', PROMOTION: '광고, 행사', PERSONAL: '개인 일정', TRAVEL: '이동 일정' }
+const REASON_LABELS = { OTHER_PRODUCTION: '타 작품', PROMOTION: '광고와 행사', PERSONAL: '개인 일정', TRAVEL: '이동 일정' }
 const unplaceable = computed(() => (placeability.value?.scenes ?? []).filter((s) => !s.placeable))
 
 watch(tab, async (value) => {

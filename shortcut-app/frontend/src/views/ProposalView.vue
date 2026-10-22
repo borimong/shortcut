@@ -133,6 +133,9 @@ function sameIds(a, b) {
   return ids(a) === ids(b)
 }
 
+// 오후 블록 씬 시각표를 한 줄로 쓴다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다.
+const sceneLine = (scenes) => (scenes ?? []).map((s) => `${s.code} ${s.start}~${s.end}`).join(' → ')
+
 const diffRows = computed(() => {
   const p = proposal.value
   if (!p) return []
@@ -140,6 +143,10 @@ const diffRows = computed(() => {
   const n = p.proposed ?? {}
   const src = n.source ?? {}
   const km = p.distanceDeltaKm ?? 0
+  // 배우 일정 때문에 엔진이 블록 안 씬 순서를 바꾼 안이면 순서 줄을 시간대 바로 아래에 둔다.
+  const sceneRow = n.scenes?.length
+    ? [{ label: '씬 순서', from: sceneLine(o.scenes) || '기록 없음', to: sceneLine(n.scenes), changed: !!p.sceneOrderChanged }]
+    : []
   return [
     {
       label: '장소',
@@ -156,6 +163,7 @@ const diffRows = computed(() => {
       source: src.time,
       changed: o.start !== n.start || o.end !== n.end
     },
+    ...sceneRow,
     { label: '비용', from: won(o.cost), to: `${won(n.cost)} (${signedWon(p.extraCost ?? 0)})`, changed: (p.extraCost ?? 0) !== 0 },
     { label: '이동거리', from: '현재 장소 기준', to: `${km > 0 ? '+' : ''}${km}km`, changed: km !== 0 }
   ]
@@ -413,6 +421,7 @@ onBeforeUnmount(() => {
       <Card>
         <CardHeader>
           <CardTitle>원본 대비 변경</CardTitle>
+          <CardAction v-if="proposal.sceneOrderChanged"><Badge variant="info">씬 순서 변경</Badge></CardAction>
         </CardHeader>
         <CardContent class="flex flex-col gap-4">
           <div v-if="strips" class="flex flex-col gap-1.5">

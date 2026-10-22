@@ -19,6 +19,7 @@ import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.Placeability;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.engine.PlanSnapshot;
+import com.shortcut.engine.SceneSlot;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.ScheduleRepository;
 import java.time.LocalDate;
@@ -64,13 +65,14 @@ public class ScheduleService {
     /**
      * 오후 블록 현재 확정안을 최신 데이터(배우 날짜별 일정, 대본 요구 포함)로 다시 검사한다.
      * 변경 입력이 없어도 확정 뒤 들어온 배우 일정 충돌 같은 문제를 촬영판에서 먼저 보이려는 것이다.
+     * 확정된 씬 순서 그대로 검사한다. 순서를 바꾸면 풀리는 충돌도 재계획(변경안 승인)을 거쳐야 콜시트가 바뀌기 때문이다.
      */
     @Transactional(readOnly = true)
     public PlanCheckResponse planCheck(Long shootDayId) {
         PlanData data = planData.load(shootDayId == null ? planData.boardShootDayId() : shootDayId);
         PlanSnapshot current = data.current();
         CheckResult result = engine.check(data.toInput(), current.locationId(), current.equipmentIds(), current.start(),
-                current.end(), List.of());
+                current.end(), List.of(), SceneSlot.codes(current.scenes()));
         return new PlanCheckResponse(data.shootDay().id(), data.shootDay().dataVersion(), result.violations(),
                 result.warnings());
     }

@@ -101,10 +101,11 @@ class CancelAndRestoreTest {
         given(callsheets.findLatest(1L)).willReturn(Optional.of(callsheet(2, 4, SEONGSU)));
         PlanData data = mock(PlanData.class);
         given(planData.load(1L)).willReturn(data);
-        given(data.snapshot(1L, HANGANG.equipmentIds(), HANGANG.start(), HANGANG.end())).willReturn(HANGANG);
+        given(data.snapshot(1L, HANGANG.equipmentIds(), HANGANG.start(), HANGANG.end(), List.of())).willReturn(HANGANG);
         given(data.locations()).willReturn(Map.of(1L, new Location(1, "한강 공원", "", false, "서울 영등포구",
                 t("06:00"), t("22:00"), t("09:00"), t("17:00"), 300000, false, 0.95, 6, null, true)));
-        given(planService.check(eq(data), eq(1L), any(), any(), any(), any())).willReturn(new CheckResult(List.of(), List.of()));
+        given(planService.check(eq(data), eq(1L), any(), any(), any(), any(), any()))
+                .willReturn(new CheckResult(List.of(), List.of(), List.of(), false));
         given(plans.bumpDataVersion(1L)).willReturn(6);
         given(proposals.nextVersionNo(1L)).willReturn(5);
         given(callsheets.insertRestored(1L, 5, HANGANG, 1, "비가 그쳐 원래 안으로", "pd"))
@@ -130,8 +131,9 @@ class CancelAndRestoreTest {
         given(callsheets.find(1L, 1)).willReturn(Optional.of(callsheet(1, 1, HANGANG)));
         PlanData data = mock(PlanData.class);
         given(planData.load(1L)).willReturn(data);
-        given(planService.check(eq(data), eq(1L), any(), any(), any(), any())).willReturn(new CheckResult(
-                List.of(new Finding("RAIN_HARD", "WEATHER", "한강 공원 시간대 최대 강수량 시간당 8mm", "WEATHER_RAIN")), List.of()));
+        given(planService.check(eq(data), eq(1L), any(), any(), any(), any(), any())).willReturn(new CheckResult(
+                List.of(new Finding("RAIN_HARD", "WEATHER", "한강 공원 시간대 최대 강수량 시간당 8mm", "WEATHER_RAIN")), List.of(),
+                List.of(), false));
         assertThatThrownBy(() -> restores.restore(PD, 1, 1, null)).hasMessageContaining("8mm");
         verify(plans, never()).updateBlock(anyLong(), anyString(), any());
 

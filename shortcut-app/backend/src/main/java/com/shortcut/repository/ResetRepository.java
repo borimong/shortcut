@@ -46,6 +46,20 @@ public class ResetRepository {
             WHERE b.shoot_day_id = :id AND b.code = 'PM'
               AND o.shoot_day_id = b.shoot_day_id AND o.block_code = 'PM' AND o.option_no = 1
             """,
+            // 확정으로 바뀐 오후 블록 씬 순서를 콜시트 v1 스냅숏 순서로 되돌린다. 블록이 쓰던 sort 값을 작은 것부터 다시 나눠 준다.
+            """
+            WITH wanted AS (
+                SELECT e.value ->> 'code' AS code, e.ordinality AS n
+                FROM callsheet_versions cv CROSS JOIN jsonb_array_elements(cv.scenes) WITH ORDINALITY AS e
+                WHERE cv.shoot_day_id = :id AND cv.version_no = 1
+            ), slots AS (
+                SELECT sort, row_number() OVER (ORDER BY sort) AS n
+                FROM scenes WHERE shoot_day_id = :id AND block_code = 'PM'
+            )
+            UPDATE scenes s SET sort = slots.sort
+            FROM wanted JOIN slots ON slots.n = wanted.n
+            WHERE s.shoot_day_id = :id AND s.block_code = 'PM' AND s.code = wanted.code
+            """,
             // 오후 블록을 1안으로 되돌린 뒤에 지워야 4안 장소를 가리키던 블록이 남지 않는다.
             "DELETE FROM shoot_day_alternatives WHERE shoot_day_id = :id",
             "DELETE FROM weather_forecasts WHERE shoot_day_id = :id AND location_id >= 100",
@@ -76,17 +90,19 @@ public class ResetRepository {
             // 아래에서 촬영일 날짜가 바뀌면 전에 받은 날씨 API 예보는 다른 날짜의 예보다. 지우면 다음 정기 확인(1분 간격)에서 새 날짜로 받는다.
             """
             DELETE FROM weather_forecasts w USING shoot_days d
-            WHERE w.source = 'LIVE' AND w.shoot_day_id = d.id AND d.id >= :id
+            WHERE w.source = 'LIVE' AND w.shoot_day_id = d.id
               AND d.project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
-              AND d.shoot_date <> CURRENT_DATE + CAST(d.id - :id AS integer)
+              AND d.shoot_date <> CURRENT_DATE + CAST(d.id - (SELECT min(f.id) FROM shoot_days f
+                                                              WHERE f.project_id = d.project_id) AS integer)
             """,
-            // 씬 진행 표시가 시계 기준이라 시연 촬영일은 항상 오늘로 둔다.
-            "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE WHERE id = :id",
-            // 같은 작품의 다음 촬영일(시드 2회차)은 그다음 날부터 하루씩 둔다. 촬영판은 계속 오늘인 시연 촬영일을 고르고,
-            // 적용 기간이 있는 자원 상태가 다음 촬영일에도 걸리는지 이어서 확인할 수 있다.
+            "UPDATE shoot_days SET data_version = 1 WHERE id = :id",
+            // 씬 진행 표시가 시계 기준이라 같은 작품의 첫 촬영일(시연 촬영일)은 항상 오늘로 두고, n회차는 오늘 + (n - 1)일에 둔다.
+            // 촬영판은 계속 오늘인 시연 촬영일을 고르고, 적용 기간이 있는 자원 상태가 다음 촬영일에도 걸리는지 이어서 확인할 수 있다.
+            // 2회차를 초기화해도 날짜는 첫 촬영일 기준이라 회차끼리 날짜가 겹치지 않는다.
             """
-            UPDATE shoot_days SET shoot_date = CURRENT_DATE + CAST(id - :id AS integer)
-            WHERE id > :id AND project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
+            UPDATE shoot_days d SET shoot_date = CURRENT_DATE + CAST(d.id - (SELECT min(f.id) FROM shoot_days f
+                                                                             WHERE f.project_id = d.project_id) AS integer)
+            WHERE d.project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
             """
     };
 
@@ -109,7 +125,7 @@ public class ResetRepository {
             }
             spec.update();
         }
-        // 배우 일정 목데이터는 1회차 날짜에서 계산한다. 위에서 촬영일 날짜가 바뀌었으니 SEED 줄을 지우고 다시 만든다.
+        // 배우 일정 목데이터는 1회차 날짜에서 계산한다. 위에서 촬영일 날짜가 바뀌었을 수 있으니 SEED 줄을 지우고 다시 만든다.
         // 날짜를 같은 날 수만큼 밀면 "금·토 공연" 같은 요일 규칙이 어긋나서 밀지 않는다. 소속사 회신과 직접 입력은 남긴다.
         // 같은 트랜잭션의 연결을 쓰므로 초기화가 실패하면 함께 되돌아간다.
         jdbc.sql("DELETE FROM actor_availability WHERE source = 'SEED'").update();

@@ -39,27 +39,42 @@ VALUES (1, 'S12', 'EQUIPMENT', 1, '카메라 패키지 A', 1, 'MUST'),
 ON CONFLICT DO NOTHING;
 
 -- 씬 배정. 같은 씬을 여러 촬영일에 나눠 찍을 수 있어 씬 코드는 촬영일 안에서만 유일하다.
--- 출연 배우(actor_ids)와 야외 의도(outdoor_intent)는 이제 대본의 등장 배역과 실내/실외에서 읽는다. 두 열은 시드 대조 테스트가 같은지 본다.
-INSERT INTO scenes (project_id, code, shoot_day_id, block_code, title, duration_min, outdoor_intent, location_id, actor_ids, sort)
-VALUES (1, 'S01', 1, 'AM', '출근길 로비', 30, false, NULL, '[2, 3]', 1),
-       (1, 'S02', 1, 'AM', '회의실 브리핑', 35, false, NULL, '[2, 3]', 2),
-       (1, 'S03', 1, 'AM', '탕비실 대화', 30, false, NULL, '[2, 3]', 3),
-       (1, 'S04', 1, 'AM', '복도 통화', 30, false, NULL, '[2, 3]', 4),
-       (1, 'S05', 1, 'AM', '팀장실 면담', 40, false, NULL, '[2, 3]', 5),
-       (1, 'S06', 1, 'AM', '사무실 언쟁', 35, false, NULL, '[2, 3]', 6),
-       (1, 'S07', 1, 'AM', '엘리베이터 침묵', 35, false, NULL, '[2, 3]', 7),
-       (1, 'S08', 1, 'AM', '퇴근 준비', 35, false, NULL, '[2, 3]', 8),
-       (1, 'S12', 1, 'PM', '한강 산책 대화', 90, true, NULL, '[1, 2]', 12),
-       (1, 'S13', 1, 'PM', '강변 인서트', 30, true, NULL, '[1]', 13),
-       (1, 'S14', 2, 'AM', '편집실 회의', 60, false, NULL, '[2, 3]', 14),
-       (1, 'S15', 2, 'AM', '복도 재회', 60, false, NULL, '[3]', 15),
-       (1, 'S18', 2, 'PM', '작업실 대화', 90, false, 2, '[2, 3]', 18),
-       (1, 'S19', 2, 'PM', '작업실 인서트', 30, false, 2, '[2]', 19),
-       (1, 'S16', 3, 'AM', '노무사 상담', 90, false, NULL, '[2, 5]', 16),
-       (1, 'S17', 3, 'AM', '노무사 복도 통화', 30, false, NULL, '[5]', 17),
-       (1, 'S21', 3, 'PM', '루프탑 소문', 90, true, 5, '[2, 4]', 21),
-       (1, 'S22', 3, 'PM', '루프탑 야경 인서트', 30, true, 5, '[4]', 22)
+-- 출연 배우와 야외 의도는 대본의 등장 배역과 실내/실외에서 읽는다. sort는 확정으로 블록 안 순서가 바뀌면 고쳐지고
+-- 초기화가 콜시트 v1 스냅숏 순서로 되돌린다. 여기서는 덮지 않는다.
+INSERT INTO scenes (project_id, code, shoot_day_id, block_code, title, duration_min, location_id, sort)
+VALUES (1, 'S01', 1, 'AM', '출근길 로비', 30, NULL, 1),
+       (1, 'S02', 1, 'AM', '회의실 브리핑', 35, NULL, 2),
+       (1, 'S03', 1, 'AM', '탕비실 대화', 30, NULL, 3),
+       (1, 'S04', 1, 'AM', '복도 통화', 30, NULL, 4),
+       (1, 'S05', 1, 'AM', '팀장실 면담', 40, NULL, 5),
+       (1, 'S06', 1, 'AM', '사무실 언쟁', 35, NULL, 6),
+       (1, 'S07', 1, 'AM', '엘리베이터 침묵', 35, NULL, 7),
+       (1, 'S08', 1, 'AM', '퇴근 준비', 35, NULL, 8),
+       (1, 'S12', 1, 'PM', '한강 산책 대화', 90, NULL, 12),
+       (1, 'S13', 1, 'PM', '강변 인서트', 30, NULL, 13),
+       (1, 'S14', 2, 'AM', '편집실 회의', 60, NULL, 14),
+       (1, 'S15', 2, 'AM', '복도 재회', 60, NULL, 15),
+       (1, 'S18', 2, 'PM', '작업실 대화', 90, 2, 18),
+       (1, 'S19', 2, 'PM', '작업실 인서트', 30, 2, 19),
+       (1, 'S16', 3, 'AM', '노무사 상담', 90, NULL, 16),
+       (1, 'S17', 3, 'AM', '노무사 복도 통화', 30, NULL, 17),
+       (1, 'S21', 3, 'PM', '루프탑 소문', 90, 5, 21),
+       (1, 'S22', 3, 'PM', '루프탑 야경 인서트', 30, 5, 22)
 ON CONFLICT DO NOTHING;
+
+-- 콜시트 버전의 오후 블록 씬 시각표 스냅숏이다. 씬 순서를 남기기 전에 만든 버전(시드 v1 포함)은 그때 순서(지금 sort)로 한 번 채운다.
+-- 씬 순서를 바꾸는 확정은 늘 스냅숏을 남기므로, 비어 있는 버전은 순서가 바뀌기 전에 만든 것뿐이다.
+UPDATE callsheet_versions cv
+SET scenes = (
+    SELECT coalesce(jsonb_agg(jsonb_build_object('code', t.code, 'start', left(CAST(t.from_time AS text), 5),
+                                                 'end', left(CAST(t.to_time AS text), 5)) ORDER BY t.sort), '[]')
+    FROM (SELECT s.code, s.sort,
+                 cv.pm_start + make_interval(mins => CAST(sum(s.duration_min) OVER w - s.duration_min AS integer)) AS from_time,
+                 cv.pm_start + make_interval(mins => CAST(sum(s.duration_min) OVER w AS integer)) AS to_time
+          FROM scenes s
+          WHERE s.shoot_day_id = cv.shoot_day_id AND s.block_code = 'PM'
+          WINDOW w AS (ORDER BY s.sort)) t)
+WHERE cv.scenes IS NULL;
 
 -- ===== 배우 날짜별 일정 (목데이터) =====
 -- 1회차 날짜(D0) 기준 앞 28일 ~ 뒤 91일, 약 4개월치다. 날짜는 모두 D0에서 계산하고, 초기화가 1회차를 오늘로 옮기면

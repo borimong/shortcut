@@ -87,9 +87,7 @@ CREATE TABLE IF NOT EXISTS scenes (
     block_code     varchar(10) NOT NULL,
     title          varchar(80) NOT NULL,
     duration_min   integer     NOT NULL,
-    outdoor_intent boolean     NOT NULL,
     location_id    bigint REFERENCES locations (id),
-    actor_ids      jsonb       NOT NULL DEFAULT '[]',
     sort           integer     NOT NULL,
     PRIMARY KEY (shoot_day_id, code)
 );
@@ -352,7 +350,7 @@ CREATE TABLE IF NOT EXISTS app_settings (
 ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS weather_source varchar(10) NOT NULL DEFAULT 'LIVE';
 ALTER TABLE app_settings ALTER COLUMN weather_source SET DEFAULT 'LIVE';
 
--- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST 중 하나다.
+-- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, SCENE(씬 순서), COST 중 하나다.
 CREATE TABLE IF NOT EXISTS approver_rules (
     change_kind varchar(20) NOT NULL,
     role        varchar(30) NOT NULL,
@@ -581,7 +579,9 @@ CREATE TABLE IF NOT EXISTS scene_requirements (
 
 -- 촬영 배정이 대본 씬을 가리키게 한다. 이미 있는 DB는 이 문장이 시드보다 먼저 돌아 대본 씬이 비어 있으므로
 -- 외래키가 한 번 검증되지 않은 채로 걸리고 다음 기동에서 검증된다(ensure_constraint).
--- 출연 배우(actor_ids)와 야외 의도(outdoor_intent)는 이제 배역과 대본 씬에서 읽는다. 두 열은 시드 대조 테스트가 같은지 보다가 지운다.
+-- 출연 배우와 야외 의도는 배역(scene_characters)과 대본 씬(int_ext)에서 읽으므로 예전 두 열은 지운다.
+ALTER TABLE scenes DROP COLUMN IF EXISTS actor_ids;
+ALTER TABLE scenes DROP COLUMN IF EXISTS outdoor_intent;
 ALTER TABLE scenes ADD COLUMN IF NOT EXISTS project_id bigint;
 UPDATE scenes s SET project_id = d.project_id FROM shoot_days d WHERE s.project_id IS NULL AND d.id = s.shoot_day_id;
 ALTER TABLE scenes ALTER COLUMN project_id SET NOT NULL;
@@ -610,6 +610,15 @@ CREATE INDEX IF NOT EXISTS actor_availability_date_idx ON actor_availability (on
 -- 낮/밤 장면 판정에 쓰는 일출과 일몰이다. 비어 있으면 낮/밤 규칙을 건너뛴다.
 ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunrise time;
 ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunset time;
+
+-- ===== 씬 순서 =====
+-- 오후 블록 씬 시각표 [{code, start, end}]다. 배우 일정 때문에 엔진이 블록 안 씬 순서를 바꾼 안을 승인받고 확정한다.
+-- 변경안은 확정 전 순서(orig_scene_order)와 바꿀 순서(scene_order)를 함께 남긴다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다.
+ALTER TABLE proposals ADD COLUMN IF NOT EXISTS orig_scene_order jsonb;
+ALTER TABLE proposals ADD COLUMN IF NOT EXISTS scene_order jsonb;
+-- 콜시트 버전의 오후 블록 씬 스냅숏이다. 씬은 조회할 때 scenes에서 채우므로, 순서가 바뀐 뒤에도 옛 버전이 옛 순서로 보이게 남긴다.
+-- 비어 있는 옛 버전은 씬 배정 시드(data-schedule.sql) 뒤에 그때 순서로 한 번 채운다.
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS scenes jsonb;
 
 -- ===== 콜시트 되돌리기와 재계획 중단 =====
 -- 확정한 콜시트를 앞 버전의 오후 블록으로 되돌리면 새 버전으로 다시 배포한다. 그 버전이 어느 버전으로 되돌린 것인지,

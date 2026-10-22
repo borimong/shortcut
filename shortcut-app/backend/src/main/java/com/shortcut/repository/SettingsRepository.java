@@ -1,6 +1,7 @@
 package com.shortcut.repository;
 
 import com.shortcut.domain.AppSettings;
+import com.shortcut.engine.ApproverRule;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -48,11 +49,11 @@ public class SettingsRepository {
     }
 
     /**
-     * 변경 종류별 필수 승인자 역할이다. 키 순서는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST로 고정한다.
+     * 변경 종류별 필수 승인자 역할이다. 키 순서는 ApproverRule.CHANGE_KINDS(ALWAYS, LOCATION, EQUIPMENT, TIME, SCENE, COST)다.
      */
     public Map<String, List<String>> approverRules() {
         Map<String, List<String>> rules = new LinkedHashMap<>();
-        for (String kind : List.of("ALWAYS", "LOCATION", "EQUIPMENT", "TIME", "COST")) {
+        for (String kind : ApproverRule.CHANGE_KINDS) {
             rules.put(kind, jdbc.sql("SELECT role FROM approver_rules WHERE change_kind = :kind ORDER BY role")
                     .param("kind", kind)
                     .query(String.class)

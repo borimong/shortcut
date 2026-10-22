@@ -131,8 +131,15 @@ FROM (VALUES ('ALWAYS', 'DIRECTOR'),
              ('LOCATION', 'AD1'), ('LOCATION', 'SOUND'),
              ('EQUIPMENT', 'DOP'),
              ('TIME', 'AD1'), ('TIME', 'AD2'),
+             ('SCENE', 'AD1'), ('SCENE', 'AD2'),
              ('COST', 'PRODUCER')) AS v (change_kind, role)
 WHERE NOT EXISTS (SELECT 1 FROM approver_rules);
+
+-- 씬 순서 변경(SCENE) 승인자는 나중에 생긴 종류라, 이미 규칙이 있는 DB에는 SCENE 규칙이 하나도 없을 때만 넣는다.
+INSERT INTO approver_rules (change_kind, role)
+SELECT 'SCENE', v.role
+FROM (VALUES ('AD1'), ('AD2')) AS v (role)
+WHERE NOT EXISTS (SELECT 1 FROM approver_rules WHERE change_kind = 'SCENE');
 
 INSERT INTO reservations (id, shoot_day_id, location_id, start_time, end_time, status, provider)
 VALUES ('R-2031', 1, 2, '14:00', '18:00', 'HELD', 'OURPLACE'),
@@ -319,7 +326,7 @@ VALUES ('PLAN:2-1', '포함', 'LOCATION:2', 'seed'),
        ('PLAN:2-3', '사용', 'EQUIPMENT:3', 'seed')
 ON CONFLICT DO NOTHING;
 
--- 씬의 장소와 배우 (scenes.location_id, actor_ids). 장소가 비어 있는 씬은 블록 장소에서 찍는다.
+-- 씬의 장소와 배우 (scenes.location_id, 등장 배역의 캐스팅). 장소가 비어 있는 씬은 블록 장소에서 찍는다.
 INSERT INTO ontology_edges (src, relation, dst, created_by)
 VALUES ('SCENE:S13', '촬영지', 'LOCATION:1', 'seed'),
        ('SCENE:S18', '출연', 'ACTOR:3', 'seed'),

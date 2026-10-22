@@ -63,7 +63,7 @@ class LocationProofBlockersTest {
 
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
         assertThat(PlanEngine.locationProofBlockers(result.candidates()).getFirst())
-                .isEqualTo("배우 B 일정(18:30~21:00 광고, 행사)과 겹칩니다.");
+                .isEqualTo("배우 B 일정(18:30~21:00 광고와 행사)과 겹칩니다.");
     }
 
     @Test

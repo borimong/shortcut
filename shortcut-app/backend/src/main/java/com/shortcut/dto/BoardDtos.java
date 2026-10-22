@@ -89,8 +89,10 @@ public final class BoardDtos {
     public record RestoreResult(int versionNo, int restoredFrom, String reservationStatus) {
     }
 
+    /** sceneOrderChanged는 바로 앞 버전과 오후 블록 씬 순서가 다른지다. */
     public record CallsheetContent(long shootDayId, int versionNo, Long proposalId, OffsetDateTime createdAt,
-                                   LocalDate shootDate, LocalTime callTime, List<BlockView> blocks) {
+                                   LocalDate shootDate, LocalTime callTime, List<BlockView> blocks,
+                                   boolean sceneOrderChanged) {
     }
 
     public record HistoryItem(OffsetDateTime at, String kind, String text, String link) {

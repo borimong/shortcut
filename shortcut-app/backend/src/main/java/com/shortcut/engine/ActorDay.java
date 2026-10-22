@@ -19,7 +19,7 @@ public record ActorDay(long actorId, boolean off, String offReason, List<Window>
 
     // 배우 일정 사유는 개인 사정을 옮기지 않으려고 종류만 보여 준다. OUR_SHOOT은 우리 촬영에 이미 배정된 시간이다.
     private static final Map<String, String> REASON_LABELS = Map.of(
-            "OTHER_PRODUCTION", "타 작품", "PROMOTION", "광고, 행사", "PERSONAL", "개인 일정", "TRAVEL", "이동 일정",
+            "OTHER_PRODUCTION", "타 작품", "PROMOTION", "광고와 행사", "PERSONAL", "개인 일정", "TRAVEL", "이동 일정",
             "OUR_SHOOT", "우리 촬영");
 
     public static String reasonLabel(String reasonKind) {
@@ -77,8 +77,11 @@ public record ActorDay(long actorId, boolean off, String offReason, List<Window>
         return new ActorDay(actorId, false, null, List.of(new Window(from, to)), busy);
     }
 
-    /** 변경 입력으로 들어온 다른 일정을 더한다. */
+    /** 변경 입력으로 들어온 다른 일정을 더한다. 같은 시각과 사유의 일정이 이미 있으면 한 번만 둔다. */
     public ActorDay withBusy(Busy extra) {
+        if (busy.contains(extra)) {
+            return this;
+        }
         List<Busy> all = new ArrayList<>(busy);
         all.add(extra);
         return new ActorDay(actorId, off, offReason, windows, List.copyOf(all));

@@ -296,9 +296,14 @@ class PlanEngineTest {
         PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), SeedPlan.seedScenes(), Map.of(), lateMorning,
                 t("17:40"));
 
-        CheckResult check = engine.check(input, 2, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        CheckResult check = engine.check(input, 2, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of(),
+                List.of("S12", "S13"));
         assertThat(check.violations()).extracting(Finding::code).contains("ACTOR_OVERLAP");
         assertThat(check.violations()).anySatisfy(f -> assertThat(f.message()).contains("배우 B", "AM 블록"));
+        // 배우 B가 나오지 않는 S13을 먼저 찍으면 B는 13:30부터 현장에 있으면 되어 겹침이 풀린다.
+        CheckResult repaired = engine.check(input, 2, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        assertThat(repaired.violations()).extracting(Finding::code).doesNotContain("ACTOR_OVERLAP");
+        assertThat(SceneSlot.codes(repaired.sceneOrder())).containsExactly("S13", "S12");
     }
 
     @Test
@@ -310,6 +315,100 @@ class PlanEngineTest {
 
         assertThat(codes(find(result, "L2-E1,2,3-T14001600"))).contains("EXCLUDED_BY_CONSTRAINT");
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
+    }
+
+    @Test
+    void 막히지_않으면_씬_순서를_바꾸지_않는다() {
+        EvaluationResult result = engine.evaluate(SeedPlan.withScript(SeedPlan.input(List.of())), null, List.of());
+
+        CandidateResult best = result.candidates().getFirst();
+        assertThat(best.hash()).isEqualTo("L2-E1,2,3-T14001600");
+        assertThat(best.sceneOrderChanged()).isFalse();
+        assertThat(best.sceneOrder()).containsExactly(
+                new SceneSlot("S12", t("14:00"), t("15:30")), new SceneSlot("S13", t("15:30"), t("16:00")));
+    }
+
+    @Test
+    void 이회차_오후는_1단계처럼_배우가_블록_내내_있다고_보면_실행_가능_후보가_없다() {
+        // 1단계 엔진은 배우가 블록 전체 시간에 있다고 봤다. 배우 C의 10:30~14:30 일정이 14:00 시작과 겹쳐 모두 막혔다.
+        EvaluationResult result = engine.evaluate(SeedPlan.day2(false), null, List.of());
+
+        assertThat(result.candidates()).hasSize(27).noneMatch(CandidateResult::feasible);
+        assertThat(find(result, "L2-E1,5-T14001600").violations()).extracting(Finding::code).containsExactly("ACTOR_BUSY");
+    }
+
+    @Test
+    void 이회차_오후는_씬_순서를_S19_S18로_바꿔_성수_그대로_찍는다() {
+        EvaluationResult result = engine.evaluate(SeedPlan.day2(true), null, List.of());
+
+        assertThat(result.candidates()).hasSize(27);
+        List<CandidateResult> feasible = result.candidates().stream().filter(CandidateResult::feasible).toList();
+        assertThat(feasible).isNotEmpty().allSatisfy(c -> {
+            assertThat(c.location().id()).isEqualTo(2);
+            assertThat(c.start()).isEqualTo(t("14:00"));
+            assertThat(c.sceneOrderChanged()).isTrue();
+            assertThat(c.sceneOrder()).containsExactly(
+                    new SceneSlot("S19", t("14:00"), t("14:30")), new SceneSlot("S18", t("14:30"), t("16:00")));
+        });
+        assertThat(result.candidates().getFirst().hash()).isEqualTo("L2-E1,5-T14001600");
+        // 파주는 세트가 없어 순서를 바꿔도 막힌다.
+        assertThat(codes(find(result, "L3-E1,5-T14001600"))).containsExactly("SCRIPT_SETTING_LOCKED");
+    }
+
+    @Test
+    void 확정_순서를_넘기면_그_순서_그대로_판정한다() {
+        PlanInput input = SeedPlan.day2(true);
+
+        CheckResult asCommitted = engine.check(input, 2, List.of(1L, 5L), t("14:00"), t("16:00"), List.of(),
+                List.of("S18", "S19"));
+        assertThat(asCommitted.violations()).extracting(Finding::code).containsExactly("ACTOR_BUSY");
+        assertThat(asCommitted.violations().getFirst().message())
+                .contains("배우 C", "10:30~14:30 타 작품", "현장 14:00~15:30");
+        assertThat(asCommitted.sceneOrderChanged()).isFalse();
+
+        CheckResult swapped = engine.check(input, 2, List.of(1L, 5L), t("14:00"), t("16:00"), List.of(),
+                List.of("S19", "S18"));
+        assertThat(swapped.feasible()).isTrue();
+        assertThat(swapped.sceneOrderChanged()).isTrue();
+
+        assertThatThrownBy(() -> engine.check(input, 2, List.of(1L, 5L), t("14:00"), t("16:00"), List.of(),
+                List.of("S19")))
+                .isInstanceOf(PlanRuleException.class)
+                .hasMessageContaining("S18, S19");
+    }
+
+    @Test
+    void 되는_순서_가운데_배우_대기_시간이_가장_짧은_순서를_고른다() {
+        // 배우 C(3)는 14:30까지 다른 일정이 있어 첫 씬에 나올 수 없다. 배우 B(2)는 두 씬을 붙여 찍어야 기다리지 않는다.
+        List<ScenePlan> scenes = List.of(
+                new ScenePlan("X1", 30, false, false, false, null, List.of(), List.of(), List.of(), List.of(3L)),
+                new ScenePlan("X2", 30, false, false, false, null, List.of(), List.of(), List.of(), List.of(2L)),
+                new ScenePlan("X3", 30, false, false, false, null, List.of(), List.of(), List.of(), List.of(2L)));
+        ActorDay busyC = new ActorDay(3, false, null, List.of(new ActorDay.Window(t("06:30"), t("20:00"))),
+                List.of(new ActorDay.Busy(t("10:30"), t("14:30"), "OTHER_PRODUCTION")));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), scenes, Map.of(3L, busyC), List.of(),
+                t("17:40"));
+
+        CheckResult check = engine.check(input, 2, List.of(1L), t("14:00"), t("16:00"), List.of());
+        assertThat(check.feasible()).isTrue();
+        assertThat(SceneSlot.codes(check.sceneOrder())).containsExactly("X2", "X3", "X1");
+    }
+
+    @Test
+    void 씬이_다섯_개를_넘으면_걸린_씬만_맨_앞이나_맨_뒤로_옮긴다() {
+        List<ScenePlan> scenes = new java.util.ArrayList<>();
+        scenes.add(new ScenePlan("Y1", 20, false, false, false, null, List.of(), List.of(), List.of(), List.of(3L)));
+        for (int i = 2; i <= 6; i++) {
+            scenes.add(new ScenePlan("Y" + i, 20, false, false, false, null, List.of(), List.of(), List.of(), List.of(2L)));
+        }
+        ActorDay busyC = new ActorDay(3, false, null, List.of(new ActorDay.Window(t("06:30"), t("20:00"))),
+                List.of(new ActorDay.Busy(t("10:30"), t("15:00"), "OTHER_PRODUCTION")));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), scenes, Map.of(3L, busyC), List.of(),
+                t("17:40"));
+
+        CheckResult check = engine.check(input, 2, List.of(1L), t("14:00"), t("16:00"), List.of());
+        assertThat(check.feasible()).isTrue();
+        assertThat(SceneSlot.codes(check.sceneOrder())).containsExactly("Y2", "Y3", "Y4", "Y5", "Y6", "Y1");
     }
 
     private static List<String> codes(CandidateResult candidate) {

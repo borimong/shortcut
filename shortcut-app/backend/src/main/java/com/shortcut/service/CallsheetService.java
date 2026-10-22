@@ -6,6 +6,7 @@ import com.shortcut.dto.BoardDtos.RestoreResult;
 import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.Finding;
 import com.shortcut.engine.PlanSnapshot;
+import com.shortcut.engine.SceneSlot;
 import com.shortcut.repository.CallsheetRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.ProposalRepository;
@@ -69,7 +70,10 @@ public class CallsheetService {
         }
         PlanData data = planData.load(shootDayId);
         PlanSnapshot pm = target.pm();
-        CheckResult check = planService.check(data, pm.locationId(), pm.equipmentIds(), pm.start(), pm.end(), List.of());
+        // 그 버전의 씬 순서까지 되돌린다. 씬 순서를 남기기 전 버전이면 지금 순서로 검사한다.
+        List<String> order = pm.scenes().isEmpty() ? null : SceneSlot.codes(pm.scenes());
+        CheckResult check = planService.check(data, pm.locationId(), pm.equipmentIds(), pm.start(), pm.end(), List.of(),
+                order);
         if (!check.feasible()) {
             String why = check.violations().stream().map(Finding::message).collect(Collectors.joining(" "));
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "RESTORE_INVALID",
@@ -77,10 +81,13 @@ public class CallsheetService {
                     Map.of("violations", check.violations()));
         }
         // 비용은 지금 장소와 장비 값으로 다시 계산한다.
-        PlanSnapshot restored = data.snapshot(pm.locationId(), pm.equipmentIds(), pm.start(), pm.end());
+        PlanSnapshot restored = data.snapshot(pm.locationId(), pm.equipmentIds(), pm.start(), pm.end(), check.sceneOrder());
         String note = reason == null || reason.isBlank() ? null : reason.strip();
 
         plans.updateBlock(shootDayId, PlanData.CHANGING_BLOCK, restored);
+        if (!restored.scenes().isEmpty()) {
+            plans.updateSceneOrder(shootDayId, PlanData.CHANGING_BLOCK, SceneSlot.codes(restored.scenes()));
+        }
         int dataVersion = plans.bumpDataVersion(shootDayId);
         // 변경안과 콜시트 번호가 겹치지 않게 변경안 번호 규칙(둘 중 큰 번호 + 1)을 함께 쓴다.
         int newVersion = proposals.nextVersionNo(shootDayId);

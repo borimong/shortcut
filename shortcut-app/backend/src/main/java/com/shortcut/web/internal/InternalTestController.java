@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,9 +43,10 @@ public class InternalTestController {
         testSupport.clearAlerts();
     }
 
+    /** 촬영일 하나를 시드 상태로 되돌린다. 비우면 시연 촬영일(1회차)이다. 2회차 평가 시나리오는 2를 넘긴다. */
     @PostMapping("/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void reset() {
-        testSupport.reset(SEED_SHOOT_DAY);
+    public void reset(@RequestParam(required = false) Long shootDayId) {
+        testSupport.reset(shootDayId == null ? SEED_SHOOT_DAY : shootDayId);
     }
 }
