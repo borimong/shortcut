@@ -117,7 +117,7 @@ class CancelAndRestoreTest {
         assertThat(result.versionNo()).isEqualTo(5);
         assertThat(result.reservationStatus()).isEqualTo("MANUAL_PENDING");
         verify(plans).updateBlock(1L, "PM", HANGANG);
-        verify(supersede).supersedeOlder(1L, 6, "콜시트 v1으로 되돌림");
+        verify(supersede).supersedeOlder(1L, 6, "콜시트 v1로 되돌림");
         verify(outbox).callsheetJob(eq(30L), eq(1L), eq(5), anyString());
     }
 

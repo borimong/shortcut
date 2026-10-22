@@ -17,7 +17,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { useShootDayStore } from '../stores/shootDay.js'
-import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
+import { addMinutes, dateTime, dateWithWeekday, josa, ver } from '../format.js'
 
 const notifications = useNotificationStore()
 const shootDay = useShootDayStore()
@@ -97,7 +97,7 @@ async function restore() {
     })
     confirmingRestore.value = false
     restoreReason.value = ''
-    toast.info(`${ver(r.restoredFrom)}으로 되돌려 ${ver(r.versionNo)}로 배포했습니다.`)
+    toast.info(`${josa(ver(r.restoredFrom), '으로')} 되돌려 ${josa(ver(r.versionNo), '으로')} 배포했습니다.`)
     selectedVersion.value = ''
     await load()
   } catch (e) {
@@ -241,7 +241,7 @@ function print() {
 
     <div v-if="canRestore && confirmingRestore" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 print:hidden">
       <span class="text-sm">
-        오후 블록을 {{ ver(selectedVersion) }}로 되돌려 새 버전으로 다시 배포합니다. 지금 데이터로 하드 제약을 어기면 되돌리지 않습니다.
+        오후 블록을 {{ josa(ver(selectedVersion), '으로') }} 되돌려 새 버전으로 다시 배포합니다. 지금 데이터로 하드 제약을 어기면 되돌리지 않습니다.
       </span>
       <Input v-model="restoreReason" class="min-w-[220px] flex-1" placeholder="되돌리는 사유 (비워도 됩니다)" maxlength="200" />
       <Button size="sm" :disabled="restoring" @click="restore">되돌리기</Button>
@@ -268,7 +268,7 @@ function print() {
         :to="`/proposals/${board.pendingProposal.id}`"
         class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground no-underline hover:bg-accent print:hidden"
       >
-        <span>변경안 {{ ver(board.pendingProposal.versionNo) }}이 승인 중입니다. 확정되면 콜시트가 새 버전으로 바뀝니다.</span>
+        <span>변경안 {{ josa(ver(board.pendingProposal.versionNo), '이') }} 승인 중입니다. 확정되면 콜시트가 새 버전으로 바뀝니다.</span>
         <span class="text-primary">승인 현황 보기</span>
       </RouterLink>
 

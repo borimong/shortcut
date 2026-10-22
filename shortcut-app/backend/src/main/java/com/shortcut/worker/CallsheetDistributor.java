@@ -1,6 +1,7 @@
 package com.shortcut.worker;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.shortcut.common.Josa;
 import com.shortcut.config.RabbitTopology;
 import com.shortcut.config.ShortcutProperties;
 import com.shortcut.domain.UserAccount;
@@ -56,7 +57,7 @@ public class CallsheetDistributor {
             }
         }
         notifications.insertForUsers(newlySent, NotificationService.CALLSHEET,
-                "확정 콜시트 v" + versionNo + "이 배포되었습니다", "변경된 오후 블록을 확인해 주세요.", "/");
+                Josa.iGa("확정 콜시트 v" + versionNo) + " 배포되었습니다", "변경된 오후 블록을 확인해 주세요.", "/");
         jobLogs.insert(RabbitTopology.JOBS_CALLSHEET, messageId, attempt, "SUCCESS", null);
     }
 }

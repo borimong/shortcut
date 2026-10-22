@@ -1,5 +1,6 @@
 package com.shortcut.engine;
 
+import com.shortcut.common.Josa;
 import com.shortcut.domain.Actor;
 import com.shortcut.domain.SceneCharacter;
 import com.shortcut.domain.ScriptScene;
@@ -82,7 +83,7 @@ public final class Placeability {
             if (!anyDay) {
                 Actor actor = actors.get(actorId);
                 return new Result(scene.code(), scene.heading(), actorIds, minutes, null,
-                        actor.name() + "은(는) 기간 안에 " + label + "을 낼 수 있는 날이 없습니다(계약 가능 시간 "
+                        Josa.eunNeun(actor.name()) + " 기간 안에 " + label + "을 낼 수 있는 날이 없습니다(계약 가능 시간 "
                                 + actor.availableFrom().format(HH_MM) + "~" + actor.availableTo().format(HH_MM) + ").");
             }
         }

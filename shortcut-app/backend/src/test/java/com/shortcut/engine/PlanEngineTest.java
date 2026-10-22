@@ -186,7 +186,7 @@ class PlanEngineTest {
         EvaluationResult result = engine.evaluate(input, null, List.of());
 
         assertThat(result.candidates()).allSatisfy(c -> assertThat(c.violations())
-                .anySatisfy(f -> assertThat(f.message()).contains("배우 A은(는) 오늘 촬영에 참여할 수 없습니다")));
+                .anySatisfy(f -> assertThat(f.message()).contains("배우 A는 오늘 촬영에 참여할 수 없습니다")));
     }
 
     @Test
@@ -287,7 +287,7 @@ class PlanEngineTest {
                 SeedPlan.seedMorning(), t("17:40"));
 
         assertThat(engine.evaluate(input, null, List.of()).candidates()).allSatisfy(c -> assertThat(c.violations())
-                .anySatisfy(f -> assertThat(f.message()).isEqualTo("배우 A은(는) 오늘 촬영에 참여할 수 없습니다(타 작품).")));
+                .anySatisfy(f -> assertThat(f.message()).isEqualTo("배우 A는 오늘 촬영에 참여할 수 없습니다(타 작품).")));
     }
 
     @Test

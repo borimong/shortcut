@@ -30,8 +30,9 @@ class LocationProofBlockersTest {
         List<String> blockers = PlanEngine.locationProofBlockers(input, result.candidates());
 
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
-        assertThat(blockers.getFirst()).isEqualTo("S18, S19은(는) 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.");
-        assertThat(blockers).contains("성수 스튜디오은(는) 변경 입력에서 취소되어 쓸 수 없습니다.",
+        // 씬마다 출연 배우가 없으면 배우 C가 블록 내내 현장에 있어 성수 후보 모두가 배우 C 일정에도 걸린다.
+        assertThat(blockers.getFirst()).isEqualTo("S18, S19는 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.");
+        assertThat(blockers).contains("성수 스튜디오는 변경 입력에서 취소되어 쓸 수 없습니다.",
                 "배우 C 일정(10:30~14:30 타 작품)과 겹칩니다.");
     }
 
@@ -52,8 +53,9 @@ class LocationProofBlockersTest {
             assertThat(c.location().id()).isEqualTo(2L);
             assertThat(c.violations()).extracting(Finding::code).doesNotContain("ACTOR_BUSY", "SCRIPT_SETTING_LOCKED");
         });
-        assertThat(blockers.getFirst()).isEqualTo("S18, S19은(는) 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.");
-        assertThat(blockers).contains("성수 스튜디오은(는) 변경 입력에서 취소되어 쓸 수 없습니다.");
+        // 배우 C 일정과 13시 시작의 이용 시간 밖은 일부 성수 후보에만 걸리고 씬 순서나 다른 시간대로 풀리므로 원인에서 뺀다.
+        assertThat(blockers).containsExactly("S18, S19는 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.",
+                "성수 스튜디오는 변경 입력에서 취소되어 쓸 수 없습니다.");
     }
 
     @Test

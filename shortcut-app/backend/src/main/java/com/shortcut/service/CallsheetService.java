@@ -1,6 +1,7 @@
 package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
+import com.shortcut.common.Josa;
 import com.shortcut.domain.Callsheet;
 import com.shortcut.dto.BoardDtos.RestoreResult;
 import com.shortcut.engine.CheckResult;
@@ -77,7 +78,7 @@ public class CallsheetService {
         if (!check.feasible()) {
             String why = check.violations().stream().map(Finding::message).collect(Collectors.joining(" "));
             throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "RESTORE_INVALID",
-                    "v" + versionNo + "은(는) 지금 촬영 데이터로는 하드 제약을 어겨 되돌릴 수 없습니다. " + why,
+                    Josa.eunNeun("v" + versionNo) + " 지금 촬영 데이터로는 하드 제약을 어겨 되돌릴 수 없습니다. " + why,
                     Map.of("violations", check.violations()));
         }
         // 비용은 지금 장소와 장비 값으로 다시 계산한다.
@@ -102,10 +103,10 @@ public class CallsheetService {
                     restored.start(), restored.end());
             reservationStatus = "MANUAL_PENDING";
         }
-        supersede.supersedeOlder(shootDayId, dataVersion, "콜시트 v" + versionNo + "으로 되돌림");
+        supersede.supersedeOlder(shootDayId, dataVersion, Josa.euroRo("콜시트 v" + versionNo) + " 되돌림");
         outbox.callsheetJob(created.id(), shootDayId, newVersion, UUID.randomUUID().toString());
         String place = data.locations().get(restored.locationId()).name();
-        notifications.notifyAll(NotificationService.CHANGE_NOTICE, "콜시트 v" + newVersion + " 배포(v" + versionNo + "으로 되돌림)",
+        notifications.notifyAll(NotificationService.CHANGE_NOTICE, "콜시트 v" + newVersion + " 배포(" + Josa.euroRo("v" + versionNo) + " 되돌림)",
                 "오후 블록: " + place + " " + restored.start().format(HH_MM) + "~" + restored.end().format(HH_MM)
                         + (note == null ? "" : ". 사유: " + note), "/callsheet");
         return new RestoreResult(newVersion, versionNo, reservationStatus);

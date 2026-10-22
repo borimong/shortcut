@@ -1,5 +1,6 @@
 package com.shortcut.engine;
 
+import com.shortcut.common.Josa;
 import com.shortcut.domain.Actor;
 import com.shortcut.domain.DisasterAlert;
 import com.shortcut.domain.Equipment;
@@ -155,7 +156,7 @@ public final class PlanEngine {
 
     /**
      * 세트 고정 씬은 그 세트 장소에서만 찍을 수 있다. 씬 순서를 바꿔 배우 일정이 풀리는 후보가 있어도 세트 장소가 취소되거나
-     * 이용 시간 밖이면 남는 길은 사람이 정하는 일정 변경뿐이라, 세트 장소 후보를 막는 원인을 이어 적는다.
+     * 이용 시간 밖이면 남는 길은 사람이 정하는 일정 변경뿐이라, 세트 장소 후보를 모두 막는 원인을 이어 적는다.
      */
     private static List<String> lockedSetBlockers(PlanInput input, List<CandidateResult> candidates) {
         Map<Long, String> sets = input.blockScenes().stream()
@@ -165,14 +166,18 @@ public final class PlanEngine {
         List<String> lines = new ArrayList<>();
         sets.forEach((setId, codes) -> {
             Location set = input.locations().get(setId);
-            lines.add(codes + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있는데 그곳을 쓸 수 없습니다.");
+            lines.add(Josa.eunNeun(codes) + " 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있는데 그곳을 쓸 수 없습니다.");
             List<CandidateResult> atSet = candidates.stream().filter(c -> c.location().id() == setId).toList();
             lines.addAll(rankedCauses(atSet, f -> !"SCRIPT_SETTING_LOCKED".equals(f.code())));
         });
         return lines.stream().distinct().limit(MAX_BLOCKERS).toList();
     }
 
-    /** 위반을 규칙마다 한 문장으로 모아 많은 후보를 막는 순서로 세운다. */
+    /**
+     * 위반을 규칙마다 한 문장으로 모은다. 모든 후보에 걸린 규칙이 있으면 그것만 쓴다. 일부 후보에만 걸린 규칙(씬 순서나
+     * 다른 시간대로 풀리는 배우 일정, 이른 시작의 이용 시간 밖)은 진짜 원인이 아니라 사람이 헷갈린다.
+     * 모든 후보에 걸린 규칙이 없으면 많은 후보를 막는 순서로 세운다.
+     */
     private static List<String> rankedCauses(List<CandidateResult> candidates, Predicate<Finding> counted) {
         Map<String, Integer> hits = new LinkedHashMap<>();
         Map<String, String> firstMessage = new LinkedHashMap<>();
@@ -182,7 +187,9 @@ public final class PlanEngine {
             // 위반 문장 끝의 "(현장 13:00~15:00)"는 후보마다 다른 시각이라, 사람에게 넘기는 원인에서는 뺀다.
             found.forEach(f -> firstMessage.putIfAbsent(f.code(), f.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".")));
         }
+        boolean common = hits.containsValue(candidates.size());
         return hits.entrySet().stream()
+                .filter(e -> !common || e.getValue() == candidates.size())
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
                 .limit(MAX_BLOCKERS)
                 .map(e -> firstMessage.get(e.getKey()))
@@ -275,7 +282,7 @@ public final class PlanEngine {
 
         if (!location.available()) {
             violations.add(new Finding("LOCATION_CANCELLED", "SCHEDULE",
-                    location.name() + "은(는) 변경 입력에서 취소되어 쓸 수 없습니다.", "SCHEDULE_LOCATION"));
+                    Josa.eunNeun(location.name()) + " 변경 입력에서 취소되어 쓸 수 없습니다.", "SCHEDULE_LOCATION"));
         }
         if (start.isBefore(location.openFrom()) || end.isAfter(location.openTo())) {
             violations.add(new Finding("LOCATION_CLOSED", "SCHEDULE",
@@ -291,7 +298,7 @@ public final class PlanEngine {
         for (Equipment item : items) {
             if (!item.available()) {
                 violations.add(new Finding("EQUIPMENT_UNAVAILABLE", "SCHEDULE",
-                        item.name() + "을(를) 사용할 수 없습니다.", "SCHEDULE_EQUIPMENT"));
+                        Josa.eulReul(item.name()) + " 사용할 수 없습니다.", "SCHEDULE_EQUIPMENT"));
             }
         }
 
@@ -330,7 +337,7 @@ public final class PlanEngine {
         }
         if (location.noFlyZone() && items.stream().anyMatch(Equipment::drone)) {
             violations.add(new Finding("DRONE_NO_FLY", "NO_FLY_ZONE",
-                    location.name() + "은(는) 비행금지구역이라 드론을 쓸 수 없습니다.", "NO_FLY_ZONE"));
+                    Josa.eunNeun(location.name()) + " 비행금지구역이라 드론을 쓸 수 없습니다.", "NO_FLY_ZONE"));
         }
         for (DisasterAlert alert : input.alerts()) {
             if (Regions.covers(alert.region(), location.region())
@@ -542,7 +549,7 @@ public final class PlanEngine {
         if (day.off()) {
             String reason = day.offReason() == null ? "" : "(" + ActorDay.reasonLabel(day.offReason()) + ")";
             violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
-                    actor.name() + "은(는) 오늘 촬영에 참여할 수 없습니다" + reason + ".", "SCHEDULE_ACTOR"));
+                    Josa.eunNeun(actor.name()) + " 오늘 촬영에 참여할 수 없습니다" + reason + ".", "SCHEDULE_ACTOR"));
             return;
         }
         String onSet = "현장 " + fmt(start) + "~" + fmt(end);
@@ -563,7 +570,7 @@ public final class PlanEngine {
         for (BlockSlot other : input.otherBlocks()) {
             if (other.actorIds().contains(actorId) && overlaps(other.start(), other.end(), start, end)) {
                 violations.add(new Finding("ACTOR_OVERLAP", "SCHEDULE",
-                        actor.name() + "이(가) 같은 시간 " + other.code() + " 블록(" + fmt(other.start()) + "~"
+                        Josa.iGa(actor.name()) + " 같은 시간 " + other.code() + " 블록(" + fmt(other.start()) + "~"
                                 + fmt(other.end()) + ")에도 나옵니다(" + onSet + ").", "SCHEDULE_OVERLAP"));
             }
         }
@@ -589,12 +596,12 @@ public final class PlanEngine {
         }
         if (!dayOutside.isEmpty()) {
             found.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
-                    String.join(", ", dayOutside) + "은(는) 낮 야외 장면인데 일출~일몰(" + fmt(input.sunrise()) + "~"
+                    Josa.eunNeun(String.join(", ", dayOutside)) + " 낮 야외 장면인데 일출~일몰(" + fmt(input.sunrise()) + "~"
                             + fmt(input.sunset()) + ") 밖에 걸립니다.", "SCRIPT_TIME_OF_DAY"));
         }
         if (!nightBeforeDark.isEmpty()) {
             found.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
-                    String.join(", ", nightBeforeDark) + "은(는) 밤 야외 장면인데 일몰(" + fmt(input.sunset())
+                    Josa.eunNeun(String.join(", ", nightBeforeDark)) + " 밤 야외 장면인데 일몰(" + fmt(input.sunset())
                             + ") 전에 시작합니다.", "SCRIPT_TIME_OF_DAY"));
         }
         return found;
@@ -633,7 +640,7 @@ public final class PlanEngine {
         lockedElsewhere.forEach((setId, codes) -> {
             Location set = input.locations().get(setId);
             violations.add(new Finding("SCRIPT_SETTING_LOCKED", "SCRIPT",
-                    codes + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있어 "
+                    Josa.eunNeun(codes) + " 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있어 "
                             + location.name() + "에서 찍을 수 없습니다.", "SCRIPT_SETTING"));
         });
         List<String> uncast = scenes.stream().flatMap(s -> s.uncastCharacters().stream()).distinct().toList();
@@ -651,13 +658,13 @@ public final class PlanEngine {
         String exteriorIndoor = codes(scenes, s -> s.exterior() && location.indoor());
         if (!exteriorIndoor.isEmpty()) {
             warnings.add(new Finding("SCRIPT_EXT_INDOOR", "SCRIPT",
-                    exteriorIndoor + "은(는) 대본상 야외 장면인데 " + location.name() + "은(는) 실내입니다. 연출 확인이 필요합니다.",
+                    Josa.eunNeun(exteriorIndoor) + " 대본상 야외 장면인데 " + Josa.eunNeun(location.name()) + " 실내입니다. 연출 확인이 필요합니다.",
                     "SCRIPT_SETTING"));
         }
         String interiorOutdoor = codes(scenes, s -> !s.exterior() && !location.indoor());
         if (!interiorOutdoor.isEmpty()) {
             warnings.add(new Finding("SCRIPT_INT_OUTDOOR", "SCRIPT",
-                    interiorOutdoor + "은(는) 대본상 실내 장면인데 " + location.name() + "은(는) 야외입니다. 연출 확인이 필요합니다.",
+                    Josa.eunNeun(interiorOutdoor) + " 대본상 실내 장면인데 " + Josa.eunNeun(location.name()) + " 야외입니다. 연출 확인이 필요합니다.",
                     "SCRIPT_SETTING"));
         }
         String wantMissing = equipmentNames(input, scenes.stream().flatMap(s -> s.wantEquipmentIds().stream()), have);

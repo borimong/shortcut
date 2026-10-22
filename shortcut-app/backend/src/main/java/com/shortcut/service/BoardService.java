@@ -1,6 +1,7 @@
 package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
+import com.shortcut.common.Josa;
 import com.shortcut.common.JsonColumns;
 import com.shortcut.domain.Actor;
 import com.shortcut.domain.Approval;
@@ -173,7 +174,7 @@ public class BoardService {
             if (c.proposalId() != null) {
                 items.add(new HistoryItem(c.createdAt(), "COMMITTED", "확정 콜시트 v" + c.versionNo(), "/"));
             } else if (c.restoredFrom() != null) {
-                items.add(new HistoryItem(c.createdAt(), "RESTORED", "콜시트 v" + c.restoredFrom() + "으로 되돌려 v"
+                items.add(new HistoryItem(c.createdAt(), "RESTORED", Josa.euroRo("콜시트 v" + c.restoredFrom()) + " 되돌려 v"
                         + c.versionNo() + " 배포" + (c.note() == null ? "" : " (" + c.note() + ")"), "/callsheet"));
             }
         }
@@ -229,7 +230,7 @@ public class BoardService {
     private static String weatherSummary(PlanData data, Location location, java.time.LocalTime start,
                                          java.time.LocalTime end) {
         if (location.indoor()) {
-            return location.name() + "은(는) 실내라 강수 영향이 없습니다.";
+            return Josa.eunNeun(location.name()) + " 실내라 강수 영향이 없습니다.";
         }
         double blockMm = data.settings().rainBlockMm();
         double warnMm = data.settings().rainWarnMm();
