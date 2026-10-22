@@ -114,6 +114,10 @@ def explanation_problems(
     foreign = [name for name in sorted({*locations.values(), *equipment.values()} - allowed) if name in rest]
     if foreign:
         problems.append(f"설명에 선택하지 않은 장소나 장비가 있습니다: {', '.join(foreign)}")
+    # 장비 묶음 일부만 적으면 승인자가 빠진 장비를 안 가져가는 안으로 읽는다.
+    left_out = missing_equipment(text, choice)
+    if left_out:
+        problems.append(f"설명에 제안 장비가 빠졌습니다: {', '.join(left_out)}")
     # 씬 순서가 바뀌면 배우 콜타임이 달라지므로 승인자가 새 순서를 설명에서 바로 볼 수 있어야 한다.
     codes = [s["code"] for s in choice.get("sceneOrder") or []]
     if choice.get("sceneOrderChanged") and not all(code in text for code in codes):
@@ -131,15 +135,24 @@ SCRIPT_FOLLOW_UPS = {
 SCENE_ORDER_FOLLOW_UP = "조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"
 
 
+def missing_equipment(text: str, candidate: dict[str, Any]) -> list[str]:
+    """설명에 나오지 않은 제안 장비 이름입니다."""
+    return [item["name"] for item in candidate["equipment"]["items"] if item["name"] not in text]
+
+
 def missing_cost_and_distance(text: str, candidate: dict[str, Any]) -> str:
     """설명에 이동 거리나 추가 비용 숫자가 빠졌으면 엔진 값으로 채울 한 문장을 만듭니다. 둘 다 있으면 빈 문자열입니다.
-    검토에서 같은 지적이 되풀이되지 않도록 모델에게 맡기지 않고 코드가 붙입니다."""
+    검토에서 같은 지적이 되풀이되지 않도록 모델에게 맡기지 않고 코드가 붙입니다.
+    "14.0km"와 "14km", "150,000원"과 "15만 원"처럼 표기가 달라도 같은 값이면 이미 있다고 봅니다."""
     km = f"{float(candidate['distanceKm']):g}"
     extra = int(candidate["extraCost"])
-    has_distance = re.search(rf"{re.escape(km)}\s*km", text) is not None
     amount = abs(extra)
-    variants = [f"{amount:,}원", f"{amount}원"] + ([f"{amount // 10000}만"] if amount and amount % 10000 == 0 else [])
-    has_cost = "추가 비용" in text if extra == 0 else any(v in text for v in variants)
+    has_distance = any(
+        abs(float(n) - float(candidate["distanceKm"])) < 0.05 for n in re.findall(r"(\d+(?:\.\d+)?)\s*km", text)
+    )
+    won = [int(n.replace(",", "")) for n in re.findall(r"(\d[\d,]*)\s*원", text)]
+    man = [round(float(n) * 10000) for n in re.findall(r"(\d+(?:\.\d+)?)\s*만\s*원?", text)]
+    has_cost = "추가 비용" in text if extra == 0 else amount in won + man
     if extra > 0:
         cost = f"현재 확정안보다 {extra:,}원이 더 듭니다"
     elif extra < 0:
@@ -503,14 +516,23 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "evidenceIds": cited,
         }
     script = checklist.get("SCRIPT")
-    # 대본의 하드 규칙(세트 고정, 낮 장면, 필수 장비, 미캐스팅)은 엔진이 이미 통과시킨 후보다. 남은 WARN은 소프트 경고뿐이라
-    # 근거가 붙어 있으면 PASS로 두고 연출 확인은 미확정 항목으로 넘긴다. 그대로 두면 검토가 WARN으로 매 회차 감점한다.
-    if script and script["status"] == "WARN" and script["evidenceIds"]:
-        script["status"] = "PASS"
+    soft = [w["message"] for w in choice.get("warnings") or [] if w.get("code") in SCRIPT_FOLLOW_UPS]
+    # 엔진의 대본 소프트 경고(야외 장면을 실내에서, 선호 장비 없음)는 위반이 아니지만 승인자가 놓치지 않게 WARN으로 보인다.
+    # 자체 검토는 이 WARN을 감점하지 않는다(self_review의 체크리스트 표시와 self_review.md).
+    if script and soft:
+        script["status"] = "WARN"
+        if not script["note"].strip():
+            script["note"] = " ".join(soft)
     explanation = explained.explanation
+    left_out = missing_equipment(explanation, choice)
+    if left_out:
+        # 다시 써도 장비 묶음 일부가 빠졌으면 승인자가 묶음 전체를 보도록 코드가 한 문장을 붙인다.
+        names = ", ".join(item["name"] for item in choice["equipment"]["items"])
+        explanation = f"{explanation.rstrip()} 장비 묶음은 {names}입니다."
     facts = missing_cost_and_distance(explanation, choice)
     if facts:
         explanation = f"{explanation.rstrip()} {facts}"
+    problems = explanation_problems(explanation, choice, state["candidates"], current)
     unresolved = list(explained.unresolved)
     unresolved.extend(missing_follow_ups(choice, unresolved))
     # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
@@ -594,7 +616,7 @@ def review_facts(candidate: dict[str, Any]) -> str:
     return (
         "하드 제약 위반: 0건 (업무 규칙 엔진과 검증 게이트가 계약, 일정, 법규, 예산 상한, 비행 금지, 재난, 날씨를 모두 확인함)\n"
         f"이 안의 장소와 장비 비용: {candidate['cost']}원 (블록 예산 상한 이내), 현재 확정안 대비 추가 비용: {candidate['extraCost']}원\n"
-        f"목동 기준 이동 거리: {candidate['distanceKm']}km, 실내 여부: {'실내' if candidate['location']['indoor'] else '야외'}\n"
+        f"목동 기준 이동 거리: {float(candidate['distanceKm']):g}km, 실내 여부: {'실내' if candidate['location']['indoor'] else '야외'}\n"
         f"엔진 경고(위반이 아니라 사람이 확인할 사항): {warnings}"
     )
 
@@ -607,9 +629,16 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     plan = state["selected_plan"]
     candidate = plan["candidate"]
     round_no = state.get("review_round", 0) + 1
-    checklist = "\n".join(
-        f"{c['constraint']} {c['status']} 근거 {len(c['evidenceIds'])}건: {c['note']}" for c in plan["checklist"]
-    )
+    script_soft = any(w.get("code") in SCRIPT_FOLLOW_UPS for w in candidate.get("warnings") or [])
+
+    def line(c: dict[str, Any]) -> str:
+        text = f"{c['constraint']} {c['status']} 근거 {len(c['evidenceIds'])}건: {c['note']}"
+        # 엔진 대본 경고를 승인자에게 보이려고 둔 WARN이라 검토 모델이 위반 위험으로 읽고 감점하지 않게 밝혀 둔다.
+        if c["constraint"] == "SCRIPT" and c["status"] == "WARN" and c["evidenceIds"] and script_soft:
+            text += " (엔진 대본 경고를 승인자에게 보이려는 표시, 위반 아님, 감점하지 않음)"
+        return text
+
+    checklist = "\n".join(line(c) for c in plan["checklist"])
     body = fit_sections(
         [
             Section("업무 규칙 엔진이 확인한 사실", review_facts(candidate), 0),

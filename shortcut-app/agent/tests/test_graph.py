@@ -357,7 +357,6 @@ def test_review_stops_when_the_score_stays_the_same_twice():
     model = FakeModel(
         review_scores=[76],
         review_actions=["REWRITE", "NEXT_CANDIDATE", "REWRITE", "NEXT_CANDIDATE", "REWRITE"],
-        warn_constraints={"SCRIPT"},
     )
     ctx, backend, _, _ = make_context(model=model)
     backend.script_warnings = True
@@ -378,11 +377,24 @@ def test_review_stops_when_the_score_stays_the_same_twice():
     assert review["rounds"] == 3 and review["passed"] is False and review["stalled"] is True
     assert review["score"] == 76 and review["chosenRound"] == 1
     assert ctx.model.structured_calls.count("PlanReview") == 3
-    # 검토가 되풀이해 지적한 세 가지는 코드가 엔진 값으로 채워 승인 요청에 실린다.
+    # 모델이 SCRIPT를 PASS로 적어도 엔진 대본 경고가 있으면 승인자에게 보이도록 WARN으로 싣는다(근거는 그대로).
     script = next(c for c in proposal["checklist"] if c["constraint"] == "SCRIPT")
-    assert script["status"] == "PASS" and script["evidence_ids"]
+    assert script["status"] == "WARN" and script["evidence_ids"]
+    assert not any(u.startswith("SCRIPT") for u in proposal["unresolved"])
+    # 검토가 되풀이해 지적한 거리, 비용, 연출 확인 담당은 코드가 엔진 값으로 채워 승인 요청에 실린다.
     assert "목동 기준 이동 거리는 14km이고, 현재 확정안보다 150,000원이 더 듭니다." in proposal["explanation"]
     assert "연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시" in proposal["unresolved"]
+
+
+def test_explanation_missing_equipment_is_rewritten_then_completed():
+    # 미리보기 변경안 설명이 장비 묶음(카메라 패키지 A, 드론, 반사판) 가운데 카메라 패키지 A만 적었다.
+    ctx, backend, _, _ = make_context(model=FakeModel(drop_equipment=True))
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    assert ctx.model.structured_calls.count("PlanExplanation") == 2
+    assert proposal["explanation"].count("장비 묶음은 카메라 패키지 A, 드론, 반사판입니다.") == 1
+    assert not any(u.startswith("설명 확인 필요") for u in proposal["unresolved"])
 
 
 def test_engine_facts_are_not_added_twice():
@@ -392,6 +404,9 @@ def test_engine_facts_are_not_added_twice():
     assert missing_cost_and_distance("목동에서 14km, 추가 비용 15만 원입니다.", candidate) == ""
     assert missing_cost_and_distance("목동에서 14 km 떨어져 있고 150,000원이 더 듭니다.", candidate) == ""
     assert missing_cost_and_distance("150,000원이 더 듭니다.", candidate) == "목동 기준 이동 거리는 14km입니다."
+    # 미리보기에서 "14.0km"가 있는데도 "14km" 문장을 또 붙였다. 표기가 달라도 같은 값이면 붙이지 않는다.
+    assert missing_cost_and_distance("이동 거리는 14.0km이며 추가 비용은 15만원입니다.", candidate) == ""
+    assert missing_cost_and_distance("이동 거리는 14.0km입니다.", candidate) == "현재 확정안보다 150,000원이 더 듭니다."
     assert missing_follow_ups(candidate, []) == ["연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"]
     assert missing_follow_ups(candidate, ["연출감독, 실내 촬영 연출 확인, 승인 시"]) == []
     changed = {**SEONGSU, "sceneOrderChanged": True}
@@ -426,6 +441,10 @@ def test_explanation_may_name_the_original_plan():
     assert explanation_problems("파주 세트장으로 옮깁니다.", SEONGSU, [SEONGSU, PAJU, HANGANG], current) == [
         "설명에 선택한 장소가 없습니다: 성수 스튜디오",
         "설명에 선택하지 않은 장소나 장비가 있습니다: 파주 세트장",
+        "설명에 제안 장비가 빠졌습니다: 카메라 패키지 A, 드론, 반사판",
+    ]
+    assert explanation_problems("성수 스튜디오로 옮기고 카메라 패키지 A를 씁니다.", SEONGSU, [SEONGSU], current) == [
+        "설명에 제안 장비가 빠졌습니다: 드론, 반사판"
     ]
 
 
@@ -450,7 +469,8 @@ def test_reordered_candidate_carries_scene_order_to_tools_and_explanation():
     text = "성수 스튜디오 그대로 S19를 먼저 찍고 S18을 14:30에 시작합니다. 카메라 패키지 A와 드론, 반사판을 씁니다."
     assert explanation_problems(text, reordered, [reordered], current) == []
     assert explanation_problems("성수 스튜디오에서 그대로 찍습니다.", reordered, [reordered], current) == [
-        "설명에 바뀐 씬 순서가 없습니다: S19 → S18"
+        "설명에 제안 장비가 빠졌습니다: 카메라 패키지 A, 드론, 반사판",
+        "설명에 바뀐 씬 순서가 없습니다: S19 → S18",
     ]
 
 

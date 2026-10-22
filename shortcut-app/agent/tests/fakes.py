@@ -415,11 +415,11 @@ class FakeModel:
         review_scores=None,
         review_actions=None,
         explanation_extras=None,
-        warn_constraints=(),
+        drop_equipment: bool = False,
     ):
         self.cite_evidence = cite_evidence
-        # 체크리스트에서 근거는 붙이되 WARN으로 적을 범주다. 대본 경고를 WARN으로 적는 모델을 흉내 낸다.
-        self.warn_constraints = set(warn_constraints)
+        # 설명에 장비 묶음 가운데 첫 장비만 쓰는 모델을 흉내 낸다.
+        self.drop_equipment = drop_equipment
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
         # 자체 검토 회차마다 돌려줄 총점과 행동이다. 다 쓰면 마지막 값을 반복한다.
@@ -474,16 +474,17 @@ class FakeModel:
             checklist = [
                 {
                     "constraint": c,
-                    "status": "WARN" if c in self.warn_constraints else "PASS",
+                    "status": "PASS",
                     "note": "준수",
                     "evidence_ids": [EVIDENCE_BY_CONSTRAINT[c][0]] if self.cite_evidence else [],
                 }
                 for c in HARD_CONSTRAINTS
             ]
-            chosen = re.search(r"## 선택한 후보\n장소 (.+?)\(", text).group(1)
+            chosen, gear = re.search(r"## 선택한 후보\n장소 (.+?)\(\d안\), 장비 (.+?)\(\d안\)", text).groups()
             extra = self.explanation_extras.pop(0) if self.explanation_extras else ""
+            gear = gear.split(", ")[0] if self.drop_equipment else gear
             return PlanExplanation(
-                explanation=f"우천으로 {chosen}로 옮깁니다. {extra}".strip(),
+                explanation=f"우천으로 {chosen}로 옮기고 {gear}를 씁니다. {extra}".strip(),
                 checklist=checklist,
                 unresolved=["예약 확정"],
                 needs_more_info=False,
