@@ -190,7 +190,7 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
     @mcp.tool(annotations=READ_ONLY)
     async def get_weather(shoot_day_id: ShootDayId) -> dict:
         """촬영일의 장소별 시간당 강수량(mm)과 촬영 불가 기준(rainBlockMm)을 돌려준다. 실내 장소인지도 함께 표시한다.
-        장소마다 forecast에 예보 출처(SEED 시연용 고정, LIVE 날씨 API, SEED_FALLBACK 실시간을 못 받아 시드 사용)와
+        장소마다 forecast에 예보 출처(LIVE 날씨 API, SEED 시연용 고정, NONE 실시간 예보를 아직 못 받아 강수량 없음)와
         갱신 시각(updatedAt)이 있다. manual이 true면 사람이 변경 입력으로 넣은 강수량이 예보보다 우선 반영된 것이다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/weather")
 

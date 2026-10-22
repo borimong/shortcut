@@ -208,6 +208,9 @@ public class BoardService {
         double blockMm = data.settings().rainBlockMm();
         double warnMm = data.settings().rainWarnMm();
         Map<Integer, Double> hourly = data.hourly(location.id());
+        if (hourly.isEmpty()) {
+            return location.name() + " 예보가 아직 없어 강수 영향을 판단하지 못했습니다.";
+        }
         int lastHour = (end.toSecondOfDay() / 60 - 1) / 60;
         double max = 0;
         Integer firstRainy = null;

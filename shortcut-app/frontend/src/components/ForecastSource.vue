@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { dateTime } from '../format.js'
 
-// backend ForecastView: source(SEED, LIVE, SEED_FALLBACK), updatedAt, stale, manual
+// backend ForecastView: source(LIVE, SEED, NONE), updatedAt, stale, manual
 const props = defineProps({ forecast: { type: Object, default: null } })
 
 const line = computed(() => {
@@ -13,7 +13,7 @@ const line = computed(() => {
     return { text: `실시간 예보 갱신 실패, ${dateTime(f.updatedAt)}에 받은 예보 사용${manual}`, warn: true }
   }
   if (f.source === 'LIVE') return { text: `실시간 예보(Open-Meteo), ${dateTime(f.updatedAt)} 갱신${manual}`, warn: false }
-  if (f.source === 'SEED_FALLBACK') return { text: `실시간 예보를 아직 받지 못해 시드 예보 사용${manual}`, warn: true }
+  if (f.source === 'NONE') return { text: `실시간 예보를 아직 받지 못했습니다. 비 소식은 변경 입력으로 넣어 주세요${manual}`, warn: true }
   return { text: `시연용 고정 예보${manual}`, warn: false }
 })
 </script>

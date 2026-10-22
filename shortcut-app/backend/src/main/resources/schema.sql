@@ -347,8 +347,10 @@ CREATE TABLE IF NOT EXISTS app_settings (
     updated_by            varchar(40),
     updated_at            timestamptz  NOT NULL DEFAULT now()
 );
--- SEED는 시연 시나리오용 시드 예보, LIVE는 날씨 API 예보다. 시연이 깨지지 않게 기본은 SEED다.
-ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS weather_source varchar(10) NOT NULL DEFAULT 'SEED';
+-- LIVE는 날씨 API 예보, SEED는 시연 시나리오용 시드 예보다. 실제 서비스처럼 기본은 LIVE이고,
+-- 시연 날 비가 오지 않으면 관리자가 SEED로 바꿔 1회차 한강 공원 8mm 시나리오를 돌린다.
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS weather_source varchar(10) NOT NULL DEFAULT 'LIVE';
+ALTER TABLE app_settings ALTER COLUMN weather_source SET DEFAULT 'LIVE';
 
 -- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST 중 하나다.
 CREATE TABLE IF NOT EXISTS approver_rules (

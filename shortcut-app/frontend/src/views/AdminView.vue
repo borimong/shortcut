@@ -190,11 +190,11 @@ const leftMembers = computed(() => members.value.filter((m) => !m.active))
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SEED">시연용 고정 예보 (1회차 한강 공원 13시부터 8mm)</SelectItem>
                   <SelectItem value="LIVE">실시간 예보 (Open-Meteo, 1시간마다 갱신)</SelectItem>
+                  <SelectItem value="SEED">시연용 고정 예보 (1회차 한강 공원 13시부터 8mm)</SelectItem>
                 </SelectContent>
               </Select>
-              <FieldDescription>실시간 예보는 장소 위경도로 받습니다. 변경 입력으로 넣은 강수량은 어느 쪽이든 예보보다 우선합니다.</FieldDescription>
+              <FieldDescription>실시간 예보는 장소 위경도로 받습니다. 시연 날 비가 오지 않으면 고정 예보로 바꿉니다. 변경 입력으로 넣은 강수량은 어느 쪽이든 예보보다 우선합니다.</FieldDescription>
             </Field>
           </FieldGroup>
           <div class="mt-4 flex flex-wrap justify-end gap-2">

@@ -173,18 +173,13 @@ public class PlanRepository {
     }
 
     /**
-     * source(SEED 또는 LIVE) 예보를 읽는다. LIVE 예보를 아직 받지 못한 장소는 시드 예보를 대신 쓴다.
-     * 비가 없다고 0으로 두는 것보다 시드 값을 쓰는 편이 안전하고, 화면은 ForecastInfo로 대신 쓴 것을 알린다.
+     * source(LIVE 또는 SEED) 예보를 읽는다. 두 출처를 섞지 않는다.
+     * 실시간 예보를 아직 받지 못한 장소는 시드의 시연용 비를 대신 쓰지 않고 예보 없음으로 두며, 화면이 그렇게 알린다.
      */
     public List<WeatherHour> findWeather(long shootDayId, String source) {
         return jdbc.sql("""
-                        SELECT location_id, hour, precip_mm FROM weather_forecasts w
-                        WHERE w.shoot_day_id = :id
-                          AND (w.source = :source
-                               OR (w.source = 'SEED' AND NOT EXISTS (
-                                   SELECT 1 FROM weather_forecasts x
-                                   WHERE x.shoot_day_id = w.shoot_day_id AND x.location_id = w.location_id
-                                     AND x.source = :source)))
+                        SELECT location_id, hour, precip_mm FROM weather_forecasts
+                        WHERE shoot_day_id = :id AND source = :source
                         ORDER BY location_id, hour
                         """)
                 .param("id", shootDayId)

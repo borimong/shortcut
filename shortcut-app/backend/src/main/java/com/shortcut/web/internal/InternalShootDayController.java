@@ -63,7 +63,7 @@ public class InternalShootDayController {
                                                               @Valid @RequestBody RegisterAlternativesRequest request) {
         List<AlternativeLocationView> registered = alternatives.register(id, request.externalLocationIds(),
                 request.keywords());
-        // 등록이 커밋된 뒤에 받아야 저장할 장소 행이 있다. 실패해도 등록은 그대로 두고 시드에서 복사한 예보로 판정한다.
+        // 등록이 커밋된 뒤에 받아야 저장할 장소 행이 있다. 실패해도 등록은 그대로 두고, 그 장소는 다음 갱신 때까지 예보 없음으로 보인다.
         forecasts.refreshRegistered(registered.stream().map(AlternativeLocationView::locationId).toList());
         return registered;
     }

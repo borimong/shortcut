@@ -104,7 +104,7 @@ public class WeatherForecastService {
     }
 
     /**
-     * 4안 장소를 등록한 직후 그 장소 예보를 받는다. 엔진이 시드에서 복사한 보수적인 강수량 대신 그 지점 예보로 판정하게 하려는 것이다.
+     * 4안 장소를 등록한 직후 그 장소 예보를 받는다. 엔진이 예보 없이 판정하지 않고 그 지점 예보로 판정하게 하려는 것이다.
      * 시드 예보를 쓰는 중이면 등록 응답을 늦추지 않고 다음 정기 확인에 맡긴다.
      */
     public void refreshRegistered(Collection<Long> locationIds) {

@@ -47,7 +47,7 @@ public final class BoardDtos {
     /**
      * 예보 출처와 갱신 시각이다.
      *
-     * @param source SEED(시연용 시드 예보), LIVE(날씨 API 예보), SEED_FALLBACK(날씨 API 예보를 아직 못 받아 시드 예보를 대신 씀)
+     * @param source LIVE(날씨 API 예보), SEED(시연용 시드 예보), NONE(실시간 예보를 쓰는데 이 장소 예보를 아직 못 받음)
      * @param updatedAt 날씨 API 예보를 마지막으로 받은 시각. LIVE일 때만 있다
      * @param stale 마지막 갱신이 오래되어 최근 갱신이 실패한 것으로 보이는지. 이때도 마지막으로 받은 값을 쓴다
      * @param manual 변경 입력으로 이 장소의 강수량을 덮어썼는지. 덮어쓴 시간대는 예보보다 입력값이 우선한다

@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
 
 class PlanDataServiceWeatherTest {
 
-    private static final AppSettings LIVE = new AppSettings(5, 5.0, 1.0, 3, AppSettings.LIVE, null, null);
+    private static final AppSettings LIVE = AppSettings.DEFAULT;
+    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, null, null);
     private static final OffsetDateTime FETCHED = OffsetDateTime.parse("2026-10-22T09:00:00+09:00");
 
     private final PlanRepository plans = mock(PlanRepository.class);
@@ -62,7 +63,7 @@ class PlanDataServiceWeatherTest {
 
     @Test
     void 시드_예보를_고르면_시드_행만_읽고_갱신_시각을_보지_않는다() {
-        given(settings.settings()).willReturn(AppSettings.DEFAULT);
+        given(settings.settings()).willReturn(SEED);
         given(plans.findWeather(1L, AppSettings.SEED)).willReturn(List.of(new WeatherHour(1, 13, 8.0)));
         given(overrides.find(1L)).willReturn(List.of());
 

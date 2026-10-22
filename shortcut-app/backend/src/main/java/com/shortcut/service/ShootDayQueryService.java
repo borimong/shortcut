@@ -125,7 +125,7 @@ public class ShootDayQueryService {
         }
         OffsetDateTime fetchedAt = data.forecast().liveFetchedAt().get(locationId);
         if (fetchedAt == null) {
-            return new ForecastView("SEED_FALLBACK", null, false, manual);
+            return new ForecastView("NONE", null, false, manual);
         }
         boolean stale = fetchedAt.isBefore(now.minus(WeatherForecastService.STALE_AFTER));
         return new ForecastView(AppSettings.LIVE, fetchedAt, stale, manual);

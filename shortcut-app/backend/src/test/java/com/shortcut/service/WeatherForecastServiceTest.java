@@ -44,8 +44,8 @@ class WeatherForecastServiceTest {
     private static final ZonedDateTime NOW = ZonedDateTime.of(2026, 10, 22, 9, 0, 0, 0, ZoneId.of("Asia/Seoul"));
     private static final LocalDate DAY1 = NOW.toLocalDate();
     private static final LocalDate DAY2 = DAY1.plusDays(1);
-    private static final AppSettings SEED = AppSettings.DEFAULT;
-    private static final AppSettings LIVE = new AppSettings(5, 5.0, 1.0, 3, AppSettings.LIVE, null, null);
+    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, null, null);
+    private static final AppSettings LIVE = AppSettings.DEFAULT;
     private static final Location HANGANG = new Location(1, "한강 공원", "서울 영등포구 여의도 한강공원", false, "서울 영등포구",
             LocalTime.of(6, 0), LocalTime.of(22, 0), LocalTime.of(9, 0), LocalTime.of(17, 0), 300_000, false, 0.95, 6,
             null, true);
@@ -162,11 +162,11 @@ class WeatherForecastServiceTest {
     }
 
     @Test
-    void 화면은_시드_실시간_대체_오래된_예보와_현장_입력을_구분한다() {
+    void 화면은_시드_실시간_예보_없음_오래된_예보와_현장_입력을_구분한다() {
         OffsetDateTime now = NOW.toOffsetDateTime();
 
         ForecastView seed = ShootDayQueryService.forecast(data(SEED, Map.of(), Map.of(1L, now)), 1, now);
-        ForecastView fallback = ShootDayQueryService.forecast(data(LIVE, Map.of(), Map.of()), 1, now);
+        ForecastView none = ShootDayQueryService.forecast(data(LIVE, Map.of(), Map.of()), 1, now);
         ForecastView live = ShootDayQueryService.forecast(data(LIVE, Map.of(), Map.of(1L, now.minusMinutes(30))), 1, now);
         ForecastView stale = ShootDayQueryService.forecast(data(LIVE, Map.of(), Map.of(1L, now.minusHours(2))), 1, now);
         PlanData typed = new PlanData(data(LIVE, Map.of(), Map.of()).shootDay(), List.of(), List.of(), Map.of(),
@@ -174,7 +174,7 @@ class WeatherForecastServiceTest {
                 List.of(), LIVE);
 
         assertThat(seed).isEqualTo(new ForecastView("SEED", null, false, false));
-        assertThat(fallback.source()).isEqualTo("SEED_FALLBACK");
+        assertThat(none).isEqualTo(new ForecastView("NONE", null, false, false));
         assertThat(live).isEqualTo(new ForecastView("LIVE", now.minusMinutes(30), false, false));
         assertThat(stale.stale()).isTrue();
         assertThat(ShootDayQueryService.forecast(typed, 1, now).manual()).isTrue();
