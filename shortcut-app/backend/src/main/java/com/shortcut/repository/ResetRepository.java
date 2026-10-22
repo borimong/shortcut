@@ -1,5 +1,6 @@
 package com.shortcut.repository;
 
+import java.util.List;
 import javax.sql.DataSource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -117,13 +118,28 @@ public class ResetRepository {
         this.dataSource = dataSource;
     }
 
+    /**
+     * 이 촬영일이 속한 작품의 모든 촬영일을 시드 상태로 되돌린다. 촬영일 하나만 되돌리면 다른 회차에 넣은 변경
+     * (장소 취소, 장비 고장, 배우 다른 일정)과 확정이 남아, 같은 시나리오를 다시 돌릴 때 변경이 두 벌로 쌓인다.
+     * 위 문장은 촬영일마다 돌려도 결과가 같게 짜여 있어(작품 전체를 보는 문장 포함) 촬영일 순서대로 한 번씩 돈다.
+     */
     public void reset(long shootDayId) {
-        for (String sql : STATEMENTS) {
-            JdbcClient.StatementSpec spec = jdbc.sql(sql);
-            if (sql.contains(":id")) {
-                spec = spec.param("id", shootDayId);
+        List<Long> days = jdbc.sql("""
+                        SELECT id FROM shoot_days
+                        WHERE project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
+                        ORDER BY id
+                        """)
+                .param("id", shootDayId)
+                .query(Long.class)
+                .list();
+        for (long day : days) {
+            for (String sql : STATEMENTS) {
+                JdbcClient.StatementSpec spec = jdbc.sql(sql);
+                if (sql.contains(":id")) {
+                    spec = spec.param("id", day);
+                }
+                spec.update();
             }
-            spec.update();
         }
         // 배우 일정 목데이터는 1회차 날짜에서 계산한다. 위에서 촬영일 날짜가 바뀌었을 수 있으니 SEED 줄을 지우고 다시 만든다.
         // 날짜를 같은 날 수만큼 밀면 "금·토 공연" 같은 요일 규칙이 어긋나서 밀지 않는다. 소속사 회신과 직접 입력은 남긴다.
