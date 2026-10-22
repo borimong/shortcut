@@ -22,6 +22,7 @@ from app.graph.schemas import (
     WeightAdjustment,
 )
 from app.graph.state import HARD_CONSTRAINTS
+from app.josa import josa
 from app.harness.tools import ToolGateway
 from app.runtime import RunContext
 
@@ -178,7 +179,7 @@ def _with_script_warning(candidate):
     warning = {
         "code": "SCRIPT_EXT_INDOOR",
         "constraint": "SCRIPT",
-        "message": f"S12은(는) 대본상 야외 장면인데 {candidate['location']['name']}은(는) 실내입니다. 연출 확인이 필요합니다.",
+        "message": f"S12는 대본상 야외 장면인데 {josa(candidate['location']['name'], '은')} 실내입니다. 연출 확인이 필요합니다.",
         "ruleRef": "SCRIPT_SETTING",
     }
     return {**candidate, "warnings": [warning]}
@@ -416,10 +417,15 @@ class FakeModel:
         review_actions=None,
         explanation_extras=None,
         drop_equipment: bool = False,
+        checklist_warn=None,
+        unresolved_extra=None,
     ):
         self.cite_evidence = cite_evidence
         # 설명에 장비 묶음 가운데 첫 장비만 쓰는 모델을 흉내 낸다.
         self.drop_equipment = drop_equipment
+        # 엔진 판정과 달리 WARN으로 적을 범주와 메모, 실제 변경과 맞지 않는 미확정 항목을 흉내 낸다.
+        self.checklist_warn = dict(checklist_warn or {})
+        self.unresolved_extra = list(unresolved_extra or [])
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
         # 자체 검토 회차마다 돌려줄 총점과 행동이다. 다 쓰면 마지막 값을 반복한다.
@@ -474,8 +480,8 @@ class FakeModel:
             checklist = [
                 {
                     "constraint": c,
-                    "status": "PASS",
-                    "note": "준수",
+                    "status": "WARN" if c in self.checklist_warn else "PASS",
+                    "note": self.checklist_warn.get(c, "준수"),
                     "evidence_ids": [EVIDENCE_BY_CONSTRAINT[c][0]] if self.cite_evidence else [],
                 }
                 for c in HARD_CONSTRAINTS
@@ -486,7 +492,7 @@ class FakeModel:
             return PlanExplanation(
                 explanation=f"우천으로 {chosen}로 옮기고 {gear}를 씁니다. {extra}".strip(),
                 checklist=checklist,
-                unresolved=["예약 확정"],
+                unresolved=["예약 확정", *self.unresolved_extra],
                 needs_more_info=False,
             )
         if schema is RejectionPlan:

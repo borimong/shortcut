@@ -23,6 +23,7 @@ from app.graph.state import DEFAULT_WEIGHTS, HARD_CONSTRAINTS
 from app.harness.context import Section, fit_sections, summarize_loops
 from app.harness.instructions import render
 from app.harness.limits import NO_FEASIBLE_PLAN, STOP_MESSAGES, stop_condition
+from app.josa import josa
 from app.runtime import RunContext
 
 # LLM이 고를 수 있는 도구 목록이다. 데이터를 바꾸는 도구는 넣지 않는다.
@@ -122,6 +123,9 @@ def explanation_problems(
     codes = [s["code"] for s in choice.get("sceneOrder") or []]
     if choice.get("sceneOrderChanged") and not all(code in text for code in codes):
         problems.append(f"설명에 바뀐 씬 순서가 없습니다: {' → '.join(codes)}")
+    # 순서는 그대로이고 시각만 옮긴 안을 "씬 순서를 바꿨다"고 쓰면 승인자가 콜시트 순서를 잘못 고친다.
+    if not choice.get("sceneOrderChanged") and SCENE_ORDER_CLAIM.search(text):
+        problems.append("설명에 바뀌지 않은 씬 순서를 바뀌었다고 썼습니다")
     return problems
 
 
@@ -133,6 +137,17 @@ SCRIPT_FOLLOW_UPS = {
     "SCRIPT_EQUIPMENT_WANTED": ("촬영감독", "장비", "촬영감독, 대본상 있으면 좋은 장비 없이 찍는 방법 확인, 승인 시"),
 }
 SCENE_ORDER_FOLLOW_UP = "조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"
+SHOOT_TIME_FOLLOW_UP = "조감독, 바뀐 촬영 시각으로 배우 콜타임 다시 공지, 승인 즉시"
+# "씬 순서를 바꿔", "바뀐 씬 순서"처럼 순서가 바뀌었다고 쓴 말이다. "씬 순서는 그대로"는 걸리지 않는다.
+SCENE_ORDER_CLAIM = re.compile(r"(바꾼|바뀐|바꿔|바뀌어|변경된|변경한) 씬 순서|씬 순서(를|가)? ?(바꾸|바꿨|바꿉|바꿔|바뀌|바뀝|바뀐|변경)")
+
+
+def engine_warnings(candidate: dict[str, Any]) -> dict[str, list[str]]:
+    """엔진 소프트 경고 문장을 하드 제약 범주별로 묶습니다."""
+    warned: dict[str, list[str]] = {}
+    for warning in candidate.get("warnings") or []:
+        warned.setdefault(warning.get("constraint"), []).append(warning["message"])
+    return warned
 
 
 def missing_equipment(text: str, candidate: dict[str, Any]) -> list[str]:
@@ -169,19 +184,32 @@ def missing_cost_and_distance(text: str, candidate: dict[str, Any]) -> str:
     return ""
 
 
-def missing_follow_ups(candidate: dict[str, Any], unresolved: list[str]) -> list[str]:
-    """엔진 경고와 씬 순서 변경에 따라 승인 뒤 사람이 할 일을 담당과 기한까지 채웁니다. 이미 적혀 있으면 넣지 않습니다."""
-    added = []
+def shoot_time_changed(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
+    """확정안과 촬영 시작이나 종료 시각이 다른지 봅니다. 백엔드는 "13:00:00", 후보는 "13:00"으로 줄 수 있어 앞 다섯 글자만 견줍니다."""
+    if not current.get("start"):
+        return False
+    now = (str(current["start"])[:5], str(current.get("end") or "")[:5])
+    return (candidate["time"]["start"][:5], candidate["time"]["end"][:5]) != now
+
+
+def align_follow_ups(candidate: dict[str, Any], current: dict[str, Any], unresolved: list[str]) -> list[str]:
+    """미확정 항목을 실제 변경에 맞춥니다. 순서가 그대로인데 "씬 순서"를 다시 공지하라는 항목은 빼고,
+    엔진 경고와 씬 순서나 촬영 시각 변경에 따라 승인 뒤 사람이 할 일을 담당과 기한까지 채웁니다. 이미 적혀 있으면 넣지 않습니다."""
+    reordered = bool(candidate.get("sceneOrderChanged"))
+    items = [u for u in unresolved if reordered or "씬 순서" not in u]
     codes = [w.get("code") for w in candidate.get("warnings") or []]
     for code in dict.fromkeys(codes):
         if code not in SCRIPT_FOLLOW_UPS:
             continue
         owner, keyword, item = SCRIPT_FOLLOW_UPS[code]
-        if not any(owner in u and keyword in u for u in [*unresolved, *added]):
-            added.append(item)
-    if candidate.get("sceneOrderChanged") and not any("콜타임" in u for u in unresolved):
-        added.append(SCENE_ORDER_FOLLOW_UP)
-    return added
+        if not any(owner in u and keyword in u for u in items):
+            items.append(item)
+    if not any("콜타임" in u for u in items):
+        if reordered:
+            items.append(SCENE_ORDER_FOLLOW_UP)
+        elif shoot_time_changed(candidate, current):
+            items.append(SHOOT_TIME_FOLLOW_UP)
+    return items
 
 
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -515,14 +543,19 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "note": entry.note,
             "evidenceIds": cited,
         }
-    script = checklist.get("SCRIPT")
-    soft = [w["message"] for w in choice.get("warnings") or [] if w.get("code") in SCRIPT_FOLLOW_UPS]
-    # 엔진의 대본 소프트 경고(야외 장면을 실내에서, 선호 장비 없음)는 위반이 아니지만 승인자가 놓치지 않게 WARN으로 보인다.
-    # 자체 검토는 이 WARN을 감점하지 않는다(self_review의 체크리스트 표시와 self_review.md).
-    if script and soft:
-        script["status"] = "WARN"
-        if not script["note"].strip():
-            script["note"] = " ".join(soft)
+    warned = engine_warnings(choice)
+    # 하드 제약 판정은 업무 규칙 엔진이 한다. 엔진이 고른 후보라 위반은 없으므로 상태도 엔진을 따른다.
+    # 엔진 경고(대본 경고, 약한 비)가 있는 범주는 위반이 아니지만 승인자가 놓치지 않게 WARN으로 보이고, 자체 검토는 감점하지 않는다.
+    # 엔진 경고가 없는 범주를 모델이 WARN으로 적으면(비행 금지 구역이 아닌 장소의 NO_FLY_ZONE 등) 없는 위험이라 PASS로 돌린다.
+    # 근거 조각은 그대로 둔다. 근거가 없는 범주는 아래에서 다시 WARN이 된다.
+    for constraint, item in checklist.items():
+        if constraint in warned:
+            item["status"] = "WARN"
+            if not item["note"].strip():
+                item["note"] = " ".join(warned[constraint])
+        elif item["status"] == "WARN":
+            item["status"] = "PASS"
+            item["note"] = "업무 규칙 엔진 판정에서 위반과 경고가 없습니다"
     explanation = explained.explanation
     left_out = missing_equipment(explanation, choice)
     if left_out:
@@ -533,8 +566,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
     if facts:
         explanation = f"{explanation.rstrip()} {facts}"
     problems = explanation_problems(explanation, choice, state["candidates"], current)
-    unresolved = list(explained.unresolved)
-    unresolved.extend(missing_follow_ups(choice, unresolved))
+    unresolved = align_follow_ups(choice, current, list(explained.unresolved))
     # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
     unresolved.extend(f"설명 확인 필요, {problem}" for problem in problems)
     for constraint in HARD_CONSTRAINTS:
@@ -629,13 +661,13 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     plan = state["selected_plan"]
     candidate = plan["candidate"]
     round_no = state.get("review_round", 0) + 1
-    script_soft = any(w.get("code") in SCRIPT_FOLLOW_UPS for w in candidate.get("warnings") or [])
+    warned = engine_warnings(candidate)
 
     def line(c: dict[str, Any]) -> str:
         text = f"{c['constraint']} {c['status']} 근거 {len(c['evidenceIds'])}건: {c['note']}"
-        # 엔진 대본 경고를 승인자에게 보이려고 둔 WARN이라 검토 모델이 위반 위험으로 읽고 감점하지 않게 밝혀 둔다.
-        if c["constraint"] == "SCRIPT" and c["status"] == "WARN" and c["evidenceIds"] and script_soft:
-            text += " (엔진 대본 경고를 승인자에게 보이려는 표시, 위반 아님, 감점하지 않음)"
+        # 엔진 경고를 승인자에게 보이려고 둔 WARN이라 검토 모델이 위반 위험으로 읽고 감점하지 않게 밝혀 둔다.
+        if c["status"] == "WARN" and c["evidenceIds"] and c["constraint"] in warned:
+            text += " (엔진 경고를 승인자에게 보이려는 표시, 위반 아님, 감점하지 않음)"
         return text
 
     checklist = "\n".join(line(c) for c in plan["checklist"])
@@ -940,7 +972,7 @@ async def publish(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     evidence = state.get("evidence") or {}
     cited = sorted({cid for item in plan["checklist"] for cid in item["evidenceIds"]})
     answer = (
-        f"변경안 {state['approvals']['version_no']}이 전원 승인되어 확정되었습니다. "
+        f"변경안 {josa(str(state['approvals']['version_no']), '이')} 전원 승인되어 확정되었습니다. "
         f"{describe(plan['candidate'])}. 콜시트 v{state['callsheet_version_no']} 배포를 요청했습니다."
     )
     result = {
@@ -1010,7 +1042,7 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
         "suggestions": suggestions,
         "stop_condition": None if registered or early else NO_FEASIBLE_PLAN,
         "_detail": ("장소 거절로 후보를 넓힘, " if early else "")
-        + f"키워드 {', '.join(keywords.keywords)}로 4안 장소 {len(registered)}곳 등록: {names}",
+        + f"키워드 {josa(', '.join(keywords.keywords), '으로')} 4안 장소 {len(registered)}곳 등록: {names}",
     }
 
 

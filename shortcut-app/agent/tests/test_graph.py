@@ -386,6 +386,52 @@ def test_review_stops_when_the_score_stays_the_same_twice():
     assert "연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시" in proposal["unresolved"]
 
 
+def test_checklist_and_follow_ups_follow_the_engine():
+    # 미리보기 1회차 우천 변경안(성수 스튜디오, 카메라 패키지 A, 드론, 반사판, 14:00~16:00)에서 모델이 엔진 판정에 없는
+    # NO_FLY_ZONE WARN을 적고, 순서는 그대로(S12 다음 S13)이고 시각만 13시에서 14시로 늦췄는데 "바뀐 씬 순서"를 공지하라고 썼다.
+    model = FakeModel(
+        checklist_warn={"NO_FLY_ZONE": "드론 사용이 금지된 지역입니다."},
+        unresolved_extra=["조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"],
+    )
+    ctx, backend, _, _ = make_context(model=model)
+    backend.script_warnings = True
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    status = {c["constraint"]: c["status"] for c in proposal["checklist"]}
+    no_fly = next(c for c in proposal["checklist"] if c["constraint"] == "NO_FLY_ZONE")
+    # 엔진 위반이나 경고가 없는 범주는 PASS이고 근거 조각은 그대로 붙는다. WARN은 엔진 경고가 있는 SCRIPT뿐이다.
+    assert no_fly["status"] == "PASS" and no_fly["evidence_ids"] and "금지된 지역" not in no_fly["note"]
+    assert [c for c, v in status.items() if v == "WARN"] == ["SCRIPT"]
+    assert not any("씬 순서" in u for u in proposal["unresolved"])
+    assert "조감독, 바뀐 촬영 시각으로 배우 콜타임 다시 공지, 승인 즉시" in proposal["unresolved"]
+
+
+def test_explanation_must_not_claim_an_unchanged_scene_order():
+    from app.graph.nodes import explanation_problems
+    from tests.fakes import SEONGSU
+
+    current = {"location": {"id": 2, "name": "성수 스튜디오"}, "equipment": []}
+    gear = "카메라 패키지 A, 드론, 반사판을 씁니다."
+    assert explanation_problems(f"성수 스튜디오로 옮기고 씬 순서를 바꿔 14시에 시작합니다. {gear}", SEONGSU, [SEONGSU], current) == [
+        "설명에 바뀌지 않은 씬 순서를 바뀌었다고 썼습니다"
+    ]
+    assert explanation_problems(f"성수 스튜디오로 옮기고 씬 순서는 그대로 두고 시각만 바뀝니다. {gear}", SEONGSU, [SEONGSU], current) == []
+
+
+def test_josa_follows_the_final_sound():
+    from app.josa import josa
+
+    assert josa("성수 스튜디오", "은") == "성수 스튜디오는"
+    assert josa("파주 세트장", "으로") == "파주 세트장으로"
+    assert josa("반사판", "을") == "반사판을"
+    assert josa("S18, S19", "은") == "S18, S19는"
+    assert josa("v1", "으로") == "v1로"
+    assert josa("v2", "이") == "v2가"
+    assert josa("실내, 자연광", "으로") == "실내, 자연광으로"
+    assert josa("배우 B 일정(18:30~21:00 광고와 행사)", "과") == "배우 B 일정(18:30~21:00 광고와 행사)과"
+
+
 def test_explanation_missing_equipment_is_rewritten_then_completed():
     # 미리보기 변경안 설명이 장비 묶음(카메라 패키지 A, 드론, 반사판) 가운데 카메라 패키지 A만 적었다.
     ctx, backend, _, _ = make_context(model=FakeModel(drop_equipment=True))
@@ -398,7 +444,7 @@ def test_explanation_missing_equipment_is_rewritten_then_completed():
 
 
 def test_engine_facts_are_not_added_twice():
-    from app.graph.nodes import missing_cost_and_distance, missing_follow_ups
+    from app.graph.nodes import align_follow_ups, missing_cost_and_distance
 
     candidate = {**SEONGSU, "warnings": [{"code": "SCRIPT_EXT_INDOOR"}, {"code": "SCRIPT_EXT_INDOOR"}]}
     assert missing_cost_and_distance("목동에서 14km, 추가 비용 15만 원입니다.", candidate) == ""
@@ -407,10 +453,13 @@ def test_engine_facts_are_not_added_twice():
     # 미리보기에서 "14.0km"가 있는데도 "14km" 문장을 또 붙였다. 표기가 달라도 같은 값이면 붙이지 않는다.
     assert missing_cost_and_distance("이동 거리는 14.0km이며 추가 비용은 15만원입니다.", candidate) == ""
     assert missing_cost_and_distance("이동 거리는 14.0km입니다.", candidate) == "현재 확정안보다 150,000원이 더 듭니다."
-    assert missing_follow_ups(candidate, []) == ["연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"]
-    assert missing_follow_ups(candidate, ["연출감독, 실내 촬영 연출 확인, 승인 시"]) == []
+    same_time = {"start": "14:00:00", "end": "16:00:00"}
+    assert align_follow_ups(candidate, same_time, []) == ["연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"]
+    assert align_follow_ups(candidate, same_time, ["연출감독, 실내 촬영 연출 확인, 승인 시"]) == [
+        "연출감독, 실내 촬영 연출 확인, 승인 시"
+    ]
     changed = {**SEONGSU, "sceneOrderChanged": True}
-    assert missing_follow_ups(changed, []) == ["조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"]
+    assert align_follow_ups(changed, same_time, []) == ["조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"]
 
 
 def test_explanation_naming_another_candidate_is_rewritten_once():
@@ -565,7 +614,7 @@ def run_to_end(ctx, state):
 def test_cancelled_studio_with_actor_schedule_is_not_solved_by_a_new_place():
     # 미리보기 2회차: 성수 대관 취소인데 모든 후보가 배우 C 일정과 성수 세트 고정에 막혀 새 장소로는 풀리지 않는다.
     blockers = ["배우 C 일정(10:30~14:30 타 작품)과 겹칩니다.",
-                "S18, S19은(는) 세트가 성수 스튜디오에만 있어 파주 세트장에서 찍을 수 없습니다."]
+                "S18, S19는 세트가 성수 스튜디오에만 있어 파주 세트장에서 찍을 수 없습니다."]
     ctx, backend, clients, _ = make_context(FakeBackendState(no_feasible=True, location_blockers=blockers))
     state = run_to_end(ctx, handoff_state(
         {"type": "LOCATION_CANCEL", "detail": "성수 스튜디오 대관 취소 통보",
