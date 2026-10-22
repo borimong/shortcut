@@ -8,9 +8,11 @@ import com.shortcut.domain.PlanOption;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,8 @@ public final class PlanEngine {
     private static final double TIME_SPAN_HOURS = 8.0;
     private static final DateTimeFormatter HHMM = DateTimeFormatter.ofPattern("HHmm");
     private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
+    // 씬이 이보다 많으면 모든 순서(n!)를 보지 않고 걸린 씬을 맨 앞·맨 뒤로 옮기는 것만 본다. 5개면 120가지다.
+    private static final int MAX_FULL_REORDER_SCENES = 5;
 
     public EvaluationResult evaluate(PlanInput input, Map<String, Double> requestedWeights,
                                      List<ExtraConstraint> extras) {
@@ -79,6 +83,15 @@ public final class PlanEngine {
 
     public CheckResult check(PlanInput input, long locationId, List<Long> equipmentIds,
                              LocalTime start, LocalTime end, List<ExtraConstraint> extras) {
+        return check(input, locationId, equipmentIds, start, end, extras, null);
+    }
+
+    /**
+     * 후보 하나를 판정한다. sceneOrder(씬 코드)를 주면 그 순서 그대로 보고, 비우면 후보 평가처럼 지금 순서로 막힐 때
+     * 순서를 바꿔 본다. 확정안 점검은 지금 순서를, Agent가 고른 순서의 재검증은 그 순서를 넘긴다.
+     */
+    public CheckResult check(PlanInput input, long locationId, List<Long> equipmentIds,
+                             LocalTime start, LocalTime end, List<ExtraConstraint> extras, List<String> sceneOrder) {
         List<ExtraConstraint> constraints = validated(extras);
         if (start == null || end == null || !start.isBefore(end)) {
             throw new PlanRuleException("INVALID_TIME", "시작 시각은 종료 시각보다 빨라야 합니다.");
@@ -94,7 +107,19 @@ public final class PlanEngine {
             }
             return item;
         }).toList();
-        return check(input, location, items, start, end, constraints);
+        return check(input, location, items, start, end, constraints, ordered(input, sceneOrder));
+    }
+
+    /** 블록 시작부터 씬 길이를 차례로 쌓아 씬별 시각을 만든다. */
+    public static List<SceneSlot> timetable(List<ScenePlan> scenes, LocalTime start) {
+        List<SceneSlot> slots = new ArrayList<>();
+        LocalTime cursor = start;
+        for (ScenePlan scene : scenes) {
+            LocalTime next = cursor.plusMinutes(scene.durationMin());
+            slots.add(new SceneSlot(scene.code(), cursor, next));
+            cursor = next;
+        }
+        return List.copyOf(slots);
     }
 
     public static String hash(long locationId, List<Long> equipmentIds, LocalTime start, LocalTime end) {
@@ -136,7 +161,7 @@ public final class PlanEngine {
                 .toList();
         LocalTime start = timeOption.start();
         LocalTime end = timeOption.end();
-        CheckResult check = check(input, location, items, start, end, constraints);
+        CheckResult check = check(input, location, items, start, end, constraints, null);
         long cost = cost(location, items);
 
         Map<String, Double> soft = new LinkedHashMap<>();
@@ -159,19 +184,23 @@ public final class PlanEngine {
                 equipmentOption.optionNo(), items,
                 timeOption.optionNo(), start, end,
                 check.feasible(), check.violations(), check.warnings(),
-                soft, round(total), cost, cost - input.current().cost(), location.distanceKm());
+                soft, round(total), cost, cost - input.current().cost(), location.distanceKm(),
+                check.sceneOrder(), check.sceneOrderChanged());
     }
 
-    private CheckResult check(PlanInput input, Location location, List<Equipment> items,
-                              LocalTime start, LocalTime end, List<ExtraConstraint> constraints) {
-        List<Finding> violations = new ArrayList<>();
+    /**
+     * fixedOrder가 있으면 그 씬 순서로, 없으면 막힐 때 바꾼 순서로 판정한다.
+     * 배우 일정, 같은 배우의 블록 겹침, 해의 위치는 씬 시각으로 보고 나머지는 블록 시간대로 본다.
+     */
+    private CheckResult check(PlanInput input, Location location, List<Equipment> items, LocalTime start,
+                              LocalTime end, List<ExtraConstraint> constraints, List<ScenePlan> fixedOrder) {
+        List<ScenePlan> order = fixedOrder != null ? fixedOrder : arrange(input, location, start, end);
+        List<SceneSlot> slots = timetable(order, start);
+        List<Finding> violations = new ArrayList<>(actorFindings(input, onSet(input, order, slots, start, end)));
         List<Finding> warnings = new ArrayList<>();
         int blockMinutes = minutes(end) - minutes(start);
         long cost = cost(location, items);
 
-        for (long actorId : input.blockActorIds()) {
-            checkActorDay(input, actorId, start, end, violations);
-        }
         if (!location.available()) {
             violations.add(new Finding("LOCATION_CANCELLED", "SCHEDULE",
                     location.name() + "은(는) 변경 입력에서 취소되어 쓸 수 없습니다.", "SCHEDULE_LOCATION"));
@@ -221,7 +250,7 @@ public final class PlanEngine {
                     location.name() + " 촬영 허가 시간 밖입니다.", "LAW_PERMIT"));
         }
 
-        checkScript(input, location, items, start, end, blockMinutes, violations, warnings);
+        checkScript(input, location, items, start, end, blockMinutes, order, slots, violations, warnings);
 
         if (cost > input.budgetCap()) {
             violations.add(new Finding("BUDGET_EXCEEDED", "BUDGET",
@@ -265,12 +294,174 @@ public final class PlanEngine {
                         "추가 제약으로 제외됩니다: " + extra.describe(), "EXTRA_" + extra.type()));
             }
         }
-        return new CheckResult(List.copyOf(violations), List.copyOf(warnings));
+        boolean changed = !SceneSlot.codes(slots).equals(codes(input.blockScenes()));
+        return new CheckResult(List.copyOf(violations), List.copyOf(warnings), slots, changed);
+    }
+
+    /** 요청한 씬 순서다. 비어 있으면 엔진이 고른다. 블록 씬을 한 번씩 모두 담아야 한다. */
+    private static List<ScenePlan> ordered(PlanInput input, List<String> sceneOrder) {
+        if (sceneOrder == null || sceneOrder.isEmpty()) {
+            return null;
+        }
+        Map<String, ScenePlan> byCode = input.blockScenes().stream()
+                .collect(Collectors.toMap(ScenePlan::code, s -> s, (a, b) -> a, LinkedHashMap::new));
+        if (sceneOrder.size() != byCode.size() || !Set.copyOf(sceneOrder).equals(byCode.keySet())) {
+            throw new PlanRuleException("INVALID_SCENE_ORDER",
+                    "씬 순서는 블록 씬(" + String.join(", ", byCode.keySet()) + ")을 한 번씩 모두 담아야 합니다.");
+        }
+        return sceneOrder.stream().map(byCode::get).toList();
     }
 
     /**
-     * 배우의 그날 일정과 블록 시간을 맞춰 본다. 날짜별 일정(종일 불가, 가능 시간대, 다른 일정)에 변경 입력을 얹은 값이고,
-     * 같은 촬영일의 다른 블록과 시간이 겹치는지도 본다(같은 배우가 두 곳에 있을 수 없다).
+     * 배우 일정, 같은 배우의 블록 겹침, 해 때문에 지금 순서로 막히면 블록 안 씬 순서를 바꿔 본다.
+     * 씬이 5개 이하면 모든 순서(최대 120개)를, 넘으면 걸린 씬을 맨 앞이나 맨 뒤로 옮긴 순서만 본다.
+     * 되는 순서 가운데 배우 대기 시간이 가장 짧은 것을 고르고, 되는 순서가 없으면 지금 순서를 둔다.
+     * 순서는 후보 축이 아니라 후보마다 고치는 값이라 후보 수는 늘지 않는다.
+     */
+    private static List<ScenePlan> arrange(PlanInput input, Location location, LocalTime start, LocalTime end) {
+        List<ScenePlan> current = input.blockScenes();
+        if (current.size() < 2 || timedFindings(input, location, current, start, end).isEmpty()) {
+            return current;
+        }
+        List<ScenePlan> best = current;
+        int bestWait = Integer.MAX_VALUE;
+        for (List<ScenePlan> order : reorderings(input, location, current, start, end)) {
+            if (!timedFindings(input, location, order, start, end).isEmpty()) {
+                continue;
+            }
+            int wait = waitingMinutes(order, timetable(order, start));
+            if (wait < bestWait) {
+                best = order;
+                bestWait = wait;
+            }
+        }
+        return best;
+    }
+
+    private static List<List<ScenePlan>> reorderings(PlanInput input, Location location, List<ScenePlan> current,
+                                                     LocalTime start, LocalTime end) {
+        List<List<ScenePlan>> orders = new ArrayList<>();
+        if (current.size() <= MAX_FULL_REORDER_SCENES) {
+            int[] index = new int[current.size()];
+            for (int i = 0; i < index.length; i++) {
+                index[i] = i;
+            }
+            while (nextPermutation(index)) {
+                orders.add(Arrays.stream(index).mapToObj(current::get).toList());
+            }
+            return orders;
+        }
+        for (ScenePlan blocked : blockedScenes(input, location, current, start, end)) {
+            List<ScenePlan> rest = current.stream().filter(s -> s != blocked).toList();
+            List<ScenePlan> front = new ArrayList<>(List.of(blocked));
+            front.addAll(rest);
+            List<ScenePlan> back = new ArrayList<>(rest);
+            back.add(blocked);
+            orders.add(front);
+            orders.add(back);
+        }
+        return orders;
+    }
+
+    /** 사전순 다음 순열로 바꾼다. 마지막 순열이면 false다. */
+    private static boolean nextPermutation(int[] a) {
+        int i = a.length - 2;
+        while (i >= 0 && a[i] >= a[i + 1]) {
+            i--;
+        }
+        if (i < 0) {
+            return false;
+        }
+        int j = a.length - 1;
+        while (a[j] <= a[i]) {
+            j--;
+        }
+        swap(a, i, j);
+        for (int l = i + 1, r = a.length - 1; l < r; l++, r--) {
+            swap(a, l, r);
+        }
+        return true;
+    }
+
+    private static void swap(int[] a, int i, int j) {
+        int t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+    }
+
+    /** 씬 시각 때문에 걸린 씬이다. 해 밖에 걸린 씬과, 현장 시간이 막힌 배우가 나오는 씬이다. */
+    private static List<ScenePlan> blockedScenes(PlanInput input, Location location, List<ScenePlan> order,
+                                                 LocalTime start, LocalTime end) {
+        List<SceneSlot> slots = timetable(order, start);
+        Map<Long, ActorDay.Window> onSet = onSet(input, order, slots, start, end);
+        List<ScenePlan> blocked = new ArrayList<>();
+        for (int i = 0; i < order.size(); i++) {
+            ScenePlan scene = order.get(i);
+            boolean actorBlocked = scene.actorIds().stream().anyMatch(id -> onSet.containsKey(id)
+                    && !actorFindings(input, Map.of(id, onSet.get(id))).isEmpty());
+            if (actorBlocked || outOfLight(input, location, scene, slots.get(i))) {
+                blocked.add(scene);
+            }
+        }
+        return blocked;
+    }
+
+    /** 씬 순서에 따라 달라지는 위반이다. 순서를 바꿔 풀 수 있는지 볼 때 쓴다. */
+    private static List<Finding> timedFindings(PlanInput input, Location location, List<ScenePlan> order,
+                                               LocalTime start, LocalTime end) {
+        List<SceneSlot> slots = timetable(order, start);
+        List<Finding> found = new ArrayList<>(actorFindings(input, onSet(input, order, slots, start, end)));
+        found.addAll(daylightFindings(input, location, order, slots));
+        return found;
+    }
+
+    /**
+     * 배우마다 현장에 있어야 하는 시간이다. 자기 씬의 첫 시작부터 마지막 끝까지이고,
+     * 어느 씬에 나오는지 모르는 배우(씬 출연 정보가 없는 입력)는 블록 내내 있다고 본다.
+     */
+    private static Map<Long, ActorDay.Window> onSet(PlanInput input, List<ScenePlan> order, List<SceneSlot> slots,
+                                                    LocalTime start, LocalTime end) {
+        Map<Long, ActorDay.Window> onSet = new LinkedHashMap<>();
+        Set<Long> actorIds = new LinkedHashSet<>(input.blockActorIds());
+        order.forEach(scene -> actorIds.addAll(scene.actorIds()));
+        for (long actorId : actorIds) {
+            LocalTime from = null;
+            LocalTime to = null;
+            for (int i = 0; i < order.size(); i++) {
+                if (order.get(i).actorIds().contains(actorId)) {
+                    from = from == null ? slots.get(i).start() : from;
+                    to = slots.get(i).end();
+                }
+            }
+            onSet.put(actorId, from == null ? new ActorDay.Window(start, end) : new ActorDay.Window(from, to));
+        }
+        return onSet;
+    }
+
+    /** 배우들이 자기 씬 사이에서 기다리는 분의 합이다. */
+    private static int waitingMinutes(List<ScenePlan> order, List<SceneSlot> slots) {
+        Map<Long, int[]> spans = new LinkedHashMap<>();
+        for (int i = 0; i < order.size(); i++) {
+            int from = minutes(slots.get(i).start());
+            int to = minutes(slots.get(i).end());
+            for (long actorId : order.get(i).actorIds()) {
+                int[] span = spans.computeIfAbsent(actorId, id -> new int[] {from, to, 0});
+                span[1] = to;
+                span[2] += to - from;
+            }
+        }
+        return spans.values().stream().mapToInt(span -> span[1] - span[0] - span[2]).sum();
+    }
+
+    private static List<Finding> actorFindings(PlanInput input, Map<Long, ActorDay.Window> onSet) {
+        List<Finding> found = new ArrayList<>();
+        onSet.forEach((actorId, span) -> checkActorDay(input, actorId, span.from(), span.to(), found));
+        return found;
+    }
+
+    /**
+     * 배우가 현장에 있는 시간(start~end)과 그날 일정을 맞춰 본다. 날짜별 일정(종일 불가, 가능 시간대, 다른 일정)에
+     * 변경 입력을 얹은 값이고, 같은 촬영일의 다른 블록과 시간이 겹치는지도 본다(같은 배우가 두 곳에 있을 수 없다).
      */
     private static void checkActorDay(PlanInput input, long actorId, LocalTime start, LocalTime end,
                                       List<Finding> violations) {
@@ -282,26 +473,66 @@ public final class PlanEngine {
                     actor.name() + "은(는) 오늘 촬영에 참여할 수 없습니다" + reason + ".", "SCHEDULE_ACTOR"));
             return;
         }
+        String onSet = "현장 " + fmt(start) + "~" + fmt(end);
         List<ActorDay.Busy> busy = day.overlapping(start, end);
         if (!busy.isEmpty()) {
             String slots = busy.stream()
                     .map(b -> fmt(b.from()) + "~" + fmt(b.to()) + " " + ActorDay.reasonLabel(b.reasonKind()))
                     .collect(Collectors.joining(", "));
             violations.add(new Finding("ACTOR_BUSY", "SCHEDULE",
-                    actor.name() + " 일정(" + slots + ")과 겹칩니다.", "SCHEDULE_ACTOR"));
+                    actor.name() + " 일정(" + slots + ")과 겹칩니다(" + onSet + ").", "SCHEDULE_ACTOR"));
         } else if (!day.covers(start, end)) {
             String windows = day.windows().stream().map(w -> fmt(w.from()) + "~" + fmt(w.to()))
                     .collect(Collectors.joining(", "));
             violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
-                    actor.name() + " 가용 시간(" + windows + ") 밖입니다.", "SCHEDULE_ACTOR"));
+                    actor.name() + " 가용 시간(" + windows + ") 밖입니다(" + onSet + ").", "SCHEDULE_ACTOR"));
         }
         for (BlockSlot other : input.otherBlocks()) {
             if (other.actorIds().contains(actorId) && overlaps(other.start(), other.end(), start, end)) {
                 violations.add(new Finding("ACTOR_OVERLAP", "SCHEDULE",
                         actor.name() + "이(가) 같은 시간 " + other.code() + " 블록(" + fmt(other.start()) + "~"
-                                + fmt(other.end()) + ")에도 나옵니다.", "SCHEDULE_OVERLAP"));
+                                + fmt(other.end()) + ")에도 나옵니다(" + onSet + ").", "SCHEDULE_OVERLAP"));
             }
         }
+    }
+
+    /**
+     * 해의 위치를 씬 시각으로 본다. 스튜디오 조명으로 낮밤을 만들 수 있으므로 야외 장소에서 찍는 실외 장면만 본다.
+     * 낮 장면은 일출~일몰 안에 들어야 하고 밤 장면은 일몰 뒤에 시작해야 한다.
+     */
+    private static List<Finding> daylightFindings(PlanInput input, Location location, List<ScenePlan> order,
+                                                  List<SceneSlot> slots) {
+        List<Finding> found = new ArrayList<>();
+        if (location.indoor() || input.sunrise() == null || input.sunset() == null) {
+            return found;
+        }
+        List<String> dayOutside = new ArrayList<>();
+        List<String> nightBeforeDark = new ArrayList<>();
+        for (int i = 0; i < order.size(); i++) {
+            ScenePlan scene = order.get(i);
+            if (outOfLight(input, location, scene, slots.get(i))) {
+                (scene.night() ? nightBeforeDark : dayOutside).add(scene.code());
+            }
+        }
+        if (!dayOutside.isEmpty()) {
+            found.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
+                    String.join(", ", dayOutside) + "은(는) 낮 야외 장면인데 일출~일몰(" + fmt(input.sunrise()) + "~"
+                            + fmt(input.sunset()) + ") 밖에 걸립니다.", "SCRIPT_TIME_OF_DAY"));
+        }
+        if (!nightBeforeDark.isEmpty()) {
+            found.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
+                    String.join(", ", nightBeforeDark) + "은(는) 밤 야외 장면인데 일몰(" + fmt(input.sunset())
+                            + ") 전에 시작합니다.", "SCRIPT_TIME_OF_DAY"));
+        }
+        return found;
+    }
+
+    private static boolean outOfLight(PlanInput input, Location location, ScenePlan scene, SceneSlot slot) {
+        if (location.indoor() || !scene.exterior() || input.sunrise() == null || input.sunset() == null) {
+            return false;
+        }
+        return scene.night() ? slot.start().isBefore(input.sunset())
+                : slot.start().isBefore(input.sunrise()) || slot.end().isAfter(input.sunset());
     }
 
     /**
@@ -310,7 +541,8 @@ public final class PlanEngine {
      * 같은 규칙에 걸린 씬은 한 줄로 묶는다. Agent가 받는 평가 결과 길이에 한도가 있기 때문이다.
      */
     private static void checkScript(PlanInput input, Location location, List<Equipment> items, LocalTime start,
-                                    LocalTime end, int blockMinutes, List<Finding> violations, List<Finding> warnings) {
+                                    LocalTime end, int blockMinutes, List<ScenePlan> order, List<SceneSlot> slots,
+                                    List<Finding> violations, List<Finding> warnings) {
         List<ScenePlan> scenes = input.blockScenes();
         if (scenes.isEmpty()) {
             return;
@@ -342,22 +574,7 @@ public final class PlanEngine {
             violations.add(new Finding("SCRIPT_EQUIPMENT_MISSING", "SCRIPT",
                     "대본상 필수 장비(" + mustMissing + ")가 장비 묶음에 없습니다.", "SCRIPT_EQUIPMENT"));
         }
-        // 스튜디오 조명으로 낮밤을 만들 수 있으므로 해의 위치는 야외 장소에서 찍는 실외 장면만 본다.
-        if (!location.indoor() && input.sunrise() != null && input.sunset() != null) {
-            String dayOutside = codes(scenes, s -> s.exterior() && !s.night()
-                    && (start.isBefore(input.sunrise()) || end.isAfter(input.sunset())));
-            if (!dayOutside.isEmpty()) {
-                violations.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
-                        dayOutside + "은(는) 낮 야외 장면인데 일출~일몰(" + fmt(input.sunrise()) + "~" + fmt(input.sunset())
-                                + ") 밖에 걸립니다.", "SCRIPT_TIME_OF_DAY"));
-            }
-            String nightBeforeDark = codes(scenes, s -> s.exterior() && s.night() && start.isBefore(input.sunset()));
-            if (!nightBeforeDark.isEmpty()) {
-                violations.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
-                        nightBeforeDark + "은(는) 밤 야외 장면인데 일몰(" + fmt(input.sunset()) + ") 전에 시작합니다.",
-                        "SCRIPT_TIME_OF_DAY"));
-            }
-        }
+        violations.addAll(daylightFindings(input, location, order, slots));
         String exteriorIndoor = codes(scenes, s -> s.exterior() && location.indoor());
         if (!exteriorIndoor.isEmpty()) {
             warnings.add(new Finding("SCRIPT_EXT_INDOOR", "SCRIPT",
@@ -379,6 +596,10 @@ public final class PlanEngine {
 
     private static String codes(List<ScenePlan> scenes, Predicate<ScenePlan> rule) {
         return scenes.stream().filter(rule).map(ScenePlan::code).collect(Collectors.joining(", "));
+    }
+
+    private static List<String> codes(List<ScenePlan> scenes) {
+        return scenes.stream().map(ScenePlan::code).toList();
     }
 
     private static String equipmentNames(PlanInput input, Stream<Long> ids, Set<Long> have) {

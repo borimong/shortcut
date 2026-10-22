@@ -10,6 +10,7 @@ import com.shortcut.dto.ScheduleDtos.BusyView;
 import com.shortcut.dto.ScheduleDtos.WindowView;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.Finding;
+import com.shortcut.engine.SceneSlot;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -32,10 +33,14 @@ public final class PlanDtos {
                                    List<CandidateView> candidates) {
     }
 
+    /**
+     * sceneOrder는 이 후보로 찍을 오후 블록 씬 시각표다. 지금 순서로 배우 일정이나 해에 막히면 엔진이 순서를 바꾸고
+     * sceneOrderChanged가 true가 된다. 그 순서를 validate와 변경안에 그대로 넘긴다.
+     */
     public record CandidateView(String hash, CandidateLocation location, CandidateEquipment equipment,
                                 CandidateTime time, boolean feasible, List<Finding> violations, List<Finding> warnings,
                                 Map<String, Double> softScores, double totalScore, long cost, long extraCost,
-                                double distanceKm) {
+                                double distanceKm, List<SceneSlot> sceneOrder, boolean sceneOrderChanged) {
     }
 
     public record CandidateLocation(int optionNo, long id, String name, boolean indoor) {
@@ -59,12 +64,14 @@ public final class PlanDtos {
                                   List<ExtraConstraint> extraConstraints, @NotNull Integer dataVersion) {
     }
 
+    /** sceneOrder는 오후 블록 씬 코드 순서다. 비우면 엔진이 후보 평가 때와 같은 방법으로 고른다. */
     public record CandidateInput(@NotNull Long locationId, @NotNull List<Long> equipmentIds,
-                                 @NotNull LocalTime start, @NotNull LocalTime end) {
+                                 @NotNull LocalTime start, @NotNull LocalTime end, List<String> sceneOrder) {
     }
 
+    /** sceneOrder는 판정에 쓴 씬 시각표다. */
     public record ValidateResponse(boolean valid, boolean stale, int dataVersion, List<Finding> violations,
-                                   List<Finding> warnings) {
+                                   List<Finding> warnings, List<SceneSlot> sceneOrder, boolean sceneOrderChanged) {
     }
 
     public record PlanSetResponse(long shootDayId, int dataVersion, PlanBlock block, PlanCurrent current,

@@ -22,7 +22,8 @@ public class ProposalRepository {
             SELECT *, orig_equipment_ids::text AS orig_equipment_json, equipment_ids::text AS equipment_json,
                    source::text AS source_json, score_breakdown::text AS breakdown_json, weights::text AS weights_json,
                    checklist::text AS checklist_json, evidence::text AS evidence_json, unresolved::text AS unresolved_json,
-                   review::text AS review_json
+                   review::text AS review_json, orig_scene_order::text AS orig_scene_json,
+                   scene_order::text AS scene_json
             FROM proposals
             """;
 
@@ -39,12 +40,14 @@ public class ProposalRepository {
                         INSERT INTO proposals (task_id, event_id, shoot_day_id, loop_no, version_no, status, data_version,
                             orig_location_id, orig_equipment_ids, orig_start, orig_end, orig_cost,
                             location_id, equipment_ids, start_time, end_time, cost,
-                            source, score, score_breakdown, weights, explanation, checklist, evidence, unresolved, review)
+                            source, score, score_breakdown, weights, explanation, checklist, evidence, unresolved, review,
+                            orig_scene_order, scene_order)
                         VALUES (:taskId, :eventId, :shootDayId, :loopNo, :versionNo, 'PENDING', :dataVersion,
                             :origLocation, CAST(:origEquipment AS jsonb), :origStart, :origEnd, :origCost,
                             :location, CAST(:equipment AS jsonb), :start, :end, :cost,
                             CAST(:source AS jsonb), :score, CAST(:breakdown AS jsonb), CAST(:weights AS jsonb), :explanation,
-                            CAST(:checklist AS jsonb), CAST(:evidence AS jsonb), CAST(:unresolved AS jsonb), CAST(:review AS jsonb))
+                            CAST(:checklist AS jsonb), CAST(:evidence AS jsonb), CAST(:unresolved AS jsonb), CAST(:review AS jsonb),
+                            CAST(:origScenes AS jsonb), CAST(:scenes AS jsonb))
                         RETURNING id
                         """)
                 .param("taskId", p.taskId())
@@ -72,6 +75,8 @@ public class ProposalRepository {
                 .param("evidence", json.write(p.evidence()))
                 .param("unresolved", json.write(p.unresolved()))
                 .param("review", json.write(p.review()))
+                .param("origScenes", json.write(p.original().scenes()))
+                .param("scenes", json.write(p.proposed().scenes()))
                 .query(Long.class)
                 .single();
     }
@@ -188,9 +193,10 @@ public class ProposalRepository {
 
     private Proposal map(ResultSet rs, int row) throws SQLException {
         PlanSnapshot original = new PlanSnapshot(rs.getLong("orig_location_id"), json.longs(rs.getString("orig_equipment_json")),
-                time(rs, "orig_start"), time(rs, "orig_end"), rs.getLong("orig_cost"));
+                time(rs, "orig_start"), time(rs, "orig_end"), rs.getLong("orig_cost"),
+                json.sceneSlots(rs.getString("orig_scene_json")));
         PlanSnapshot proposed = new PlanSnapshot(rs.getLong("location_id"), json.longs(rs.getString("equipment_json")),
-                time(rs, "start_time"), time(rs, "end_time"), rs.getLong("cost"));
+                time(rs, "start_time"), time(rs, "end_time"), rs.getLong("cost"), json.sceneSlots(rs.getString("scene_json")));
         return new Proposal(rs.getLong("id"), rs.getLong("task_id"), rs.getObject("event_id", Long.class),
                 rs.getLong("shoot_day_id"), rs.getInt("loop_no"), rs.getInt("version_no"), rs.getString("status"),
                 rs.getInt("data_version"), original, proposed, json.tree(rs.getString("source_json")),

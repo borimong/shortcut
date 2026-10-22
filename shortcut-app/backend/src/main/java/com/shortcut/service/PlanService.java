@@ -52,16 +52,19 @@ public class PlanService {
     public ValidateResponse validate(ValidateRequest request) {
         PlanData data = planData.load(request.shootDayId());
         CheckResult check = check(data, request.candidate().locationId(), request.candidate().equipmentIds(),
-                request.candidate().start(), request.candidate().end(), request.extraConstraints());
+                request.candidate().start(), request.candidate().end(), request.extraConstraints(),
+                request.candidate().sceneOrder());
         int current = data.shootDay().dataVersion();
         boolean stale = request.dataVersion() != current;
         // 데이터가 바뀐 뒤의 판정은 근거가 낡았으므로 위반이 없어도 유효하지 않다고 본다.
-        return new ValidateResponse(check.feasible() && !stale, stale, current, check.violations(), check.warnings());
+        return new ValidateResponse(check.feasible() && !stale, stale, current, check.violations(), check.warnings(),
+                check.sceneOrder(), check.sceneOrderChanged());
     }
 
-    public CheckResult check(PlanData data, long locationId, List<Long> equipmentIds,
-                             LocalTime start, LocalTime end, List<ExtraConstraint> extras) {
-        return engine.check(data.toInput(), locationId, equipmentIds, start, end, extras);
+    /** sceneOrder(씬 코드)를 비우면 엔진이 막히지 않는 씬 순서를 고른다. */
+    public CheckResult check(PlanData data, long locationId, List<Long> equipmentIds, LocalTime start, LocalTime end,
+                             List<ExtraConstraint> extras, List<String> sceneOrder) {
+        return engine.check(data.toInput(), locationId, equipmentIds, start, end, extras, sceneOrder);
     }
 
     private static CandidateView view(CandidateResult c) {
@@ -71,6 +74,6 @@ public class PlanService {
                 new CandidateEquipment(c.equipmentOptionNo(), items),
                 new CandidateTime(c.timeOptionNo(), c.start(), c.end()),
                 c.feasible(), c.violations(), c.warnings(), c.softScores(), c.totalScore(), c.cost(), c.extraCost(),
-                c.distanceKm());
+                c.distanceKm(), c.sceneOrder(), c.sceneOrderChanged());
     }
 }

@@ -50,8 +50,10 @@ public class CallsheetRepository {
     public Callsheet insert(long shootDayId, int versionNo, long proposalId, PlanSnapshot pm) {
         long id = jdbc.sql("""
                         INSERT INTO callsheet_versions
-                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost)
-                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost)
+                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost,
+                             scenes)
+                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost,
+                                CAST(:scenes AS jsonb))
                         RETURNING id
                         """)
                 .param("id", shootDayId)
@@ -62,6 +64,7 @@ public class CallsheetRepository {
                 .param("start", pm.start())
                 .param("end", pm.end())
                 .param("cost", pm.cost())
+                .param("scenes", json.write(pm.scenes()))
                 .query(Long.class)
                 .single();
         return jdbc.sql(select() + " WHERE id = :id").param("id", id).query(this::map).single();
@@ -123,12 +126,12 @@ public class CallsheetRepository {
     }
 
     private static String select() {
-        return "SELECT *, pm_equipment_ids::text AS equipment_json FROM callsheet_versions";
+        return "SELECT *, pm_equipment_ids::text AS equipment_json, scenes::text AS scenes_json FROM callsheet_versions";
     }
 
     private Callsheet map(ResultSet rs, int row) throws SQLException {
         PlanSnapshot pm = new PlanSnapshot(rs.getLong("pm_location_id"), json.longs(rs.getString("equipment_json")),
-                time(rs, "pm_start"), time(rs, "pm_end"), rs.getLong("pm_cost"));
+                time(rs, "pm_start"), time(rs, "pm_end"), rs.getLong("pm_cost"), json.sceneSlots(rs.getString("scenes_json")));
         return new Callsheet(rs.getLong("id"), rs.getLong("shoot_day_id"), rs.getInt("version_no"),
                 rs.getObject("proposal_id", Long.class), pm, rs.getObject("created_at", OffsetDateTime.class));
     }

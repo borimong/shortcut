@@ -13,6 +13,7 @@ import java.util.List;
  * @param uncastCharacters 등장하지만 아직 배우가 정해지지 않은 배역 이름
  * @param mustEquipmentIds 대본상 없으면 찍을 수 없는 장비
  * @param wantEquipmentIds 있으면 좋은 장비
+ * @param actorIds 출연 배우. 배우는 자기 씬의 첫 시작부터 마지막 끝까지만 현장에 있으면 된다
  */
 public record ScenePlan(
         String code,
@@ -23,5 +24,14 @@ public record ScenePlan(
         Long locationId,
         List<String> uncastCharacters,
         List<Long> mustEquipmentIds,
-        List<Long> wantEquipmentIds) {
+        List<Long> wantEquipmentIds,
+        List<Long> actorIds) {
+
+    /** 출연 배우를 모르는 씬이다. 그 블록의 배우는 블록 내내 현장에 있다고 본다. */
+    public ScenePlan(String code, int durationMin, boolean exterior, boolean night, boolean settingLocked,
+                     Long locationId, List<String> uncastCharacters, List<Long> mustEquipmentIds,
+                     List<Long> wantEquipmentIds) {
+        this(code, durationMin, exterior, night, settingLocked, locationId, uncastCharacters, mustEquipmentIds,
+                wantEquipmentIds, List.of());
+    }
 }

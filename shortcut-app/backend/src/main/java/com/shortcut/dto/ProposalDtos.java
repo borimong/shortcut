@@ -24,8 +24,10 @@ public final class ProposalDtos {
                                         @NotNull Integer dataVersion, JsonNode review) {
     }
 
+    /** sceneOrder는 오후 블록 씬 코드 순서다. 비우면 서버가 후보 평가 때와 같은 방법으로 고른다. */
     public record ProposalCandidate(@NotNull Long locationId, @NotNull List<Long> equipmentIds,
-                                    @NotNull LocalTime start, @NotNull LocalTime end, JsonNode source) {
+                                    @NotNull LocalTime start, @NotNull LocalTime end, JsonNode source,
+                                    List<String> sceneOrder) {
     }
 
     public record ProposalCreated(long proposalId, String versionNo, List<String> requiredApprovers, String status) {
@@ -36,11 +38,16 @@ public final class ProposalDtos {
                                long extraCost, double distanceDeltaKm, double score, JsonNode scoreBreakdown,
                                JsonNode weights, String explanation, JsonNode checklist, JsonNode evidence,
                                JsonNode unresolved, JsonNode review, List<ApprovalView> approvals, int approvedCount,
-                               int requiredCount) {
+                               int requiredCount, boolean sceneOrderChanged) {
     }
 
+    /** scenes는 오후 블록 씬 시각표다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다. */
     public record PlanSide(ProposalLocation location, List<EquipmentView> equipment, LocalTime start, LocalTime end,
-                           long cost, @JsonInclude(JsonInclude.Include.NON_NULL) JsonNode source) {
+                           long cost, @JsonInclude(JsonInclude.Include.NON_NULL) JsonNode source,
+                           List<ProposalScene> scenes) {
+    }
+
+    public record ProposalScene(String code, String title, LocalTime start, LocalTime end) {
     }
 
     public record ProposalLocation(long id, String name, boolean indoor) {

@@ -130,8 +130,27 @@ public class PlanRepository {
     }
 
     /**
+     * 블록 씬 순서를 바꾼다. 다른 블록 씬과의 앞뒤가 그대로이도록 이 블록이 쓰던 sort 값을 작은 것부터 새 순서에 다시 나눠 준다.
+     */
+    public void updateSceneOrder(long shootDayId, String blockCode, List<String> codes) {
+        List<Integer> sorts = jdbc.sql("SELECT sort FROM scenes WHERE shoot_day_id = :id AND block_code = :block ORDER BY sort")
+                .param("id", shootDayId)
+                .param("block", blockCode)
+                .query(Integer.class)
+                .list();
+        for (int i = 0; i < codes.size() && i < sorts.size(); i++) {
+            jdbc.sql("UPDATE scenes SET sort = :sort WHERE shoot_day_id = :id AND block_code = :block AND code = :code")
+                    .param("sort", sorts.get(i))
+                    .param("id", shootDayId)
+                    .param("block", blockCode)
+                    .param("code", codes.get(i))
+                    .update();
+        }
+    }
+
+    /**
      * 촬영일에 배정된 씬과 그 대본 분해 값(실내/실외, 낮/밤, 세트 고정, 등장 배역과 캐스팅, 요구)이다.
-     * 출연 배우는 scenes.actor_ids가 아니라 등장 배역의 캐스팅에서 읽는다.
+     * 출연 배우는 등장 배역(scene_characters)의 캐스팅에서 읽는다.
      */
     public List<Scene> findScenes(long shootDayId) {
         Map<String, List<SceneCharacter>> characters = new HashMap<>();
@@ -157,11 +176,11 @@ public class PlanRepository {
                 .query((RowCallbackHandler) rs -> requirements.computeIfAbsent(rs.getString("scene_code"), k -> new ArrayList<>())
                         .add(new SceneRequirement(rs.getString("kind"), rs.getObject("equipment_id", Long.class),
                                 rs.getString("label"), rs.getInt("qty"), rs.getString("level"))));
-        // 대본 시드보다 먼저 만든 씬이 남아 있어도 읽히도록 대본 씬은 LEFT JOIN하고 예전 야외 의도 열로 채운다.
+        // 외래키를 검증하기 전에 남은 씬이 있어도 읽히도록 대본 씬은 LEFT JOIN하고 없으면 실내 낮 장면으로 본다.
         return jdbc.sql("""
                         SELECT s.code, s.block_code, s.title, s.duration_min, s.location_id,
                                COALESCE(ss.heading, s.code || ' ' || s.title) AS heading,
-                               COALESCE(ss.int_ext, CASE WHEN s.outdoor_intent THEN 'EXT' ELSE 'INT' END) AS int_ext,
+                               COALESCE(ss.int_ext, 'INT') AS int_ext,
                                COALESCE(ss.time_of_day, 'DAY') AS time_of_day,
                                COALESCE(ss.setting, s.title) AS setting,
                                COALESCE(ss.setting_locked, false) AS setting_locked
