@@ -173,6 +173,17 @@ HANGANG = _candidate(
 )
 
 
+def _with_script_warning(candidate):
+    """엔진이 야외 장면(S12)을 실내 장소에서 찍는 후보에 붙이는 소프트 경고와 같은 모양이다."""
+    warning = {
+        "code": "SCRIPT_EXT_INDOOR",
+        "constraint": "SCRIPT",
+        "message": f"S12은(는) 대본상 야외 장면인데 {candidate['location']['name']}은(는) 실내입니다. 연출 확인이 필요합니다.",
+        "ruleRef": "SCRIPT_SETTING",
+    }
+    return {**candidate, "warnings": [warning]}
+
+
 @dataclass
 class FakeBackendState:
     """가짜 business-mcp가 공유하는 업무 상태입니다."""
@@ -195,6 +206,8 @@ class FakeBackendState:
     location_blockers: list[str] = field(default_factory=list)
     # 아워플레이스 검색 결과를 바꿔 넣는다
     search_results: list[dict] | None = None
+    # 실내 후보마다 엔진의 대본 소프트 경고(야외 장면을 실내에서 찍음)를 붙인다
+    script_warnings: bool = False
 
 
 class FakeMcpClient:
@@ -282,6 +295,8 @@ class FakeMcpClient:
         ranked = [c for c in ranked if c["hash"] not in (args.get("exclude_hashes") or [])]
         if self.backend.top_k:
             ranked = ranked[: self.backend.top_k]
+        if self.backend.script_warnings:
+            ranked = [_with_script_warning(c) if c["feasible"] and c["location"]["indoor"] else c for c in ranked]
         return {
             "dataVersion": 1,
             "weights": args["weights"],
@@ -393,8 +408,18 @@ def _hit(constraint: str) -> dict:
 class FakeModel:
     """노드 프롬프트의 첫 줄을 보고 정해진 행동을 돌려주는 가짜 LLM입니다."""
 
-    def __init__(self, *, cite_evidence: bool = True, review_scores=None, review_actions=None, explanation_extras=None):
+    def __init__(
+        self,
+        *,
+        cite_evidence: bool = True,
+        review_scores=None,
+        review_actions=None,
+        explanation_extras=None,
+        warn_constraints=(),
+    ):
         self.cite_evidence = cite_evidence
+        # 체크리스트에서 근거는 붙이되 WARN으로 적을 범주다. 대본 경고를 WARN으로 적는 모델을 흉내 낸다.
+        self.warn_constraints = set(warn_constraints)
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
         # 자체 검토 회차마다 돌려줄 총점과 행동이다. 다 쓰면 마지막 값을 반복한다.
@@ -449,7 +474,7 @@ class FakeModel:
             checklist = [
                 {
                     "constraint": c,
-                    "status": "PASS",
+                    "status": "WARN" if c in self.warn_constraints else "PASS",
                     "note": "준수",
                     "evidence_ids": [EVIDENCE_BY_CONSTRAINT[c][0]] if self.cite_evidence else [],
                 }

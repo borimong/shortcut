@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -118,6 +119,56 @@ def explanation_problems(
     if choice.get("sceneOrderChanged") and not all(code in text for code in codes):
         problems.append(f"설명에 바뀐 씬 순서가 없습니다: {' → '.join(codes)}")
     return problems
+
+
+# 대본 소프트 경고마다 승인 뒤 확인할 사람, 이미 적혀 있는지 볼 낱말, 넣을 미확정 항목이다.
+# 엔진이 실행 가능하다고 본 후보라 위반은 아니고 사람 확인만 남는다.
+SCRIPT_FOLLOW_UPS = {
+    "SCRIPT_EXT_INDOOR": ("연출감독", "연출", "연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"),
+    "SCRIPT_INT_OUTDOOR": ("연출감독", "연출", "연출감독, 실내 장면을 야외에서 찍는 연출 확인, 승인 시"),
+    "SCRIPT_EQUIPMENT_WANTED": ("촬영감독", "장비", "촬영감독, 대본상 있으면 좋은 장비 없이 찍는 방법 확인, 승인 시"),
+}
+SCENE_ORDER_FOLLOW_UP = "조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"
+
+
+def missing_cost_and_distance(text: str, candidate: dict[str, Any]) -> str:
+    """설명에 이동 거리나 추가 비용 숫자가 빠졌으면 엔진 값으로 채울 한 문장을 만듭니다. 둘 다 있으면 빈 문자열입니다.
+    검토에서 같은 지적이 되풀이되지 않도록 모델에게 맡기지 않고 코드가 붙입니다."""
+    km = f"{float(candidate['distanceKm']):g}"
+    extra = int(candidate["extraCost"])
+    has_distance = re.search(rf"{re.escape(km)}\s*km", text) is not None
+    amount = abs(extra)
+    variants = [f"{amount:,}원", f"{amount}원"] + ([f"{amount // 10000}만"] if amount and amount % 10000 == 0 else [])
+    has_cost = "추가 비용" in text if extra == 0 else any(v in text for v in variants)
+    if extra > 0:
+        cost = f"현재 확정안보다 {extra:,}원이 더 듭니다"
+    elif extra < 0:
+        cost = f"현재 확정안보다 {amount:,}원이 줄어듭니다"
+    else:
+        cost = "현재 확정안 대비 추가 비용은 없습니다"
+    distance = f"목동 기준 이동 거리는 {km}km"
+    if not has_distance and not has_cost:
+        return f"{distance}이고, {cost}."
+    if not has_distance:
+        return f"{distance}입니다."
+    if not has_cost:
+        return f"{cost}."
+    return ""
+
+
+def missing_follow_ups(candidate: dict[str, Any], unresolved: list[str]) -> list[str]:
+    """엔진 경고와 씬 순서 변경에 따라 승인 뒤 사람이 할 일을 담당과 기한까지 채웁니다. 이미 적혀 있으면 넣지 않습니다."""
+    added = []
+    codes = [w.get("code") for w in candidate.get("warnings") or []]
+    for code in dict.fromkeys(codes):
+        if code not in SCRIPT_FOLLOW_UPS:
+            continue
+        owner, keyword, item = SCRIPT_FOLLOW_UPS[code]
+        if not any(owner in u and keyword in u for u in [*unresolved, *added]):
+            added.append(item)
+    if candidate.get("sceneOrderChanged") and not any("콜타임" in u for u in unresolved):
+        added.append(SCENE_ORDER_FOLLOW_UP)
+    return added
 
 
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -451,7 +502,17 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "note": entry.note,
             "evidenceIds": cited,
         }
+    script = checklist.get("SCRIPT")
+    # 대본의 하드 규칙(세트 고정, 낮 장면, 필수 장비, 미캐스팅)은 엔진이 이미 통과시킨 후보다. 남은 WARN은 소프트 경고뿐이라
+    # 근거가 붙어 있으면 PASS로 두고 연출 확인은 미확정 항목으로 넘긴다. 그대로 두면 검토가 WARN으로 매 회차 감점한다.
+    if script and script["status"] == "WARN" and script["evidenceIds"]:
+        script["status"] = "PASS"
+    explanation = explained.explanation
+    facts = missing_cost_and_distance(explanation, choice)
+    if facts:
+        explanation = f"{explanation.rstrip()} {facts}"
     unresolved = list(explained.unresolved)
+    unresolved.extend(missing_follow_ups(choice, unresolved))
     # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
     unresolved.extend(f"설명 확인 필요, {problem}" for problem in problems)
     for constraint in HARD_CONSTRAINTS:
@@ -471,7 +532,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         "selected_plan": {
             "hash": choice["hash"],
             "candidate": choice,
-            "explanation": explained.explanation,
+            "explanation": explanation,
             "checklist": [checklist[c] for c in HARD_CONSTRAINTS],
             "unresolved": sorted(set(unresolved)),
         },
@@ -534,14 +595,14 @@ def review_facts(candidate: dict[str, Any]) -> str:
         "하드 제약 위반: 0건 (업무 규칙 엔진과 검증 게이트가 계약, 일정, 법규, 예산 상한, 비행 금지, 재난, 날씨를 모두 확인함)\n"
         f"이 안의 장소와 장비 비용: {candidate['cost']}원 (블록 예산 상한 이내), 현재 확정안 대비 추가 비용: {candidate['extraCost']}원\n"
         f"목동 기준 이동 거리: {candidate['distanceKm']}km, 실내 여부: {'실내' if candidate['location']['indoor'] else '야외'}\n"
-        f"엔진 경고: {warnings}"
+        f"엔진 경고(위반이 아니라 사람이 확인할 사항): {warnings}"
     )
 
 
 @harnessed("self_review", "자체 검토")
 async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """승인 요청 전에 승인자 입장에서 안을 채점합니다. 통과 점수 미만이면 고쳐서 다시 검토하고,
-    상한 회차에 닿으면 그때까지 가장 점수가 높았던 안으로 승인을 요청합니다."""
+    상한 회차에 닿거나 점수가 두 번 연속 그대로면 그때까지 가장 점수가 높았던 안으로 승인을 요청합니다."""
     limits = ctx.settings.limits
     plan = state["selected_plan"]
     candidate = plan["candidate"]
@@ -585,10 +646,19 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         best = {"score": score, "round": round_no, "plan": plan}
 
     update: dict[str, Any] = {"review_round": round_no, "review_history": history, "best_review": best}
-    if score >= limits.review_pass_score or round_no >= limits.max_review_rounds:
-        passed = score >= limits.review_pass_score
+    passed = score >= limits.review_pass_score
+    # 고쳐도 점수가 두 번 연속 그대로면 같은 지적이 되풀이되는 것이라 상한까지 돌지 않고 멈춘다.
+    last_three = {h["score"] for h in history[-3:]}
+    stalled = not passed and len(history) >= 3 and len(last_three) == 1
+    if passed or stalled or round_no >= limits.max_review_rounds:
         chosen = plan if passed else best["plan"]
         final_score = score if passed else best["score"]
+        if passed:
+            outcome = "통과"
+        elif stalled:
+            outcome = f"점수가 두 번 연속 그대로라 멈추고 가장 높은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+        else:
+            outcome = f"{limits.max_review_rounds}회 도달, 가장 높은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
         update.update(
             {
                 "selected_plan": chosen,
@@ -596,17 +666,13 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
                 "review_result": {
                     "score": final_score,
                     "passed": passed,
+                    "stalled": stalled,
                     "threshold": limits.review_pass_score,
                     "rounds": round_no,
                     "chosenRound": round_no if passed else best["round"],
                     "history": history,
                 },
-                "_detail": f"{round_no}회차 {score}점, "
-                + (
-                    "통과"
-                    if passed
-                    else f"{limits.max_review_rounds}회 도달, 가장 높은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
-                ),
+                "_detail": f"{round_no}회차 {score}점, {outcome}",
             }
         )
         return update

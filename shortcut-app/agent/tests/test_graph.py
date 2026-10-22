@@ -351,6 +351,53 @@ def test_review_switches_method_when_the_score_does_not_improve():
     assert backend.proposals[0]["candidate"]["location_id"] == 3
 
 
+def test_review_stops_when_the_score_stays_the_same_twice():
+    # 미리보기에서 1회차 비 이벤트(한강 공원 12~16시 시간당 12mm)에 "배우 대기 시간을 줄여 줘"를 주자 76점이 다섯 번 반복됐다.
+    # 피드백은 SCRIPT WARN 감점, 이동 거리와 추가 비용 설명 부족, 연출 확인 담당 누락이었다.
+    model = FakeModel(
+        review_scores=[76],
+        review_actions=["REWRITE", "NEXT_CANDIDATE", "REWRITE", "NEXT_CANDIDATE", "REWRITE"],
+        warn_constraints={"SCRIPT"},
+    )
+    ctx, backend, _, _ = make_context(model=model)
+    backend.script_warnings = True
+    state = initial_state()
+    state["event"] = {
+        "id": 1,
+        "type": "RAIN",
+        "detail": "한강 공원 12~16시 시간당 12mm",
+        "changes": [{"kind": "RAIN_FORECAST", "targetId": 1, "fromHour": 12, "toHour": 16, "mm": 12}],
+        "instruction": "배우 대기 시간을 줄여 줘",
+        "requested_by": "manager",
+    }
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(state, CONFIG, context=ctx))
+
+    proposal = backend.proposals[0]
+    review = proposal["review"]
+    assert review["rounds"] == 3 and review["passed"] is False and review["stalled"] is True
+    assert review["score"] == 76 and review["chosenRound"] == 1
+    assert ctx.model.structured_calls.count("PlanReview") == 3
+    # 검토가 되풀이해 지적한 세 가지는 코드가 엔진 값으로 채워 승인 요청에 실린다.
+    script = next(c for c in proposal["checklist"] if c["constraint"] == "SCRIPT")
+    assert script["status"] == "PASS" and script["evidence_ids"]
+    assert "목동 기준 이동 거리는 14km이고, 현재 확정안보다 150,000원이 더 듭니다." in proposal["explanation"]
+    assert "연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시" in proposal["unresolved"]
+
+
+def test_engine_facts_are_not_added_twice():
+    from app.graph.nodes import missing_cost_and_distance, missing_follow_ups
+
+    candidate = {**SEONGSU, "warnings": [{"code": "SCRIPT_EXT_INDOOR"}, {"code": "SCRIPT_EXT_INDOOR"}]}
+    assert missing_cost_and_distance("목동에서 14km, 추가 비용 15만 원입니다.", candidate) == ""
+    assert missing_cost_and_distance("목동에서 14 km 떨어져 있고 150,000원이 더 듭니다.", candidate) == ""
+    assert missing_cost_and_distance("150,000원이 더 듭니다.", candidate) == "목동 기준 이동 거리는 14km입니다."
+    assert missing_follow_ups(candidate, []) == ["연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"]
+    assert missing_follow_ups(candidate, ["연출감독, 실내 촬영 연출 확인, 승인 시"]) == []
+    changed = {**SEONGSU, "sceneOrderChanged": True}
+    assert missing_follow_ups(changed, []) == ["조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"]
+
+
 def test_explanation_naming_another_candidate_is_rewritten_once():
     ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."]))
     graph, _ = compile_graph(ctx)

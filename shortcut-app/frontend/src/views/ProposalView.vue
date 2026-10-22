@@ -219,7 +219,7 @@ const scoreRows = computed(() => {
   }))
 })
 
-// 승인 요청에 실린 안의 회차 점수를 항목별로 보여 준다. 5회 도달로 넘어온 경우 가장 높았던 회차다.
+// 승인 요청에 실린 안의 회차 점수를 항목별로 보여 준다. 5회 도달이나 점수 정체로 넘어온 경우 가장 높았던 회차다.
 const review = computed(() => {
   const r = proposal.value?.review
   if (!r?.history?.length) return null
@@ -502,7 +502,7 @@ onBeforeUnmount(() => {
             <span class="text-3xl font-bold tracking-tight">{{ review.score }}</span>
             <span class="text-muted-foreground">/ 100</span>
             <Badge :variant="review.passed ? 'success' : 'warning'" class="ml-1">
-              {{ review.passed ? `${review.rounds}회차 통과` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
+              {{ review.passed ? `${review.rounds}회차 통과` : review.stalled ? `점수가 그대로라 ${review.rounds}회차에서 멈춤, ${review.chosenRound}회차 안으로 요청` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
             </Badge>
           </div>
           <ul class="flex flex-col gap-3">
