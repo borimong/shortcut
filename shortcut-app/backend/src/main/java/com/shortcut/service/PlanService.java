@@ -14,6 +14,7 @@ import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.EvaluationResult;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.PlanEngine;
+import com.shortcut.engine.PlanInput;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
@@ -39,7 +40,8 @@ public class PlanService {
 
     public EvaluateResponse evaluate(EvaluateRequest request) {
         PlanData data = planData.load(request.shootDayId());
-        EvaluationResult result = engine.evaluate(data.toInput(), request.weights(), request.extraConstraints());
+        PlanInput input = data.toInput();
+        EvaluationResult result = engine.evaluate(input, request.weights(), request.extraConstraints());
         Set<String> excluded = request.excludeHashes() == null ? Set.of() : Set.copyOf(request.excludeHashes());
         List<CandidateResult> remaining = result.candidates().stream()
                 .filter(candidate -> !excluded.contains(candidate.hash()))
@@ -47,7 +49,7 @@ public class PlanService {
         long feasibleCount = remaining.stream().filter(CandidateResult::feasible).count();
         List<CandidateView> top = remaining.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
         return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top,
-                PlanEngine.locationProofBlockers(remaining));
+                PlanEngine.locationProofBlockers(input, remaining));
     }
 
     public ValidateResponse validate(ValidateRequest request) {

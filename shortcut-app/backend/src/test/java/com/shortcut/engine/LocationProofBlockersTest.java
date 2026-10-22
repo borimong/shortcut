@@ -27,11 +27,33 @@ class LocationProofBlockersTest {
         PlanInput input = day2(locations);
 
         EvaluationResult result = engine.evaluate(input, null, List.of());
-        List<String> blockers = PlanEngine.locationProofBlockers(result.candidates());
+        List<String> blockers = PlanEngine.locationProofBlockers(input, result.candidates());
 
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
-        assertThat(blockers.getFirst()).isEqualTo("배우 C 일정(10:30~14:30 타 작품)과 겹칩니다.");
-        assertThat(blockers).anySatisfy(m -> assertThat(m).contains("S18, S19", "성수 스튜디오에만"));
+        assertThat(blockers.getFirst()).isEqualTo("S18, S19은(는) 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.");
+        assertThat(blockers).contains("성수 스튜디오은(는) 변경 입력에서 취소되어 쓸 수 없습니다.",
+                "배우 C 일정(10:30~14:30 타 작품)과 겹칩니다.");
+    }
+
+    @Test
+    void 씬_순서로_배우_C가_풀려도_세트_장소가_취소되면_4안을_찾지_않는다() {
+        // 미리보기 회귀: 이벤트 LOCATION_CANCEL 성수 스튜디오(LOCATION_UNAVAILABLE 2). 씬마다 출연 배우가 있으면 S19를 먼저 찍어
+        // 배우 C 충돌이 풀리는 성수 후보가 생겨 장소 취소로만 막힌 것처럼 보였다. S18, S19는 성수 세트 고정이라 새 장소로는 못 푼다.
+        PlanInput seed = SeedPlan.day2(true);
+        Map<Long, Location> locations = new HashMap<>(seed.locations());
+        locations.computeIfPresent(2L, (id, l) -> l.unavailable());
+        PlanInput input = withLocations(seed, locations);
+
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+        List<String> blockers = PlanEngine.locationProofBlockers(input, result.candidates());
+
+        assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
+        assertThat(result.candidates()).anySatisfy(c -> {
+            assertThat(c.location().id()).isEqualTo(2L);
+            assertThat(c.violations()).extracting(Finding::code).doesNotContain("ACTOR_BUSY", "SCRIPT_SETTING_LOCKED");
+        });
+        assertThat(blockers.getFirst()).isEqualTo("S18, S19은(는) 세트가 성수 스튜디오에만 있는데 그곳을 쓸 수 없습니다.");
+        assertThat(blockers).contains("성수 스튜디오은(는) 변경 입력에서 취소되어 쓸 수 없습니다.");
     }
 
     @Test
@@ -62,7 +84,7 @@ class LocationProofBlockersTest {
         EvaluationResult result = engine.evaluate(input, null, List.of());
 
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
-        assertThat(PlanEngine.locationProofBlockers(result.candidates()).getFirst())
+        assertThat(PlanEngine.locationProofBlockers(input, result.candidates()).getFirst())
                 .isEqualTo("배우 B 일정(18:30~21:00 광고와 행사)과 겹칩니다.");
     }
 
@@ -73,10 +95,18 @@ class LocationProofBlockersTest {
                 new ExtraConstraint("EXCLUDE_LOCATION", 1L, null, null, null, null, null, "", ""),
                 new ExtraConstraint("EXCLUDE_LOCATION", 2L, null, null, null, null, null, "", ""),
                 new ExtraConstraint("EXCLUDE_LOCATION", 3L, null, null, null, null, null, "", ""));
-        EvaluationResult result = engine.evaluate(SeedPlan.input(List.of()), null, allPlaces);
+        PlanInput input = SeedPlan.input(List.of());
+        EvaluationResult result = engine.evaluate(input, null, allPlaces);
 
         assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
-        assertThat(PlanEngine.locationProofBlockers(result.candidates())).isEmpty();
+        assertThat(PlanEngine.locationProofBlockers(input, result.candidates())).isEmpty();
+    }
+
+    private static PlanInput withLocations(PlanInput in, Map<Long, Location> locations) {
+        return new PlanInput(in.callTime(), in.morningEnd(), in.budgetCap(), in.crewWeeklyHoursUsed(), in.current(),
+                in.blockActorIds(), in.actorOtherBlockMinutes(), in.actors(), locations, in.equipment(), in.options(),
+                in.precipByLocation(), in.alerts(), in.alternativeLocationIds(), in.rainBlockMm(), in.rainWarnMm(),
+                in.blockScenes(), in.actorDays(), in.otherBlocks(), in.sunrise(), in.sunset());
     }
 
     /** 2회차 오후 블록: S18, S19는 성수 세트 고정, 배우 B·C, 오전 08:00~10:00 목동(배우 B, C). 비는 오지 않는다. */

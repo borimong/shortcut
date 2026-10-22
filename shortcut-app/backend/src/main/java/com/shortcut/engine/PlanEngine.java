@@ -132,24 +132,55 @@ public final class PlanEngine {
     }
 
     /**
-     * 실행 가능한 후보가 없고 모든 후보에 새 장소로는 풀 수 없는 위반이 하나 이상 있으면, 그 원인을 규칙마다 한 문장씩
-     * 많은 후보를 막는 순서로 돌려준다. 하나라도 장소만 문제인 후보가 있으면 빈 목록이다(4안 장소를 찾아볼 가치가 있다).
+     * 실행 가능한 후보가 없고 새 장소(4안)로 풀 수 없으면 그 원인을 규칙마다 한 문장씩 많은 후보를 막는 순서로 돌려준다.
+     * 블록에 세트 고정 씬이 있으면 새 장소는 그 세트일 수 없어 언제나 풀 수 없다. 그 밖에는 모든 후보에 새 장소로 풀 수 없는
+     * 위반이 하나 이상 있을 때다. 하나라도 장소만 문제인 후보가 있으면 빈 목록이다(4안 장소를 찾아볼 가치가 있다).
      * Agent는 이 목록이 있으면 대체 장소를 찾지 않고 사람에게 원인을 넘긴다.
      */
-    public static List<String> locationProofBlockers(List<CandidateResult> candidates) {
+    public static List<String> locationProofBlockers(PlanInput input, List<CandidateResult> candidates) {
         if (candidates.isEmpty() || candidates.stream().anyMatch(CandidateResult::feasible)) {
             return List.of();
         }
+        List<String> locked = lockedSetBlockers(input, candidates);
+        if (!locked.isEmpty()) {
+            return locked;
+        }
+        for (CandidateResult candidate : candidates) {
+            if (candidate.violations().stream().noneMatch(PlanEngine::locationProof)) {
+                return List.of();
+            }
+        }
+        return rankedCauses(candidates, PlanEngine::locationProof);
+    }
+
+    /**
+     * 세트 고정 씬은 그 세트 장소에서만 찍을 수 있다. 씬 순서를 바꿔 배우 일정이 풀리는 후보가 있어도 세트 장소가 취소되거나
+     * 이용 시간 밖이면 남는 길은 사람이 정하는 일정 변경뿐이라, 세트 장소 후보를 막는 원인을 이어 적는다.
+     */
+    private static List<String> lockedSetBlockers(PlanInput input, List<CandidateResult> candidates) {
+        Map<Long, String> sets = input.blockScenes().stream()
+                .filter(s -> s.settingLocked() && s.locationId() != null)
+                .collect(Collectors.groupingBy(ScenePlan::locationId, LinkedHashMap::new,
+                        Collectors.mapping(ScenePlan::code, Collectors.joining(", "))));
+        List<String> lines = new ArrayList<>();
+        sets.forEach((setId, codes) -> {
+            Location set = input.locations().get(setId);
+            lines.add(codes + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있는데 그곳을 쓸 수 없습니다.");
+            List<CandidateResult> atSet = candidates.stream().filter(c -> c.location().id() == setId).toList();
+            lines.addAll(rankedCauses(atSet, f -> !"SCRIPT_SETTING_LOCKED".equals(f.code())));
+        });
+        return lines.stream().distinct().limit(MAX_BLOCKERS).toList();
+    }
+
+    /** 위반을 규칙마다 한 문장으로 모아 많은 후보를 막는 순서로 세운다. */
+    private static List<String> rankedCauses(List<CandidateResult> candidates, Predicate<Finding> counted) {
         Map<String, Integer> hits = new LinkedHashMap<>();
         Map<String, String> firstMessage = new LinkedHashMap<>();
         for (CandidateResult candidate : candidates) {
-            List<Finding> proof = candidate.violations().stream().filter(PlanEngine::locationProof).toList();
-            if (proof.isEmpty()) {
-                return List.of();
-            }
-            proof.stream().map(Finding::code).distinct().forEach(code -> hits.merge(code, 1, Integer::sum));
+            List<Finding> found = candidate.violations().stream().filter(counted).toList();
+            found.stream().map(Finding::code).distinct().forEach(code -> hits.merge(code, 1, Integer::sum));
             // 위반 문장 끝의 "(현장 13:00~15:00)"는 후보마다 다른 시각이라, 사람에게 넘기는 원인에서는 뺀다.
-            proof.forEach(f -> firstMessage.putIfAbsent(f.code(), f.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".")));
+            found.forEach(f -> firstMessage.putIfAbsent(f.code(), f.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".")));
         }
         return hits.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
