@@ -18,6 +18,7 @@ import com.shortcut.dto.TaskDtos.EventResponse;
 import com.shortcut.dto.ResourceDtos.ResourceChange;
 import com.shortcut.dto.ResourceDtos.ResourceChangeRequest;
 import com.shortcut.dto.ResourceDtos.ResourceChangeResult;
+import com.shortcut.engine.ActorDay;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.repository.OverrideRepository;
 import com.shortcut.repository.PlanRepository;
@@ -225,6 +226,19 @@ public class EventService {
                 out.put("to", c.to().toString());
                 out.put("summary", actor.name() + " 가용 시간 " + c.from() + "~" + c.to() + "로 변경");
             }
+            // 소속사가 알려 온 다른 일정이다. 가능 시간은 그대로 두고 그 시간만 뺀다. 개인 사정은 사유 종류로만 남긴다.
+            case "ACTOR_BUSY" -> {
+                Actor actor = require(data.actors(), c.targetId(), "배우");
+                if (c.from() == null || c.to() == null || !c.from().isBefore(c.to())) {
+                    throw ApiException.badRequest("INVALID_TIME", "다른 일정 시작 시각은 끝 시각보다 빨라야 합니다.");
+                }
+                String reasonKind = c.reasonKind() == null ? "OTHER_PRODUCTION" : c.reasonKind();
+                out.put("targetId", actor.id());
+                out.put("from", c.from().toString());
+                out.put("to", c.to().toString());
+                out.put("reasonKind", reasonKind);
+                out.put("summary", actor.name() + " " + c.from() + "~" + c.to() + " 다른 일정(" + ActorDay.reasonLabel(reasonKind) + ")");
+            }
             case "LOCATION_UNAVAILABLE" -> {
                 Location location = require(data.locations(), c.targetId(), "장소");
                 out.put("targetId", location.id());
@@ -269,7 +283,7 @@ public class EventService {
      */
     private Map<String, Object> validateResource(ResourceChange c, PlanData data, LocalDate shootDate) {
         Map<String, Object> out = validate(new ChangeItem(c.kind(), c.targetId(), c.from(), c.to(),
-                null, null, null, null, null), data);
+                null, null, null, null, null, null), data);
         boolean equipment = "EQUIPMENT_UNAVAILABLE".equals(c.kind());
         if (equipment && "REPAIR".equals(c.status())) {
             out.put("status", "REPAIR");
@@ -305,6 +319,8 @@ public class EventService {
                     Map.of("from", ABSENT.toString(), "to", ABSENT.toString()), null, memo, username);
             case "ACTOR_WINDOW" -> overrides.insert(shootDayId, eventId, kind, target,
                     Map.of("from", c.get("from"), "to", c.get("to")), null, memo, username);
+            case "ACTOR_BUSY" -> overrides.insert(shootDayId, eventId, kind, target,
+                    Map.of("from", c.get("from"), "to", c.get("to"), "reasonKind", c.get("reasonKind")), null, memo, username);
             case "RAIN_FORECAST" -> overrides.insert(shootDayId, eventId, kind, target,
                     Map.of("fromHour", c.get("fromHour"), "toHour", c.get("toHour"), "mm", c.get("mm")), null, memo, username);
             // 재난 문자는 이 촬영일 날짜에만 적용한다. 다른 날 촬영일의 판정에는 섞이지 않는다.

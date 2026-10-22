@@ -189,6 +189,129 @@ class PlanEngineTest {
                 .anySatisfy(f -> assertThat(f.message()).contains("배우 A은(는) 오늘 촬영에 참여할 수 없습니다")));
     }
 
+    @Test
+    void 대본을_넣어도_우천_1등은_성수이고_야외_장면_경고만_붙는다() {
+        EvaluationResult result = engine.evaluate(SeedPlan.withScript(SeedPlan.input(List.of())), null, List.of());
+
+        CandidateResult best = result.candidates().getFirst();
+        assertThat(best.hash()).isEqualTo("L2-E1,2,3-T14001600");
+        assertThat(best.feasible()).isTrue();
+        assertThat(best.warnings()).extracting(Finding::code).containsExactly("SCRIPT_EXT_INDOOR");
+        assertThat(best.warnings().getFirst().message()).contains("S12, S13", "성수 스튜디오", "연출 확인");
+        // 드론과 반사판이 없는 장비 묶음은 선호 장비 경고만 받는다.
+        assertThat(find(result, "L2-E1,4-T14001600").warnings()).extracting(Finding::code)
+                .contains("SCRIPT_EQUIPMENT_WANTED");
+        assertThat(find(result, "L2-E1,4-T14001600").feasible()).isTrue();
+    }
+
+    @Test
+    void 해가_지면_낮_야외_장면을_찍을_수_없다() {
+        PlanInput rainless = SeedPlan.withRainRule(SeedPlan.input(List.of()), 100, 100);
+        PlanInput input = SeedPlan.withScript(rainless, SeedPlan.seedScenes(), Map.of(), SeedPlan.seedMorning(), t("14:00"));
+
+        CheckResult hangang = engine.check(input, 1, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        assertThat(hangang.violations()).extracting(Finding::code).containsExactly("SCRIPT_DAYLIGHT");
+        // 실내 스튜디오는 조명으로 낮을 만들 수 있어 막지 않는다.
+        CheckResult studio = engine.check(input, 2, List.of(1L, 2L, 3L), t("14:00"), t("16:00"), List.of());
+        assertThat(studio.violations()).isEmpty();
+    }
+
+    @Test
+    void 밤_야외_장면은_일몰_전에_시작할_수_없다() {
+        List<ScenePlan> night = List.of(new ScenePlan("S21", 120, true, true, false, null, List.of(), List.of(), List.of()));
+        PlanInput input = SeedPlan.withScript(SeedPlan.withRainRule(SeedPlan.input(List.of()), 100, 100), night,
+                Map.of(), SeedPlan.seedMorning(), t("17:40"));
+
+        CheckResult check = engine.check(input, 1, List.of(1L), t("13:00"), t("15:00"), List.of());
+        assertThat(check.violations()).extracting(Finding::code).contains("SCRIPT_DAYLIGHT");
+        assertThat(check.violations()).anySatisfy(f -> assertThat(f.message()).contains("S21", "일몰(17:40)"));
+    }
+
+    @Test
+    void 필수_장비가_없거나_배역이_캐스팅_전이면_막힌다() {
+        List<ScenePlan> scenes = List.of(
+                new ScenePlan("S12", 90, true, false, false, null, List.of("문태"), List.of(1L, 2L), List.of()),
+                new ScenePlan("S13", 30, true, false, false, null, List.of(), List.of(1L), List.of()));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), scenes, Map.of(), SeedPlan.seedMorning(),
+                t("17:40"));
+
+        CheckResult check = engine.check(input, 2, List.of(1L, 4L), t("14:00"), t("16:00"), List.of());
+        assertThat(check.violations()).extracting(Finding::code)
+                .containsExactlyInAnyOrder("SCRIPT_EQUIPMENT_MISSING", "CHARACTER_UNCAST");
+        assertThat(check.violations()).anySatisfy(f -> assertThat(f.message()).contains("드론"));
+    }
+
+    @Test
+    void 세트가_고정된_씬은_다른_장소에서_찍을_수_없다() {
+        List<ScenePlan> workshop = List.of(
+                new ScenePlan("S18", 90, false, false, true, 2L, List.of(), List.of(1L), List.of()),
+                new ScenePlan("S19", 30, false, false, true, 2L, List.of(), List.of(1L), List.of()));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), workshop, Map.of(), SeedPlan.seedMorning(),
+                t("17:40"));
+
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+        assertThat(codes(find(result, "L3-E1,5-T14001600"))).contains("SCRIPT_SETTING_LOCKED");
+        assertThat(codes(find(result, "L2-E1,5-T14001600"))).doesNotContain("SCRIPT_SETTING_LOCKED");
+    }
+
+    @Test
+    void 씬_길이_합이_후보_시간보다_길면_막힌다() {
+        List<ScenePlan> longer = List.of(new ScenePlan("S12", 150, true, false, false, null, List.of(), List.of(), List.of()));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), longer, Map.of(), SeedPlan.seedMorning(),
+                t("17:40"));
+
+        CheckResult check = engine.check(input, 2, List.of(1L, 2L, 3L), t("14:00"), t("16:00"), List.of());
+        assertThat(check.violations()).extracting(Finding::code).containsExactly("BLOCK_OVERFLOW");
+    }
+
+    @Test
+    void 배우의_그날_다른_일정과_겹치는_시간대만_막힌다() {
+        // 1회차 목데이터처럼 배우 A가 12:00~13:00에 병원 진료가 있다.
+        ActorDay clinic = new ActorDay(1, false, null, List.of(new ActorDay.Window(t("09:00"), t("16:00"))),
+                List.of(new ActorDay.Busy(t("12:00"), t("13:00"), "PERSONAL")));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), SeedPlan.seedScenes(), Map.of(1L, clinic),
+                SeedPlan.seedMorning(), t("17:40"));
+
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+        CandidateResult early = find(result, "L2-E1,2,3-T12301430");
+        assertThat(codes(early)).contains("ACTOR_BUSY");
+        assertThat(early.violations()).anySatisfy(f -> assertThat(f.message()).contains("배우 A", "12:00~13:00 개인 일정"));
+        assertThat(codes(find(result, "L1-E1,2,3-T13001500"))).doesNotContain("ACTOR_BUSY");
+        assertThat(result.candidates().getFirst().hash()).isEqualTo("L2-E1,2,3-T14001600");
+    }
+
+    @Test
+    void 종일_불가는_사유_종류와_함께_막는다() {
+        ActorDay film = new ActorDay(1, true, "OTHER_PRODUCTION", List.of(), List.of());
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), SeedPlan.seedScenes(), Map.of(1L, film),
+                SeedPlan.seedMorning(), t("17:40"));
+
+        assertThat(engine.evaluate(input, null, List.of()).candidates()).allSatisfy(c -> assertThat(c.violations())
+                .anySatisfy(f -> assertThat(f.message()).isEqualTo("배우 A은(는) 오늘 촬영에 참여할 수 없습니다(타 작품).")));
+    }
+
+    @Test
+    void 같은_배우가_시간이_겹치는_다른_블록에_나오면_막힌다() {
+        List<BlockSlot> lateMorning = List.of(new BlockSlot("AM", t("07:00"), t("13:30"), List.of(2L, 3L)));
+        PlanInput input = SeedPlan.withScript(SeedPlan.input(List.of()), SeedPlan.seedScenes(), Map.of(), lateMorning,
+                t("17:40"));
+
+        CheckResult check = engine.check(input, 2, List.of(1L, 2L, 3L), t("13:00"), t("15:00"), List.of());
+        assertThat(check.violations()).extracting(Finding::code).contains("ACTOR_OVERLAP");
+        assertThat(check.violations()).anySatisfy(f -> assertThat(f.message()).contains("배우 B", "AM 블록"));
+    }
+
+    @Test
+    void 대본_실내외_맞춤_제약이면_실내로_옮기는_후보가_막힌다() {
+        ExtraConstraint keepOutdoor = new ExtraConstraint("REQUIRE_SETTING_MATCH", null, null, null, null, null, null,
+                "야외 장면은 야외에서", "DIRECTOR 거절");
+        EvaluationResult result = engine.evaluate(SeedPlan.withScript(SeedPlan.input(List.of())), null,
+                List.of(keepOutdoor));
+
+        assertThat(codes(find(result, "L2-E1,2,3-T14001600"))).contains("EXCLUDED_BY_CONSTRAINT");
+        assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
+    }
+
     private static List<String> codes(CandidateResult candidate) {
         return candidate.violations().stream().map(Finding::code).toList();
     }

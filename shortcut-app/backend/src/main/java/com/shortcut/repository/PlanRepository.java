@@ -9,6 +9,8 @@ import com.shortcut.domain.ExternalLocation;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.PlanOption;
 import com.shortcut.domain.Scene;
+import com.shortcut.domain.SceneCharacter;
+import com.shortcut.domain.SceneRequirement;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.domain.WeatherHour;
 import com.shortcut.engine.PlanSnapshot;
@@ -17,6 +19,8 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +57,7 @@ public class PlanRepository {
                 .query((rs, n) -> new ShootDay(rs.getLong("id"), rs.getLong("project_id"), rs.getString("project_name"),
                         rs.getObject("shoot_date", LocalDate.class), time(rs, "call_time"), rs.getInt("data_version"),
                         rs.getString("notice"), rs.getString("crew_calls_json"), rs.getLong("block_budget_cap"),
-                        rs.getDouble("crew_weekly_hours_used")))
+                        rs.getDouble("crew_weekly_hours_used"), time(rs, "sunrise"), time(rs, "sunset")))
                 .optional();
     }
 
@@ -125,11 +129,54 @@ public class PlanRepository {
                 .update();
     }
 
+    /**
+     * 촬영일에 배정된 씬과 그 대본 분해 값(실내/실외, 낮/밤, 세트 고정, 등장 배역과 캐스팅, 요구)이다.
+     * 출연 배우는 scenes.actor_ids가 아니라 등장 배역의 캐스팅에서 읽는다.
+     */
     public List<Scene> findScenes(long shootDayId) {
-        return jdbc.sql("SELECT *, actor_ids::text AS actor_json FROM scenes WHERE shoot_day_id = :id ORDER BY sort")
+        Map<String, List<SceneCharacter>> characters = new HashMap<>();
+        jdbc.sql("""
+                        SELECT sc.scene_code, c.id, c.name, c.actor_id
+                        FROM scenes s
+                        JOIN scene_characters sc ON sc.project_id = s.project_id AND sc.scene_code = s.code
+                        JOIN characters c ON c.id = sc.character_id
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY sc.scene_code, c.id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> characters.computeIfAbsent(rs.getString("scene_code"), k -> new ArrayList<>())
+                        .add(new SceneCharacter(rs.getLong("id"), rs.getString("name"), rs.getObject("actor_id", Long.class))));
+        Map<String, List<SceneRequirement>> requirements = new HashMap<>();
+        jdbc.sql("""
+                        SELECT r.* FROM scenes s
+                        JOIN scene_requirements r ON r.project_id = s.project_id AND r.scene_code = s.code
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY r.scene_code, r.id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> requirements.computeIfAbsent(rs.getString("scene_code"), k -> new ArrayList<>())
+                        .add(new SceneRequirement(rs.getString("kind"), rs.getObject("equipment_id", Long.class),
+                                rs.getString("label"), rs.getInt("qty"), rs.getString("level"))));
+        // 대본 시드보다 먼저 만든 씬이 남아 있어도 읽히도록 대본 씬은 LEFT JOIN하고 예전 야외 의도 열로 채운다.
+        return jdbc.sql("""
+                        SELECT s.code, s.block_code, s.title, s.duration_min, s.location_id,
+                               COALESCE(ss.heading, s.code || ' ' || s.title) AS heading,
+                               COALESCE(ss.int_ext, CASE WHEN s.outdoor_intent THEN 'EXT' ELSE 'INT' END) AS int_ext,
+                               COALESCE(ss.time_of_day, 'DAY') AS time_of_day,
+                               COALESCE(ss.setting, s.title) AS setting,
+                               COALESCE(ss.setting_locked, false) AS setting_locked
+                        FROM scenes s
+                        LEFT JOIN script_scenes ss ON ss.project_id = s.project_id AND ss.code = s.code
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY s.sort
+                        """)
                 .param("id", shootDayId)
                 .query((rs, n) -> new Scene(rs.getString("code"), rs.getString("block_code"), rs.getString("title"),
-                        rs.getInt("duration_min"), rs.getBoolean("outdoor_intent"), json.longs(rs.getString("actor_json"))))
+                        rs.getInt("duration_min"), rs.getString("heading"), rs.getString("int_ext"),
+                        rs.getString("time_of_day"), rs.getString("setting"), rs.getBoolean("setting_locked"),
+                        rs.getObject("location_id", Long.class),
+                        List.copyOf(characters.getOrDefault(rs.getString("code"), List.of())),
+                        List.copyOf(requirements.getOrDefault(rs.getString("code"), List.of()))))
                 .list();
     }
 

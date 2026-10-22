@@ -1,9 +1,13 @@
 package com.shortcut.dto;
 
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.SceneCharacter;
+import com.shortcut.domain.SceneRequirement;
 import com.shortcut.dto.BoardDtos.EquipmentView;
 import com.shortcut.dto.BoardDtos.ForecastView;
 import com.shortcut.dto.BoardDtos.HourlyView;
+import com.shortcut.dto.ScheduleDtos.BusyView;
+import com.shortcut.dto.ScheduleDtos.WindowView;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.Finding;
 import jakarta.validation.Valid;
@@ -67,10 +71,18 @@ public final class PlanDtos {
                                   List<PlanOptionView> options) {
     }
 
-    public record PlanBlock(String code, int durationMin, List<PlanScene> scenes, List<Long> actorIds) {
+    /** sunrise, sunset은 낮/밤 대본 규칙에 쓰는 그날의 일출과 일몰이다. */
+    public record PlanBlock(String code, int durationMin, List<PlanScene> scenes, List<Long> actorIds,
+                            LocalTime sunrise, LocalTime sunset) {
     }
 
-    public record PlanScene(String code, String title, int durationMin, List<Long> actorIds, boolean outdoorIntent) {
+    /**
+     * 씬과 대본 분해 값이다. outdoorIntent는 예전 이름이고 intExt가 EXT인지와 같다.
+     * characters의 actorId가 비어 있으면 캐스팅 전 배역이고, requirements의 level은 MUST(필수) 또는 WANT(선호)다.
+     */
+    public record PlanScene(String code, String title, int durationMin, List<Long> actorIds, boolean outdoorIntent,
+                            String heading, String intExt, String timeOfDay, String setting, boolean settingLocked,
+                            Long locationId, List<SceneCharacter> characters, List<SceneRequirement> requirements) {
     }
 
     public record PlanCurrent(PlanLocation location, List<EquipmentView> equipment, LocalTime start, LocalTime end,
@@ -89,9 +101,14 @@ public final class PlanDtos {
                                        List<Equipment> equipment, double crewWeeklyHoursUsed) {
     }
 
+    /**
+     * availableFrom~To는 계약 기본 시간(변경 입력의 가용 시간 반영)이다. 그날 실제로 쓰는 값은 off, windows, busy다.
+     * busy에는 개인 사정 대신 사유 종류만 담는다.
+     */
     public record ActorAvailability(long id, String name, LocalTime availableFrom, LocalTime availableTo,
                                     double weeklyHoursUsed, String contractDocId, boolean noNight,
-                                    Double maxDailyHours) {
+                                    Double maxDailyHours, boolean off, String offReason, List<WindowView> windows,
+                                    List<BusyView> busy) {
     }
 
     public record LocationAvailability(long id, String name, boolean indoor, String region, LocalTime openFrom,

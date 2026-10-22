@@ -180,7 +180,10 @@ public class BoardService {
             Location l = data.locations().get(locationId);
             List<SceneView> scenes = data.scenesOf(block.code()).stream()
                     .map(s -> new SceneView(s.code(), s.title(), s.durationMin(),
-                            s.actorIds().stream().map(id -> data.actors().get(id).name()).toList()))
+                            s.actorIds().stream().map(id -> data.actors().get(id).name()).toList(),
+                            s.heading(), s.intExt(), s.timeOfDay(),
+                            s.characters().stream().map(c -> c.name() + (c.actorId() == null ? "(캐스팅 전)"
+                                    : "(" + data.actors().get(c.actorId()).name() + ")")).toList()))
                     .toList();
             return new BlockView(block.code(), changing ? pm.start() : block.start(), changing ? pm.end() : block.end(),
                     new LocationView(l.id(), l.name(), l.address(), l.indoor(), l.region()),

@@ -13,7 +13,10 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 오후 블록 후보를 만들고 하드 제약과 소프트 점수를 판정한다.
@@ -167,16 +170,7 @@ public final class PlanEngine {
         long cost = cost(location, items);
 
         for (long actorId : input.blockActorIds()) {
-            Actor actor = input.actors().get(actorId);
-            // 변경 입력에서 불참으로 고른 배우는 가용 시작과 끝이 같게 저장된다.
-            if (actor.availableFrom().equals(actor.availableTo())) {
-                violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
-                        actor.name() + "은(는) 오늘 촬영에 참여할 수 없습니다.", "SCHEDULE_ACTOR"));
-            } else if (start.isBefore(actor.availableFrom()) || end.isAfter(actor.availableTo())) {
-                violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
-                        actor.name() + " 가용 시간(" + fmt(actor.availableFrom()) + "~" + fmt(actor.availableTo()) + ") 밖입니다.",
-                        "SCHEDULE_ACTOR"));
-            }
+            checkActorDay(input, actorId, start, end, violations);
         }
         if (!location.available()) {
             violations.add(new Finding("LOCATION_CANCELLED", "SCHEDULE",
@@ -227,6 +221,8 @@ public final class PlanEngine {
                     location.name() + " 촬영 허가 시간 밖입니다.", "LAW_PERMIT"));
         }
 
+        checkScript(input, location, items, start, end, blockMinutes, violations, warnings);
+
         if (cost > input.budgetCap()) {
             violations.add(new Finding("BUDGET_EXCEEDED", "BUDGET",
                     "장소와 장비 비용 " + cost + "원이 블록 상한 " + input.budgetCap() + "원을 넘습니다.", "BUDGET_CAP"));
@@ -264,7 +260,7 @@ public final class PlanEngine {
                             "추가 비용 " + extraCost + "원이 허용 " + extra.amount() + "원을 넘습니다. (" + extra.describe() + ")",
                             "EXTRA_MAX_EXTRA_COST"));
                 }
-            } else if (excludedBy(extra, location, items, start, end)) {
+            } else if (excludedBy(extra, input, location, items, start, end)) {
                 violations.add(new Finding("EXCLUDED_BY_CONSTRAINT", "EXTRA",
                         "추가 제약으로 제외됩니다: " + extra.describe(), "EXTRA_" + extra.type()));
             }
@@ -272,7 +268,124 @@ public final class PlanEngine {
         return new CheckResult(List.copyOf(violations), List.copyOf(warnings));
     }
 
-    private static boolean excludedBy(ExtraConstraint extra, Location location, List<Equipment> items,
+    /**
+     * 배우의 그날 일정과 블록 시간을 맞춰 본다. 날짜별 일정(종일 불가, 가능 시간대, 다른 일정)에 변경 입력을 얹은 값이고,
+     * 같은 촬영일의 다른 블록과 시간이 겹치는지도 본다(같은 배우가 두 곳에 있을 수 없다).
+     */
+    private static void checkActorDay(PlanInput input, long actorId, LocalTime start, LocalTime end,
+                                      List<Finding> violations) {
+        Actor actor = input.actors().get(actorId);
+        ActorDay day = input.actorDay(actorId);
+        if (day.off()) {
+            String reason = day.offReason() == null ? "" : "(" + ActorDay.reasonLabel(day.offReason()) + ")";
+            violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
+                    actor.name() + "은(는) 오늘 촬영에 참여할 수 없습니다" + reason + ".", "SCHEDULE_ACTOR"));
+            return;
+        }
+        List<ActorDay.Busy> busy = day.overlapping(start, end);
+        if (!busy.isEmpty()) {
+            String slots = busy.stream()
+                    .map(b -> fmt(b.from()) + "~" + fmt(b.to()) + " " + ActorDay.reasonLabel(b.reasonKind()))
+                    .collect(Collectors.joining(", "));
+            violations.add(new Finding("ACTOR_BUSY", "SCHEDULE",
+                    actor.name() + " 일정(" + slots + ")과 겹칩니다.", "SCHEDULE_ACTOR"));
+        } else if (!day.covers(start, end)) {
+            String windows = day.windows().stream().map(w -> fmt(w.from()) + "~" + fmt(w.to()))
+                    .collect(Collectors.joining(", "));
+            violations.add(new Finding("ACTOR_UNAVAILABLE", "SCHEDULE",
+                    actor.name() + " 가용 시간(" + windows + ") 밖입니다.", "SCHEDULE_ACTOR"));
+        }
+        for (BlockSlot other : input.otherBlocks()) {
+            if (other.actorIds().contains(actorId) && overlaps(other.start(), other.end(), start, end)) {
+                violations.add(new Finding("ACTOR_OVERLAP", "SCHEDULE",
+                        actor.name() + "이(가) 같은 시간 " + other.code() + " 블록(" + fmt(other.start()) + "~"
+                                + fmt(other.end()) + ")에도 나옵니다.", "SCHEDULE_OVERLAP"));
+            }
+        }
+    }
+
+    /**
+     * 대본 씬 분해와 후보를 맞춰 본다. 물리적으로 못 찍는 것(지정 세트 밖, 필수 장비 없음, 배우 미정, 시간 부족,
+     * 해가 진 뒤의 낮 야외 장면)은 위반이고, 연출이 받아들일 수도 있는 것(야외 장면을 실내에서, 선호 장비 없음)은 경고다.
+     * 같은 규칙에 걸린 씬은 한 줄로 묶는다. Agent가 받는 평가 결과 길이에 한도가 있기 때문이다.
+     */
+    private static void checkScript(PlanInput input, Location location, List<Equipment> items, LocalTime start,
+                                    LocalTime end, int blockMinutes, List<Finding> violations, List<Finding> warnings) {
+        List<ScenePlan> scenes = input.blockScenes();
+        if (scenes.isEmpty()) {
+            return;
+        }
+        int sceneMinutes = scenes.stream().mapToInt(ScenePlan::durationMin).sum();
+        if (sceneMinutes > blockMinutes) {
+            violations.add(new Finding("BLOCK_OVERFLOW", "SCHEDULE",
+                    "씬 길이 합 " + sceneMinutes + "분이 " + fmt(start) + "~" + fmt(end) + "(" + blockMinutes + "분)보다 깁니다.",
+                    "SCHEDULE_BLOCK"));
+        }
+        for (ScenePlan scene : scenes) {
+            if (scene.settingLocked() && scene.locationId() != null && scene.locationId() != location.id()) {
+                Location set = input.locations().get(scene.locationId());
+                violations.add(new Finding("SCRIPT_SETTING_LOCKED", "SCRIPT",
+                        scene.code() + "은(는) 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있어 "
+                                + location.name() + "에서 찍을 수 없습니다.", "SCRIPT_SETTING"));
+            }
+        }
+        List<String> uncast = scenes.stream().flatMap(s -> s.uncastCharacters().stream()).distinct().toList();
+        if (!uncast.isEmpty()) {
+            violations.add(new Finding("CHARACTER_UNCAST", "SCRIPT",
+                    String.join(", ", uncast) + " 배역에 배우가 정해지지 않았습니다.", "SCRIPT_CAST"));
+        }
+        Set<Long> have = items.stream().map(Equipment::id).collect(Collectors.toSet());
+        String mustMissing = equipmentNames(input, scenes.stream().flatMap(s -> s.mustEquipmentIds().stream()), have);
+        if (!mustMissing.isEmpty()) {
+            violations.add(new Finding("SCRIPT_EQUIPMENT_MISSING", "SCRIPT",
+                    "대본상 필수 장비(" + mustMissing + ")가 장비 묶음에 없습니다.", "SCRIPT_EQUIPMENT"));
+        }
+        // 스튜디오 조명으로 낮밤을 만들 수 있으므로 해의 위치는 야외 장소에서 찍는 실외 장면만 본다.
+        if (!location.indoor() && input.sunrise() != null && input.sunset() != null) {
+            String dayOutside = codes(scenes, s -> s.exterior() && !s.night()
+                    && (start.isBefore(input.sunrise()) || end.isAfter(input.sunset())));
+            if (!dayOutside.isEmpty()) {
+                violations.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
+                        dayOutside + "은(는) 낮 야외 장면인데 일출~일몰(" + fmt(input.sunrise()) + "~" + fmt(input.sunset())
+                                + ") 밖에 걸립니다.", "SCRIPT_TIME_OF_DAY"));
+            }
+            String nightBeforeDark = codes(scenes, s -> s.exterior() && s.night() && start.isBefore(input.sunset()));
+            if (!nightBeforeDark.isEmpty()) {
+                violations.add(new Finding("SCRIPT_DAYLIGHT", "SCRIPT",
+                        nightBeforeDark + "은(는) 밤 야외 장면인데 일몰(" + fmt(input.sunset()) + ") 전에 시작합니다.",
+                        "SCRIPT_TIME_OF_DAY"));
+            }
+        }
+        String exteriorIndoor = codes(scenes, s -> s.exterior() && location.indoor());
+        if (!exteriorIndoor.isEmpty()) {
+            warnings.add(new Finding("SCRIPT_EXT_INDOOR", "SCRIPT",
+                    exteriorIndoor + "은(는) 대본상 야외 장면인데 " + location.name() + "은(는) 실내입니다. 연출 확인이 필요합니다.",
+                    "SCRIPT_SETTING"));
+        }
+        String interiorOutdoor = codes(scenes, s -> !s.exterior() && !location.indoor());
+        if (!interiorOutdoor.isEmpty()) {
+            warnings.add(new Finding("SCRIPT_INT_OUTDOOR", "SCRIPT",
+                    interiorOutdoor + "은(는) 대본상 실내 장면인데 " + location.name() + "은(는) 야외입니다. 연출 확인이 필요합니다.",
+                    "SCRIPT_SETTING"));
+        }
+        String wantMissing = equipmentNames(input, scenes.stream().flatMap(s -> s.wantEquipmentIds().stream()), have);
+        if (!wantMissing.isEmpty()) {
+            warnings.add(new Finding("SCRIPT_EQUIPMENT_WANTED", "SCRIPT",
+                    "대본상 있으면 좋은 장비(" + wantMissing + ")가 장비 묶음에 없습니다.", "SCRIPT_EQUIPMENT"));
+        }
+    }
+
+    private static String codes(List<ScenePlan> scenes, Predicate<ScenePlan> rule) {
+        return scenes.stream().filter(rule).map(ScenePlan::code).collect(Collectors.joining(", "));
+    }
+
+    private static String equipmentNames(PlanInput input, Stream<Long> ids, Set<Long> have) {
+        return ids.filter(id -> !have.contains(id)).distinct()
+                .map(id -> input.equipment().containsKey(id) ? input.equipment().get(id).name() : "장비 " + id)
+                .collect(Collectors.joining(", "));
+    }
+
+    private static boolean excludedBy(ExtraConstraint extra, PlanInput input, Location location, List<Equipment> items,
                                       LocalTime start, LocalTime end) {
         return switch (extra.type()) {
             case "EXCLUDE_LOCATION" -> extra.locationId() == location.id();
@@ -280,6 +393,8 @@ public final class PlanEngine {
                     && overlaps(extra.from(), extra.to(), start, end);
             case "EXCLUDE_EQUIPMENT" -> items.stream().anyMatch(item -> item.id() == extra.equipmentId());
             case "REQUIRE_INDOOR" -> !location.indoor();
+            // 대본의 실내/실외와 장소가 하나라도 어긋나면 뺀다. 감독이 "야외 장면은 야외에서"로 거절했을 때 쓴다.
+            case "REQUIRE_SETTING_MATCH" -> input.blockScenes().stream().anyMatch(s -> s.exterior() == location.indoor());
             case "LATEST_END" -> end.isAfter(extra.time());
             case "EXCLUDE_TIME" -> overlaps(extra.from(), extra.to(), start, end);
             default -> false;

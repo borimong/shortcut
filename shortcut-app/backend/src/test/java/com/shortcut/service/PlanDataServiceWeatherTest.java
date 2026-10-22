@@ -15,6 +15,7 @@ import com.shortcut.domain.ShootDay;
 import com.shortcut.domain.WeatherHour;
 import com.shortcut.repository.OverrideRepository;
 import com.shortcut.repository.PlanRepository;
+import com.shortcut.repository.ScheduleRepository;
 import com.shortcut.repository.SettingsRepository;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -34,7 +35,8 @@ class PlanDataServiceWeatherTest {
     private final PlanRepository plans = mock(PlanRepository.class);
     private final OverrideRepository overrides = mock(OverrideRepository.class);
     private final SettingsRepository settings = mock(SettingsRepository.class);
-    private final PlanDataService service = new PlanDataService(plans, overrides, settings);
+    private final ScheduleRepository schedules = mock(ScheduleRepository.class);
+    private final PlanDataService service = new PlanDataService(plans, overrides, settings, schedules);
 
     @BeforeEach
     void setUp() {

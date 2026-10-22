@@ -100,6 +100,32 @@ final class SeedPlan {
                 blockMm, warnMm);
     }
 
+    /**
+     * 대본 분해와 배우 날짜별 일정을 더한 입력이다. 1회차 오후 씬 S12(배우 A, B, 90분), S13(배우 A, 30분)은 낮 야외 장면이고
+     * 카메라 패키지(1)가 필수, 드론(2)과 반사판(3)이 선호다. 오전 블록은 07:00~11:30에 배우 B, C가 나온다.
+     */
+    static PlanInput withScript(PlanInput base, List<ScenePlan> scenes, Map<Long, ActorDay> actorDays,
+                                List<BlockSlot> otherBlocks, LocalTime sunset) {
+        return new PlanInput(base.callTime(), base.morningEnd(), base.budgetCap(), base.crewWeeklyHoursUsed(),
+                base.current(), base.blockActorIds(), base.actorOtherBlockMinutes(), base.actors(), base.locations(),
+                base.equipment(), base.options(), base.precipByLocation(), base.alerts(), base.alternativeLocationIds(),
+                base.rainBlockMm(), base.rainWarnMm(), scenes, actorDays, otherBlocks, t("06:50"), sunset);
+    }
+
+    static PlanInput withScript(PlanInput base) {
+        return withScript(base, seedScenes(), Map.of(), seedMorning(), t("17:40"));
+    }
+
+    static List<ScenePlan> seedScenes() {
+        return List.of(
+                new ScenePlan("S12", 90, true, false, false, null, List.of(), List.of(1L), List.of(2L, 3L)),
+                new ScenePlan("S13", 30, true, false, false, null, List.of(), List.of(1L), List.of()));
+    }
+
+    static List<BlockSlot> seedMorning() {
+        return List.of(new BlockSlot("AM", t("07:00"), t("11:30"), List.of(2L, 3L)));
+    }
+
     static LocalTime t(String value) {
         return LocalTime.parse(value);
     }

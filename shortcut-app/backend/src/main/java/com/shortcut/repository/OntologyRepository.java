@@ -68,6 +68,7 @@ public class OntologyRepository {
                             UNION ALL SELECT 'CONTRACT:' || contract_doc_id, NULL FROM actors
                             UNION ALL SELECT 'LOCATION:' || id, NULL FROM locations
                             UNION ALL SELECT 'EQUIPMENT:' || id, NULL FROM equipment
+                            UNION ALL SELECT 'CHARACTER:' || id, NULL FROM characters
                         )
                         SELECT n.node_id FROM ontology_nodes n
                         WHERE split_part(n.node_id, ':', 1) <> n.type

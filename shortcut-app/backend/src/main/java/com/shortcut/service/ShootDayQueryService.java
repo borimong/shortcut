@@ -20,6 +20,9 @@ import com.shortcut.dto.PlanDtos.PlanOptionView;
 import com.shortcut.dto.PlanDtos.PlanScene;
 import com.shortcut.dto.PlanDtos.PlanSetResponse;
 import com.shortcut.dto.PlanDtos.WeatherResponse;
+import com.shortcut.dto.ScheduleDtos.BusyView;
+import com.shortcut.dto.ScheduleDtos.WindowView;
+import com.shortcut.engine.ActorDay;
 import com.shortcut.engine.PlanSnapshot;
 import com.shortcut.repository.PlanRepository;
 import java.time.OffsetDateTime;
@@ -45,7 +48,9 @@ public class ShootDayQueryService {
         PlanData data = planData.load(shootDayId);
         Block pm = data.changingBlock();
         List<PlanScene> scenes = data.scenesOf(pm.code()).stream()
-                .map(s -> new PlanScene(s.code(), s.title(), s.durationMin(), s.actorIds(), s.outdoorIntent()))
+                .map(s -> new PlanScene(s.code(), s.title(), s.durationMin(), s.actorIds(), s.outdoorIntent(),
+                        s.heading(), s.intExt(), s.timeOfDay(), s.setting(), s.settingLocked(), s.locationId(),
+                        s.characters(), s.requirements()))
                 .toList();
         PlanSnapshot current = data.current();
         List<PlanOptionView> options = data.options().stream()
@@ -53,7 +58,8 @@ public class ShootDayQueryService {
                         equipment(data, o.equipmentIds()), o.equipmentFit(), o.start(), o.end()))
                 .toList();
         return new PlanSetResponse(shootDayId, data.shootDay().dataVersion(),
-                new PlanBlock(pm.code(), pm.durationMin(), scenes, data.actorIdsOf(pm.code())),
+                new PlanBlock(pm.code(), pm.durationMin(), scenes, data.actorIdsOf(pm.code()),
+                        data.shootDay().sunrise(), data.shootDay().sunset()),
                 new PlanCurrent(planLocation(data.locations().get(current.locationId())),
                         equipment(data, current.equipmentIds()), current.start(), current.end(), current.cost()),
                 options);
@@ -62,8 +68,13 @@ public class ShootDayQueryService {
     public AvailabilityResponse availability(long shootDayId) {
         PlanData data = planData.load(shootDayId);
         List<ActorAvailability> actors = data.actors().values().stream()
-                .map(a -> new ActorAvailability(a.id(), a.name(), a.availableFrom(), a.availableTo(),
-                        a.weeklyHoursUsed(), a.contractDocId(), a.noNight(), a.maxDailyHours()))
+                .map(a -> {
+                    ActorDay day = data.actorDay(a.id());
+                    return new ActorAvailability(a.id(), a.name(), a.availableFrom(), a.availableTo(),
+                            a.weeklyHoursUsed(), a.contractDocId(), a.noNight(), a.maxDailyHours(), day.off(),
+                            day.offReason(), day.windows().stream().map(w -> new WindowView(w.from(), w.to())).toList(),
+                            day.busy().stream().map(b -> new BusyView(b.from(), b.to(), b.reasonKind(), null)).toList());
+                })
                 .toList();
         List<LocationAvailability> locations = data.locations().values().stream()
                 .map(l -> new LocationAvailability(l.id(), l.name(), l.indoor(), l.region(), l.openFrom(), l.openTo(),

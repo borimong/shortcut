@@ -1,6 +1,9 @@
 package com.shortcut.repository;
 
+import javax.sql.DataSource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -87,10 +90,15 @@ public class ResetRepository {
             """
     };
 
-    private final JdbcClient jdbc;
+    // 배우 날짜별 일정 목데이터(SEED 줄)를 만드는 시드 파일이다. 서버가 켜질 때도 같은 파일이 돈다.
+    private static final String SCHEDULE_SEED = "data-schedule.sql";
 
-    public ResetRepository(JdbcClient jdbc) {
+    private final JdbcClient jdbc;
+    private final DataSource dataSource;
+
+    public ResetRepository(JdbcClient jdbc, DataSource dataSource) {
         this.jdbc = jdbc;
+        this.dataSource = dataSource;
     }
 
     public void reset(long shootDayId) {
@@ -101,5 +109,10 @@ public class ResetRepository {
             }
             spec.update();
         }
+        // 배우 일정 목데이터는 1회차 날짜에서 계산한다. 위에서 촬영일 날짜가 바뀌었으니 SEED 줄을 지우고 다시 만든다.
+        // 날짜를 같은 날 수만큼 밀면 "금·토 공연" 같은 요일 규칙이 어긋나서 밀지 않는다. 소속사 회신과 직접 입력은 남긴다.
+        // 같은 트랜잭션의 연결을 쓰므로 초기화가 실패하면 함께 되돌아간다.
+        jdbc.sql("DELETE FROM actor_availability WHERE source = 'SEED'").update();
+        new ResourceDatabasePopulator(new ClassPathResource(SCHEDULE_SEED)).execute(dataSource);
     }
 }

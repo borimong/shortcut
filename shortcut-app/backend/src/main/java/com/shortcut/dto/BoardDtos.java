@@ -38,7 +38,9 @@ public final class BoardDtos {
     public record EquipmentView(long id, String name, boolean available) {
     }
 
-    public record SceneView(String code, String title, int durationMin, List<String> actors) {
+    /** characters는 "배역(배우)" 모양이다. intExt, timeOfDay는 대본의 실내/실외와 낮/밤이다. */
+    public record SceneView(String code, String title, int durationMin, List<String> actors, String heading,
+                            String intExt, String timeOfDay, List<String> characters) {
     }
 
     public record WeatherView(String locationName, List<HourlyView> hourly, String summary, ForecastView forecast) {

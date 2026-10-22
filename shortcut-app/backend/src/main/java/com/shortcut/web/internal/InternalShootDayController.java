@@ -8,6 +8,9 @@ import com.shortcut.dto.PlanDtos.WeatherResponse;
 import com.shortcut.dto.PlanDtos.AlternativeLocationView;
 import com.shortcut.dto.PlanDtos.RegisterAlternativesRequest;
 import com.shortcut.service.AlternativeLocationService;
+import com.shortcut.dto.ScheduleDtos.ActorScheduleResponse;
+import com.shortcut.dto.ScheduleDtos.PlaceabilityResponse;
+import com.shortcut.service.ScheduleService;
 import com.shortcut.service.ShootDayQueryService;
 import com.shortcut.service.WeatherForecastService;
 import jakarta.validation.Valid;
@@ -15,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,12 +33,14 @@ public class InternalShootDayController {
     private final ShootDayQueryService shootDays;
     private final AlternativeLocationService alternatives;
     private final WeatherForecastService forecasts;
+    private final ScheduleService schedules;
 
     public InternalShootDayController(ShootDayQueryService shootDays, AlternativeLocationService alternatives,
-                                      WeatherForecastService forecasts) {
+                                      WeatherForecastService forecasts, ScheduleService schedules) {
         this.shootDays = shootDays;
         this.alternatives = alternatives;
         this.forecasts = forecasts;
+        this.schedules = schedules;
     }
 
     @GetMapping("/shoot-days/{id}/plan-set")
@@ -50,6 +56,20 @@ public class InternalShootDayController {
     @GetMapping("/shoot-days/{id}/weather")
     public WeatherResponse weather(@PathVariable long id) {
         return shootDays.weather(id);
+    }
+
+    /** Agent용 배우 날짜별 일정이다. 개인 사정을 옮기지 않으려고 메모는 빼고 사유 종류만 준다. */
+    @GetMapping("/shoot-days/{id}/actor-schedule")
+    public ActorScheduleResponse actorSchedule(@PathVariable long id,
+                                               @RequestParam(required = false) List<Long> actorIds,
+                                               @RequestParam(required = false) LocalDate from,
+                                               @RequestParam(defaultValue = "14") int days) {
+        return schedules.actorSchedule(id, actorIds, from, days, false);
+    }
+
+    @GetMapping("/shoot-days/{id}/unplaceable-scenes")
+    public PlaceabilityResponse unplaceableScenes(@PathVariable long id) {
+        return schedules.placeability(id);
     }
 
     @GetMapping("/shoot-days/{id}/disaster-alerts")
