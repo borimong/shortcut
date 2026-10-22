@@ -4,10 +4,14 @@ VALUES (1, '드라마 숏컷 7화', 1000000, 40)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO shoot_days (id, project_id, shoot_date, call_time, data_version, notice, crew_calls)
-VALUES (1, 1, CURRENT_DATE, '06:30', 1, '13시 이후 비 예보가 있습니다. 변동 시 알림으로 공지합니다.',
+VALUES (1, 1, CURRENT_DATE, '06:30', 1, '날씨가 바뀌면 알림으로 공지합니다.',
         '[{"team": "연출팀", "time": "06:30"}, {"team": "촬영팀", "time": "06:45"}, {"team": "조명팀", "time": "06:45"},
           {"team": "동시녹음팀", "time": "07:00"}, {"team": "미술팀", "time": "06:30"}]')
 ON CONFLICT DO NOTHING;
+
+-- 예보가 실시간으로 바뀌어 "13시 이후 비"가 맞지 않을 수 있으므로, 이미 만든 DB의 시드 공지도 같은 문구로 바꾼다.
+UPDATE shoot_days SET notice = '날씨가 바뀌면 알림으로 공지합니다.'
+WHERE id = 1 AND notice = '13시 이후 비 예보가 있습니다. 변동 시 알림으로 공지합니다.';
 
 -- 2회차 촬영일은 1회차 다음 날이다. 자원 상태의 적용 기간(until_date)처럼 날짜를 넘나드는 기능을 확인하려고 둔다.
 -- 촬영판은 오늘 이후 가장 가까운 촬영일을 고르므로 1회차가 오늘이면 그대로 1회차를 보여 준다.

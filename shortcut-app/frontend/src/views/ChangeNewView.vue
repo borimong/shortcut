@@ -14,6 +14,7 @@ import { api } from '../api.js'
 import { useShootDayStore } from '../stores/shootDay.js'
 import { useToastStore } from '../stores/toast.js'
 import { EVENT_TYPES } from '../labels.js'
+import { dateTime } from '../format.js'
 
 const router = useRouter()
 const toast = useToastStore()
@@ -27,6 +28,7 @@ const error = ref(null)
 
 // 문장(상세 내용)은 Agent가 읽고, 아래 구조화된 값은 backend가 촬영 데이터에 바로 반영해 엔진이 판정에 쓴다.
 const options = ref(null)
+const weather = ref(null)
 const rain = ref({ locationId: null, fromHour: 13, toHour: 17, mm: 8 })
 const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00' })
 const cancelLocationId = ref(null)
@@ -39,8 +41,10 @@ const selectClass =
   'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 onMounted(async () => {
+  let shootDayId
   try {
-    const o = await api(`/events/options?shootDayId=${await shootDay.ensure()}`)
+    shootDayId = await shootDay.ensure()
+    const o = await api(`/events/options?shootDayId=${shootDayId}`)
     options.value = o
     rain.value.locationId = o.pmLocationId
     cancelLocationId.value = o.pmLocationId
@@ -50,28 +54,40 @@ onMounted(async () => {
     error.value = e
     return
   }
-  await prefillRainFromForecast(options.value.pmLocationId)
-})
-
-// 실시간 예보를 쓰는 중이면 오후 촬영지 예보에서 비 오는 시간대와 최대 강수량을 미리 채운다.
-// 우천 알림을 누르고 들어왔을 때 예보 숫자를 다시 옮겨 적지 않게 하려는 것이다. 시드 예보면 시연 기본값을 그대로 둔다.
-async function prefillRainFromForecast(locationId) {
   try {
-    const b = await api('/board/today')
-    const w = (b.blockWeather ?? []).find((x) => x.locationId === locationId)
-    if (w?.forecast?.source !== 'LIVE') return
-    const rainy = w.hourly.filter((h) => h.precipMm >= b.rainRule.warnMm)
-    if (!rainy.length) return
-    rain.value = {
-      locationId,
-      fromHour: rainy[0].hour,
-      toHour: rainy.at(-1).hour,
-      mm: Math.max(...rainy.map((h) => h.precipMm))
-    }
+    weather.value = await api(`/weather?shootDayId=${shootDayId}`)
   } catch {
     // 예보를 못 읽어도 직접 입력하면 되므로 기본값을 둔다.
   }
+  fillRainFromForecast()
+})
+
+// 고른 장소의 실시간 예보다. 시드 예보를 쓰는 중이면 null이라 시연 기본값(13~17시 8mm)을 그대로 둔다.
+const rainForecast = computed(() => {
+  if (weather.value?.weatherSource !== 'LIVE') return null
+  return weather.value.locations.find((l) => l.locationId === rain.value.locationId) ?? null
+})
+const rainForecastMax = computed(() => {
+  const hours = (rainForecast.value?.hourly ?? []).filter((h) => h.hour >= rain.value.fromHour && h.hour <= rain.value.toHour)
+  return Math.max(0, ...hours.map((h) => h.precipMm))
+})
+
+// 실시간 예보를 쓰는 중이면 고른 장소의 예보로 우천 칸을 채운다. 비가 예보된 시간대가 있으면 그 시간대와 최대 강수량을,
+// 없으면 지금 시간대의 예보 강수량(대개 0mm)을 넣는다. 사람은 이 값을 현장에서 들은 비 소식으로 고쳐 넣는다.
+function fillRainFromForecast() {
+  const f = rainForecast.value
+  if (!f?.hourly.length) return
+  const rainy = f.hourly.filter((h) => h.precipMm >= weather.value.rainWarnMm)
+  if (rainy.length) {
+    rain.value.fromHour = rainy[0].hour
+    rain.value.toHour = rainy.at(-1).hour
+    rain.value.mm = Math.max(...rainy.map((h) => h.precipMm))
+    return
+  }
+  rain.value.mm = rainForecastMax.value
 }
+
+watch(() => rain.value.locationId, fillRainFromForecast)
 
 const nameOf = (list, id) => (options.value?.[list] ?? []).find((x) => x.id === id)?.name ?? ''
 
@@ -211,6 +227,16 @@ async function submit() {
                   <FieldLabel for="rain-mm">시간당 강수량 (mm)</FieldLabel>
                   <Input id="rain-mm" v-model="rain.mm" type="number" min="0" max="300" step="0.5" />
                 </Field>
+                <p v-if="rainForecast?.forecast.manual" class="text-xs text-muted-foreground sm:col-span-2 sm:self-end">
+                  이 장소는 이미 넣은 강수량(현장 입력)이 예보보다 우선합니다. 그 값을 반영하면 이 시간대 최대 시간당 {{ rainForecastMax }}mm입니다.
+                </p>
+                <p v-else-if="rainForecast?.hourly.length" class="text-xs text-muted-foreground sm:col-span-2 sm:self-end">
+                  실시간 예보({{ dateTime(rainForecast.forecast.updatedAt) }} 갱신)로는 이 시간대 최대 시간당 {{ rainForecastMax }}mm입니다.
+                  현장에서 들은 비 소식이 다르면 고쳐 넣으세요.
+                </p>
+                <p v-else-if="rainForecast" class="text-xs text-destructive sm:col-span-2 sm:self-end">
+                  이 장소는 실시간 예보를 아직 받지 못했습니다. 현장에서 들은 강수량을 넣어 주세요.
+                </p>
               </div>
 
               <div v-else-if="type === 'ACTOR_SCHEDULE'" class="grid gap-3 sm:grid-cols-4">
