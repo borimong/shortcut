@@ -48,8 +48,30 @@ onMounted(async () => {
     disaster.value.region = o.locations.find((l) => l.id === o.pmLocationId)?.region ?? o.regions[0] ?? ''
   } catch (e) {
     error.value = e
+    return
   }
+  await prefillRainFromForecast(options.value.pmLocationId)
 })
+
+// 실시간 예보를 쓰는 중이면 오후 촬영지 예보에서 비 오는 시간대와 최대 강수량을 미리 채운다.
+// 우천 알림을 누르고 들어왔을 때 예보 숫자를 다시 옮겨 적지 않게 하려는 것이다. 시드 예보면 시연 기본값을 그대로 둔다.
+async function prefillRainFromForecast(locationId) {
+  try {
+    const b = await api('/board/today')
+    const w = (b.blockWeather ?? []).find((x) => x.locationId === locationId)
+    if (w?.forecast?.source !== 'LIVE') return
+    const rainy = w.hourly.filter((h) => h.precipMm >= b.rainRule.warnMm)
+    if (!rainy.length) return
+    rain.value = {
+      locationId,
+      fromHour: rainy[0].hour,
+      toHour: rainy.at(-1).hour,
+      mm: Math.max(...rainy.map((h) => h.precipMm))
+    }
+  } catch {
+    // 예보를 못 읽어도 직접 입력하면 되므로 기본값을 둔다.
+  }
+}
 
 const nameOf = (list, id) => (options.value?.[list] ?? []).find((x) => x.id === id)?.name ?? ''
 

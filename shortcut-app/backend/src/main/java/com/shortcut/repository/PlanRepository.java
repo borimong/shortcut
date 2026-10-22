@@ -16,8 +16,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -168,11 +172,39 @@ public class PlanRepository {
                 .list();
     }
 
-    public List<WeatherHour> findWeather(long shootDayId) {
-        return jdbc.sql("SELECT * FROM weather_forecasts WHERE shoot_day_id = :id ORDER BY location_id, hour")
+    /**
+     * source(SEED 또는 LIVE) 예보를 읽는다. LIVE 예보를 아직 받지 못한 장소는 시드 예보를 대신 쓴다.
+     * 비가 없다고 0으로 두는 것보다 시드 값을 쓰는 편이 안전하고, 화면은 ForecastInfo로 대신 쓴 것을 알린다.
+     */
+    public List<WeatherHour> findWeather(long shootDayId, String source) {
+        return jdbc.sql("""
+                        SELECT location_id, hour, precip_mm FROM weather_forecasts w
+                        WHERE w.shoot_day_id = :id
+                          AND (w.source = :source
+                               OR (w.source = 'SEED' AND NOT EXISTS (
+                                   SELECT 1 FROM weather_forecasts x
+                                   WHERE x.shoot_day_id = w.shoot_day_id AND x.location_id = w.location_id
+                                     AND x.source = :source)))
+                        ORDER BY location_id, hour
+                        """)
                 .param("id", shootDayId)
+                .param("source", source)
                 .query((rs, n) -> new WeatherHour(rs.getLong("location_id"), rs.getInt("hour"), rs.getDouble("precip_mm")))
                 .list();
+    }
+
+    /** 장소별로 날씨 API 예보를 마지막으로 받은 시각이다. */
+    public Map<Long, OffsetDateTime> findLiveForecastTimes(long shootDayId) {
+        Map<Long, OffsetDateTime> times = new LinkedHashMap<>();
+        jdbc.sql("""
+                        SELECT location_id, max(fetched_at) AS fetched_at FROM weather_forecasts
+                        WHERE shoot_day_id = :id AND source = 'LIVE' AND fetched_at IS NOT NULL
+                        GROUP BY location_id ORDER BY location_id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> times.put(rs.getLong("location_id"),
+                        rs.getObject("fetched_at", OffsetDateTime.class)));
+        return times;
     }
 
     /** 그 날짜에 발령된 재난 문자다. 다른 날 문자가 이 촬영일 판정에 섞이지 않게 촬영일 날짜로 거른다. */
@@ -218,10 +250,13 @@ public class PlanRepository {
                                     List<String> keywords) {
         jdbc.sql("""
                         INSERT INTO locations (id, name, address, indoor, region, open_from, open_to, permit_from, permit_to,
-                                               cost, no_fly_zone, fit, distance_km, note)
+                                               cost, no_fly_zone, fit, distance_km, note, latitude, longitude)
                         VALUES (:id, :name, :region, :indoor, :region, :openFrom, :openTo, :permitFrom, :permitTo,
-                                :cost, false, :fit, :distance, '아워플레이스 대체 장소, 예약은 담당자 확정 필요')
-                        ON CONFLICT (id) DO UPDATE SET fit = EXCLUDED.fit
+                                :cost, false, :fit, :distance, '아워플레이스 대체 장소, 예약은 담당자 확정 필요',
+                                (SELECT latitude FROM external_locations WHERE id = :externalId),
+                                (SELECT longitude FROM external_locations WHERE id = :externalId))
+                        ON CONFLICT (id) DO UPDATE SET fit = EXCLUDED.fit, latitude = EXCLUDED.latitude,
+                            longitude = EXCLUDED.longitude
                         """)
                 .param("id", locationId)
                 .param("name", external.name())
@@ -235,13 +270,15 @@ public class PlanRepository {
                 .param("cost", external.cost())
                 .param("fit", fit)
                 .param("distance", external.distanceKm())
+                .param("externalId", external.id())
                 .update();
-        // 대체 장소는 지점별 예보가 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
+        // 시드 예보에는 대체 장소 지점이 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
+        // 실시간 예보는 위에서 복사한 좌표로 WeatherForecastService가 따로 받는다.
         jdbc.sql("""
-                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm)
-                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_mm)
+                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm, source)
+                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_mm), 'SEED'
                         FROM weather_forecasts w JOIN locations l ON l.id = w.location_id
-                        WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base
+                        WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base AND w.source = 'SEED'
                         GROUP BY w.shoot_day_id, w.hour
                         ON CONFLICT DO NOTHING
                         """)

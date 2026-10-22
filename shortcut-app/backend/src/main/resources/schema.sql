@@ -326,6 +326,17 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
 -- 강수확률 대신 시간당 강수량(mm)으로 판정한다. 읽는 곳이 없던 확률 열(precip_prob)은 아래 정리 구역에서 지운다.
 ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS precip_mm numeric(5, 1) NOT NULL DEFAULT 0;
 
+-- 시드 고정 예보(SEED)와 날씨 API로 받은 예보(LIVE)를 같은 표에 따로 둔다. 어느 쪽을 읽을지는 app_settings.weather_source가 정한다.
+-- fetched_at은 LIVE 행을 마지막으로 받은 시각이다. 기본키에 source를 넣는 일은 아래 정리 구역에서 한다.
+ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'SEED';
+ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS fetched_at timestamptz;
+
+-- 날씨 API(Open-Meteo)에 넘길 장소 위경도다. 4안 장소는 등록할 때 카탈로그(external_locations) 좌표를 복사한다.
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS latitude numeric(8, 5);
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS longitude numeric(8, 5);
+ALTER TABLE external_locations ADD COLUMN IF NOT EXISTS latitude numeric(8, 5);
+ALTER TABLE external_locations ADD COLUMN IF NOT EXISTS longitude numeric(8, 5);
+
 -- 관리자가 바꾸는 운영 설정이다. 행은 하나만 둔다.
 CREATE TABLE IF NOT EXISTS app_settings (
     id                    integer      PRIMARY KEY CHECK (id = 1),
@@ -336,6 +347,8 @@ CREATE TABLE IF NOT EXISTS app_settings (
     updated_by            varchar(40),
     updated_at            timestamptz  NOT NULL DEFAULT now()
 );
+-- SEED는 시연 시나리오용 시드 예보, LIVE는 날씨 API 예보다. 시연이 깨지지 않게 기본은 SEED다.
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS weather_source varchar(10) NOT NULL DEFAULT 'SEED';
 
 -- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST 중 하나다.
 CREATE TABLE IF NOT EXISTS approver_rules (
@@ -405,6 +418,17 @@ BEGIN
         WHERE conrelid = ''scenes''::regclass AND contype = ''p'') = 1 THEN
         ALTER TABLE scenes DROP CONSTRAINT scenes_pkey;
         ALTER TABLE scenes ADD CONSTRAINT scenes_pkey PRIMARY KEY (shoot_day_id, code);
+    END IF;
+END';
+
+-- 예보 기본키에 출처(source)를 넣어 같은 장소와 시각의 SEED 행과 LIVE 행이 함께 있을 수 있게 한다.
+DO '
+BEGIN
+    IF (SELECT array_length(conkey, 1) FROM pg_constraint
+        WHERE conrelid = ''weather_forecasts''::regclass AND contype = ''p'') = 3 THEN
+        ALTER TABLE weather_forecasts DROP CONSTRAINT weather_forecasts_pkey;
+        ALTER TABLE weather_forecasts ADD CONSTRAINT weather_forecasts_pkey
+            PRIMARY KEY (shoot_day_id, location_id, hour, source);
     END IF;
 END';
 

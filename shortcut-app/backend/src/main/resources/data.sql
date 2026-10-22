@@ -98,8 +98,8 @@ ON CONFLICT DO NOTHING;
 -- 강수량 열을 추가하기 전에 만든 DB는 확률만 있으므로, 강수량이 하나도 없을 때만 같은 예보로 채운다.
 UPDATE weather_forecasts SET precip_mm = CASE WHEN location_id = 1 AND hour >= 13 THEN 8.0
                                                WHEN location_id = 1 AND hour = 12 THEN 0.5 ELSE 0 END
-WHERE shoot_day_id = 1 AND location_id < 100
-  AND NOT EXISTS (SELECT 1 FROM weather_forecasts WHERE precip_mm > 0);
+WHERE shoot_day_id = 1 AND location_id < 100 AND source = 'SEED'
+  AND NOT EXISTS (SELECT 1 FROM weather_forecasts WHERE precip_mm > 0 AND source = 'SEED');
 
 INSERT INTO app_settings (id, max_loops, rain_block_mm, rain_warn_mm, rain_alert_lead_hours)
 VALUES (1, 5, 5.0, 1.0, 3)
@@ -127,6 +127,24 @@ VALUES (1, '일산 실내 스튜디오', true, '경기 고양시', 25, 380000, '
        (4, '하남 카페 세트', true, '경기 하남시', 35, 350000, '["실내", "자연광", "카페"]'),
        (5, '망원 루프탑', false, '서울 마포구', 9, 280000, '["야외", "루프탑", "도심 야경"]')
 ON CONFLICT DO NOTHING;
+
+-- 날씨 API에 넘길 위경도다. 시드 주소가 동네 수준이라 동네 중심 좌표를 쓴다.
+-- 위경도 열을 나중에 추가했으므로 INSERT가 아니라 UPDATE로 넣고, 이미 고친 좌표는 덮지 않는다.
+UPDATE locations l SET latitude = v.lat, longitude = v.lng
+FROM (VALUES (1, 37.52830, 126.93260), (2, 37.54460, 127.05570), (3, 37.75990, 126.78020), (4, 37.52640, 126.87520))
+         AS v (id, lat, lng)
+WHERE l.id = v.id AND l.latitude IS NULL;
+
+UPDATE external_locations e SET latitude = v.lat, longitude = v.lng
+FROM (VALUES (1, 37.65840, 126.77000), (2, 37.57900, 126.88950), (3, 37.61530, 126.71560), (4, 37.53930, 127.21490),
+             (5, 37.55600, 126.90500))
+         AS v (id, lat, lng)
+WHERE e.id = v.id AND e.latitude IS NULL;
+
+-- 좌표 열을 넣기 전에 등록된 4안 장소(id = 100 + 카탈로그 id)도 카탈로그 좌표를 받는다.
+UPDATE locations l SET latitude = e.latitude, longitude = e.longitude
+FROM external_locations e
+WHERE l.id = 100 + e.id AND l.latitude IS NULL;
 
 -- 온톨로지 노드는 업무 테이블 행을 TYPE:키 글자로 가리킨다. 촬영일은 SHOOT_DAY:<id>, 블록은 BLOCK:<촬영일>-<코드>,
 -- 안은 PLAN:<촬영일>-<번호>(Agent가 만드는 4안은 PLAN:<촬영일>-4)다. 기동할 때 업무 행이 없는 노드를 찾아 경고한다.

@@ -5,6 +5,7 @@ import com.shortcut.domain.AppSettings;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.DisasterAlert;
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.PlanOption;
 import com.shortcut.domain.Scene;
@@ -33,6 +34,7 @@ public record PlanData(
         Map<Long, Equipment> equipment,
         List<PlanOption> options,
         List<WeatherHour> weather,
+        ForecastInfo forecast,
         List<DisasterAlert> alerts,
         List<Long> alternativeLocationIds,
         AppSettings settings) {

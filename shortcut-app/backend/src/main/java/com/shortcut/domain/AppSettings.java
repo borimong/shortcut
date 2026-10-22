@@ -9,9 +9,17 @@ import java.time.OffsetDateTime;
  * @param rainBlockMm 야외 촬영을 막는 시간당 강수량(mm). 엔진 하드 제약과 우천 알림이 같은 값을 쓴다
  * @param rainWarnMm 우천 대비 경고를 남기는 시간당 강수량(mm)
  * @param rainAlertLeadHours 비 때문에 촬영이 어려운 시각보다 몇 시간 전에 알릴지
+ * @param weatherSource 엔진과 화면이 읽을 예보. SEED는 시연용 시드 예보, LIVE는 날씨 API(Open-Meteo) 예보다
  */
 public record AppSettings(int maxLoops, double rainBlockMm, double rainWarnMm, int rainAlertLeadHours,
-                          String updatedBy, OffsetDateTime updatedAt) {
+                          String weatherSource, String updatedBy, OffsetDateTime updatedAt) {
 
-    public static final AppSettings DEFAULT = new AppSettings(5, 5.0, 1.0, 3, null, null);
+    public static final String SEED = "SEED";
+    public static final String LIVE = "LIVE";
+
+    public static final AppSettings DEFAULT = new AppSettings(5, 5.0, 1.0, 3, SEED, null, null);
+
+    public boolean liveWeather() {
+        return LIVE.equals(weatherSource);
+    }
 }

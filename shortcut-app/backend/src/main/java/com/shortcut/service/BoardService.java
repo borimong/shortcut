@@ -99,7 +99,8 @@ public class BoardService {
                 blockViews(data, current),
                 json.tree(data.shootDay().crewCallsJson()),
                 new WeatherView(pmLocation.name(), ShootDayQueryService.hourly(data, pmLocation.id()),
-                        weatherSummary(data, pmLocation, current.start(), current.end())),
+                        weatherSummary(data, pmLocation, current.start(), current.end()),
+                        ShootDayQueryService.forecast(data, pmLocation.id(), OffsetDateTime.now())),
                 contacts,
                 pending,
                 blockWeather(data, current),
@@ -195,7 +196,7 @@ public class BoardService {
             var start = changing ? current.start() : block.start();
             var end = changing ? current.end() : block.end();
             return new BlockWeatherView(block.code(), l.id(), l.name(), l.indoor(), ShootDayQueryService.hourly(data, l.id()),
-                    weatherSummary(data, l, start, end));
+                    weatherSummary(data, l, start, end), ShootDayQueryService.forecast(data, l.id(), OffsetDateTime.now()));
         }).toList();
     }
 

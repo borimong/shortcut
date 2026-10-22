@@ -70,6 +70,13 @@ public class ResetRepository {
             // 변경 입력이 남긴 장비 고장, 배우 불참, 장소 취소, 강수량 덮어쓰기와 우천 알림 기록을 지운다.
             "DELETE FROM shoot_day_overrides WHERE shoot_day_id = :id",
             "DELETE FROM rain_alerts_sent WHERE shoot_day_id = :id",
+            // 아래에서 촬영일 날짜가 바뀌면 전에 받은 날씨 API 예보는 다른 날짜의 예보다. 지우면 다음 정기 확인(1분 간격)에서 새 날짜로 받는다.
+            """
+            DELETE FROM weather_forecasts w USING shoot_days d
+            WHERE w.source = 'LIVE' AND w.shoot_day_id = d.id AND d.id >= :id
+              AND d.project_id = (SELECT project_id FROM shoot_days WHERE id = :id)
+              AND d.shoot_date <> CURRENT_DATE + CAST(d.id - :id AS integer)
+            """,
             // 씬 진행 표시가 시계 기준이라 시연 촬영일은 항상 오늘로 둔다.
             "UPDATE shoot_days SET data_version = 1, shoot_date = CURRENT_DATE WHERE id = :id",
             // 같은 작품의 다음 촬영일(시드 2회차)은 그다음 날부터 하루씩 둔다. 촬영판은 계속 오늘인 시연 촬영일을 고르고,

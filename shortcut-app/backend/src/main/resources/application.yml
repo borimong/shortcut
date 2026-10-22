@@ -29,6 +29,10 @@ shortcut:
   internal-token: ${INTERNAL_TOKEN:local-internal-token}
   worker:
     fail-first-attempt: ${WORKER_FAIL_FIRST_ATTEMPT:false}
+  weather:
+    open-meteo-url: ${OPEN_METEO_URL:https://api.open-meteo.com}
+    api-key: ${OPEN_METEO_API_KEY:}
+    fetch-enabled: ${WEATHER_FETCH_ENABLED:true}
 
 management:
   endpoints:

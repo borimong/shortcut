@@ -2,6 +2,7 @@ package com.shortcut.dto;
 
 import com.shortcut.domain.Equipment;
 import com.shortcut.dto.BoardDtos.EquipmentView;
+import com.shortcut.dto.BoardDtos.ForecastView;
 import com.shortcut.dto.BoardDtos.HourlyView;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.Finding;
@@ -98,10 +99,13 @@ public final class PlanDtos {
                                        boolean noFlyZone, String note, boolean available) {
     }
 
-    public record WeatherResponse(LocalDate date, List<LocationWeather> locations, double rainBlockMm, double rainWarnMm) {
+    /** weatherSource는 관리자 설정의 예보 선택(SEED 또는 LIVE)이다. 장소마다 실제로 쓴 예보는 forecast에 있다. */
+    public record WeatherResponse(LocalDate date, List<LocationWeather> locations, double rainBlockMm, double rainWarnMm,
+                                  String weatherSource) {
     }
 
-    public record LocationWeather(long locationId, String name, boolean indoor, List<HourlyView> hourly) {
+    public record LocationWeather(long locationId, String name, boolean indoor, List<HourlyView> hourly,
+                                  ForecastView forecast) {
     }
 
     public record ExternalLocationView(long id, String name, boolean indoor, String region, double distanceKm,

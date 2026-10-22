@@ -1,10 +1,12 @@
 package com.shortcut.service;
 
+import com.shortcut.domain.AppSettings;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.DisasterAlert;
 import com.shortcut.domain.ExternalLocation;
 import com.shortcut.domain.Location;
 import com.shortcut.dto.BoardDtos.EquipmentView;
+import com.shortcut.dto.BoardDtos.ForecastView;
 import com.shortcut.dto.BoardDtos.HourlyView;
 import com.shortcut.dto.PlanDtos.ActorAvailability;
 import com.shortcut.dto.PlanDtos.AvailabilityResponse;
@@ -20,6 +22,7 @@ import com.shortcut.dto.PlanDtos.PlanSetResponse;
 import com.shortcut.dto.PlanDtos.WeatherResponse;
 import com.shortcut.engine.PlanSnapshot;
 import com.shortcut.repository.PlanRepository;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -72,11 +75,13 @@ public class ShootDayQueryService {
 
     public WeatherResponse weather(long shootDayId) {
         PlanData data = planData.load(shootDayId);
+        OffsetDateTime now = OffsetDateTime.now();
         List<LocationWeather> locations = data.locations().values().stream()
-                .map(l -> new LocationWeather(l.id(), l.name(), l.indoor(), hourly(data, l.id())))
+                .map(l -> new LocationWeather(l.id(), l.name(), l.indoor(), hourly(data, l.id()),
+                        forecast(data, l.id(), now)))
                 .toList();
         return new WeatherResponse(data.shootDay().shootDate(), locations, data.settings().rainBlockMm(),
-                data.settings().rainWarnMm());
+                data.settings().rainWarnMm(), data.settings().weatherSource());
     }
 
     public List<DisasterAlert> disasterAlerts(long shootDayId) {
@@ -110,6 +115,20 @@ public class ShootDayQueryService {
         return data.hourly(locationId).entrySet().stream()
                 .map(e -> new HourlyView(e.getKey(), e.getValue()))
                 .toList();
+    }
+
+    /** 장소 예보가 시드인지, 날씨 API에서 언제 받은 것인지, 받은 지 오래되었는지 알려 준다. */
+    static ForecastView forecast(PlanData data, long locationId, OffsetDateTime now) {
+        boolean manual = data.forecast().manualLocations().contains(locationId);
+        if (!data.settings().liveWeather()) {
+            return new ForecastView(AppSettings.SEED, null, false, manual);
+        }
+        OffsetDateTime fetchedAt = data.forecast().liveFetchedAt().get(locationId);
+        if (fetchedAt == null) {
+            return new ForecastView("SEED_FALLBACK", null, false, manual);
+        }
+        boolean stale = fetchedAt.isBefore(now.minus(WeatherForecastService.STALE_AFTER));
+        return new ForecastView(AppSettings.LIVE, fetchedAt, stale, manual);
     }
 
     static List<EquipmentView> equipment(PlanData data, List<Long> ids) {

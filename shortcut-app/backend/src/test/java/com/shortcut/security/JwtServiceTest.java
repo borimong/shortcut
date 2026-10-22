@@ -43,6 +43,6 @@ class JwtServiceTest {
 
     private static JwtService service(String secret) {
         return new JwtService(new ShortcutProperties(new ShortcutProperties.Jwt(secret, Duration.ofHours(12)),
-                "internal", new ShortcutProperties.Worker(false)));
+                "internal", new ShortcutProperties.Worker(false), null));
     }
 }

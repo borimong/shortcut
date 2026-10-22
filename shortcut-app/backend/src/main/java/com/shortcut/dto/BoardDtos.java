@@ -41,7 +41,18 @@ public final class BoardDtos {
     public record SceneView(String code, String title, int durationMin, List<String> actors) {
     }
 
-    public record WeatherView(String locationName, List<HourlyView> hourly, String summary) {
+    public record WeatherView(String locationName, List<HourlyView> hourly, String summary, ForecastView forecast) {
+    }
+
+    /**
+     * 예보 출처와 갱신 시각이다.
+     *
+     * @param source SEED(시연용 시드 예보), LIVE(날씨 API 예보), SEED_FALLBACK(날씨 API 예보를 아직 못 받아 시드 예보를 대신 씀)
+     * @param updatedAt 날씨 API 예보를 마지막으로 받은 시각. LIVE일 때만 있다
+     * @param stale 마지막 갱신이 오래되어 최근 갱신이 실패한 것으로 보이는지. 이때도 마지막으로 받은 값을 쓴다
+     * @param manual 변경 입력으로 이 장소의 강수량을 덮어썼는지. 덮어쓴 시간대는 예보보다 입력값이 우선한다
+     */
+    public record ForecastView(String source, OffsetDateTime updatedAt, boolean stale, boolean manual) {
     }
 
     /** 시각별 시간당 강수량(mm)이다. */
@@ -50,7 +61,7 @@ public final class BoardDtos {
 
     /** 블록마다 그 블록 촬영지의 날씨다. 화면은 지금 시각에 촬영 중인 블록의 날씨를 고른다. */
     public record BlockWeatherView(String blockCode, long locationId, String locationName, boolean indoor,
-                                   List<HourlyView> hourly, String summary) {
+                                   List<HourlyView> hourly, String summary, ForecastView forecast) {
     }
 
     /** 관리자 설정의 강수 기준이다. 화면 강조 색과 엔진 판정이 같은 값을 쓴다. */

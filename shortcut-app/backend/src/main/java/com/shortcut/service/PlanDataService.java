@@ -3,8 +3,10 @@ package com.shortcut.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.shortcut.common.ApiException;
 import com.shortcut.domain.Actor;
+import com.shortcut.domain.AppSettings;
 import com.shortcut.domain.DataOverride;
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.domain.WeatherHour;
@@ -12,10 +14,13 @@ import com.shortcut.repository.OverrideRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.SettingsRepository;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,10 +50,17 @@ public class PlanDataService {
         Map<Long, Actor> actors = byId(plans.findActors(), Actor::id);
         Map<Long, Location> locations = byId(plans.findLocations(), Location::id);
         Map<Long, Equipment> equipment = byId(plans.findEquipment(), Equipment::id);
-        List<WeatherHour> weather = new ArrayList<>(plans.findWeather(shootDayId));
+        AppSettings appSettings = settings.settings();
+        List<WeatherHour> weather = new ArrayList<>(plans.findWeather(shootDayId, appSettings.weatherSource()));
+        Set<Long> manualWeather = new LinkedHashSet<>();
         for (DataOverride o : overrides.find(shootDayId)) {
             apply(o, actors, locations, equipment, weather);
+            if ("RAIN_FORECAST".equals(o.kind())) {
+                manualWeather.add(o.targetId());
+            }
         }
+        Map<Long, OffsetDateTime> liveFetchedAt = appSettings.liveWeather()
+                ? plans.findLiveForecastTimes(shootDayId) : Map.of();
         return new PlanData(shootDay,
                 plans.findBlocks(shootDayId),
                 plans.findScenes(shootDayId),
@@ -57,9 +69,10 @@ public class PlanDataService {
                 equipment,
                 plans.findPlanOptions(shootDayId, PlanData.CHANGING_BLOCK),
                 weather,
+                new ForecastInfo(liveFetchedAt, manualWeather),
                 plans.findAlerts(shootDay.shootDate()),
                 plans.findAlternativeLocationIds(shootDayId),
-                settings.settings());
+                appSettings);
     }
 
     public long boardShootDayId() {
@@ -79,6 +92,7 @@ public class PlanDataService {
                     a.weeklyHoursUsed(), a.contractDocId(), a.noNight(), a.maxDailyHours(), a.managerPhone()));
             case "RAIN_FORECAST" -> {
                 // 입력한 시간대는 예보보다 비가 적게 오더라도 입력값을 쓴다. 현장 관측이 예보보다 정확하기 때문이다.
+                // 시드 예보든 날씨 API 예보든 같다. API가 다시 갱신해도 덮어쓰기가 지워지지 않는 한 입력값이 이긴다.
                 int from = p.path("fromHour").asInt();
                 int to = p.path("toHour").asInt();
                 double mm = p.path("mm").asDouble();

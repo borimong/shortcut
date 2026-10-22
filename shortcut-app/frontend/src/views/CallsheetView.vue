@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ForecastSource from '../components/ForecastSource.vue'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useShootDayStore } from '../stores/shootDay.js'
@@ -273,6 +274,7 @@ function print() {
             <h2 class="sheet-label">날씨</h2>
             <p class="mt-2 text-sm font-medium">{{ weather.locationName }} 기준, 최대 시간당 강수량 {{ maxPrecip }}mm</p>
             <p v-if="weather.summary" class="text-sm text-muted-foreground">{{ weather.summary }}</p>
+            <ForecastSource :forecast="weather.forecast" class="mt-1" />
             <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-1">
               <Badge
                 v-for="h in weather.hourly ?? []"

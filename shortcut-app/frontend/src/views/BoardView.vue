@@ -9,6 +9,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/u
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ForecastSource from '../components/ForecastSource.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
@@ -61,11 +62,11 @@ async function load() {
 
 onMounted(load)
 
-// 확정과 배포, 변경 공지가 오면 촬영판 내용이 바뀌었을 수 있어 다시 읽는다.
+// 확정과 배포, 변경 공지, 우천 알림이 오면 촬영판 내용(날씨 포함)이 바뀌었을 수 있어 다시 읽는다.
 watch(
   () => notifications.lastNotification,
   (n) => {
-    if (n && (n.kind === 'CALLSHEET' || n.kind === 'CHANGE_NOTICE')) load()
+    if (n && (n.kind === 'CALLSHEET' || n.kind === 'CHANGE_NOTICE' || n.kind === 'WEATHER')) load()
   }
 )
 
@@ -227,6 +228,7 @@ function isInternal(link) {
             <span v-if="currentWeather?.indoor" class="text-muted-foreground">(실내)</span>
           </h2>
           <p class="text-xs text-muted-foreground">시간당 강수량(mm), 촬영 불가 기준 {{ rainRule.blockMm }}mm</p>
+          <ForecastSource :forecast="currentWeather?.forecast" />
           <p v-if="currentWeather?.summary" class="mt-1 text-sm text-muted-foreground">{{ currentWeather.summary }}</p>
           <div class="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(54px,1fr))] gap-1.5">
             <Badge

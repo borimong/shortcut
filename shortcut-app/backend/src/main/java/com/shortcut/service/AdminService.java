@@ -61,8 +61,10 @@ public class AdminService {
         if (request.rainWarnMm() > request.rainBlockMm()) {
             throw ApiException.badRequest("INVALID_RAIN_RULE", "경고 강수량은 촬영 불가 강수량보다 클 수 없습니다.");
         }
+        String weatherSource = request.weatherSource() == null
+                ? settings.settings().weatherSource() : request.weatherSource();
         settings.updateSettings(new AppSettings(request.maxLoops(), request.rainBlockMm(), request.rainWarnMm(),
-                request.rainAlertLeadHours(), null, null), username);
+                request.rainAlertLeadHours(), weatherSource, null, null), username);
         return SettingsView.of(settings.settings());
     }
 

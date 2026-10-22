@@ -23,6 +23,7 @@ import com.shortcut.domain.AiTask;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.DataOverride;
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.dto.ResourceDtos.ResourceChange;
@@ -153,6 +154,6 @@ class EventServiceResourceTest {
                 Map.of(1L, new Actor(1, "배우 A", LocalTime.of(9, 0), LocalTime.of(18, 0), 30, "contract-a", false, null, null)),
                 Map.of(2L, seongsu),
                 Map.of(1L, new Equipment(1, "카메라 패키지 A", true, false, 150_000), 2L, new Equipment(2, "드론", true, true, 100_000)),
-                List.of(), List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), ForecastInfo.NONE, List.of(), List.of(), null);
     }
 }
