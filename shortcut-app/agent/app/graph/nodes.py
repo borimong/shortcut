@@ -71,14 +71,22 @@ def _json(value: Any) -> str:
 
 
 def describe(candidate: dict[str, Any]) -> str:
-    """후보안을 사람이 읽는 한 줄로 바꿉니다."""
+    """후보안을 사람이 읽는 한 줄로 바꿉니다. 엔진이 씬 순서를 바꾼 후보는 새 씬 시각표를 붙입니다."""
     names = ", ".join(item["name"] for item in candidate["equipment"]["items"])
-    return (
+    text = (
         f"장소 {candidate['location']['name']}({candidate['location']['optionNo']}안), "
         f"장비 {names}({candidate['equipment']['optionNo']}안), "
         f"시간 {candidate['time']['start']}~{candidate['time']['end']}({candidate['time']['optionNo']}안), "
         f"종합 점수 {candidate['totalScore']}"
     )
+    if candidate.get("sceneOrderChanged"):
+        text += f", 씬 순서 변경 {scene_order_text(candidate)}"
+    return text
+
+
+def scene_order_text(candidate: dict[str, Any]) -> str:
+    """씬 시각표를 "S19 14:00~14:30 → S18 14:30~16:00" 모양으로 씁니다."""
+    return " → ".join(f"{s['code']} {s['start']}~{s['end']}" for s in candidate.get("sceneOrder") or [])
 
 
 def explanation_problems(
@@ -105,11 +113,16 @@ def explanation_problems(
     foreign = [name for name in sorted({*locations.values(), *equipment.values()} - allowed) if name in rest]
     if foreign:
         problems.append(f"설명에 선택하지 않은 장소나 장비가 있습니다: {', '.join(foreign)}")
+    # 씬 순서가 바뀌면 배우 콜타임이 달라지므로 승인자가 새 순서를 설명에서 바로 볼 수 있어야 한다.
+    codes = [s["code"] for s in choice.get("sceneOrder") or []]
+    if choice.get("sceneOrderChanged") and not all(code in text for code in codes):
+        problems.append(f"설명에 바뀐 씬 순서가 없습니다: {' → '.join(codes)}")
     return problems
 
 
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
-    return {
+    """엔진이 고른 씬 순서를 그대로 넘겨 검증 게이트와 변경안이 평가 때와 같은 순서를 판정하게 합니다."""
+    body = {
         "location_id": candidate["location"]["id"],
         "equipment_ids": [item["id"] for item in candidate["equipment"]["items"]],
         "start": candidate["time"]["start"],
@@ -120,6 +133,9 @@ def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
             "time": candidate["time"]["optionNo"],
         },
     }
+    if candidate.get("sceneOrder"):
+        body["scene_order"] = [s["code"] for s in candidate["sceneOrder"]]
+    return body
 
 
 def _evidence_lines(evidence: dict[str, dict[str, Any]], limit_chars: int = 220) -> str:

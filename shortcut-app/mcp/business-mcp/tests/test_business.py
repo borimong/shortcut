@@ -126,6 +126,22 @@ def test_submit_proposal_maps_snake_case_to_camel_case():
     assert body["dataVersion"] == 4 and body["taskId"] == 3
 
 
+def test_validate_plan_sends_scene_order_only_when_given():
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"valid": True, "sceneOrderChanged": True})
+
+    server = make_server(handler)
+    candidate = {"location_id": 2, "equipment_ids": [5, 1], "start": "14:00", "end": "16:00"}
+    call(server, "validate_plan",
+         {"shoot_day_id": 2, "candidate": {**candidate, "scene_order": ["S19", "S18"]}, "data_version": 1})
+    call(server, "validate_plan", {"shoot_day_id": 2, "candidate": candidate, "data_version": 1})
+    assert bodies[0]["candidate"]["sceneOrder"] == ["S19", "S18"]
+    assert "sceneOrder" not in bodies[1]["candidate"]
+
+
 def test_paths_for_read_tools():
     paths = []
 

@@ -382,6 +382,31 @@ def test_explanation_may_name_the_original_plan():
     ]
 
 
+def test_reordered_candidate_carries_scene_order_to_tools_and_explanation():
+    # 2회차처럼 배우 일정 때문에 엔진이 S19를 먼저 찍도록 순서를 바꾼 후보다.
+    from app.graph.nodes import describe, explanation_problems, to_mcp_candidate
+    from tests.fakes import SEONGSU
+
+    reordered = {
+        **SEONGSU,
+        "sceneOrderChanged": True,
+        "sceneOrder": [
+            {"code": "S19", "start": "14:00", "end": "14:30"},
+            {"code": "S18", "start": "14:30", "end": "16:00"},
+        ],
+    }
+    assert describe(reordered).endswith("씬 순서 변경 S19 14:00~14:30 → S18 14:30~16:00")
+    assert to_mcp_candidate(reordered)["scene_order"] == ["S19", "S18"]
+    assert "scene_order" not in to_mcp_candidate(SEONGSU)
+
+    current = {"location": {"id": 2, "name": "성수 스튜디오"}, "equipment": []}
+    text = "성수 스튜디오 그대로 S19를 먼저 찍고 S18을 14:30에 시작합니다. 카메라 패키지 A와 드론, 반사판을 씁니다."
+    assert explanation_problems(text, reordered, [reordered], current) == []
+    assert explanation_problems("성수 스튜디오에서 그대로 찍습니다.", reordered, [reordered], current) == [
+        "설명에 바뀐 씬 순서가 없습니다: S19 → S18"
+    ]
+
+
 def _reject_location(graph, ctx):
     async def scenario():
         await graph.ainvoke(initial_state(), CONFIG, context=ctx)

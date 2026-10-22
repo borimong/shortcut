@@ -88,6 +88,11 @@ class Candidate(BaseModel):
     source: dict[str, int] | None = Field(
         default=None, description="요소별 출처 안 번호. 예: {location: 2, equipment: 1, time: 2}"
     )
+    scene_order: list[str] | None = Field(
+        default=None,
+        description="오후 블록 씬 코드 순서. evaluate_plans 후보 sceneOrder의 code를 그대로 넣는다. 예: [S19, S18]. "
+        "비우면 서버가 평가 때와 같은 방법으로 고른다",
+    )
 
     def to_backend(self) -> dict[str, Any]:
         body: dict[str, Any] = {
@@ -98,6 +103,8 @@ class Candidate(BaseModel):
         }
         if self.source:
             body["source"] = self.source
+        if self.scene_order:
+            body["sceneOrder"] = self.scene_order
         return body
 
 
@@ -278,7 +285,9 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
     ) -> dict:
         """1/2/3안의 장소, 장비, 시간대를 요소 단위로 조합한 27개 후보를 업무 규칙 엔진으로 평가한다.
         하드 제약 위반 목록, 항목별 점수, 종합 점수, 비용, dataVersion을 돌려주며 실행 가능한 후보가 앞에 온다.
-        예산 한도 같은 하드 제약은 가중치와 상관없이 유지된다."""
+        예산 한도 같은 하드 제약은 가중치와 상관없이 유지된다.
+        후보마다 sceneOrder(씬별 시작·끝 시각)가 있다. 배우 일정이나 해 때문에 지금 순서로 막히면 엔진이 블록 안
+        씬 순서를 바꾸고 sceneOrderChanged=true로 표시한다. 이 순서를 validate_plan, submit_proposal에 그대로 넘긴다."""
         body: dict[str, Any] = {"shootDayId": shoot_day_id}
         if weights:
             body["weights"] = weights
@@ -296,7 +305,8 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         extra_constraints: list[ExtraConstraint] | None = None,
     ) -> dict:
         """후보안 하나를 최신 데이터로 다시 검사한다. 데이터 버전이 바뀌었으면 stale=true를 돌려준다.
-        submit_proposal 직전에 부른다."""
+        submit_proposal 직전에 부른다. candidate.scene_order를 주면 그 씬 순서 그대로 검사하고, 판정에 쓴 씬 시각표를
+        sceneOrder로 돌려준다."""
         body = {
             "shootDayId": shoot_day_id,
             "candidate": candidate.to_backend(),
@@ -330,7 +340,8 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         review: Annotated[dict | None, Field(description="승인 요청 전 자체 검토 점수와 회차별 이력")] = None,
     ) -> dict:
         """최적안 1개를 변경안으로 등록하고 필수 승인자에게 승인 요청을 보낸다. 업무 데이터를 바꾸는 도구다.
-        backend가 저장 직전에 한 번 더 검증하므로 위반이 있으면 PLAN_INVALID로 거부된다."""
+        backend가 저장 직전에 한 번 더 검증하므로 위반이 있으면 PLAN_INVALID로 거부된다.
+        씬 순서가 바뀐 후보는 candidate.scene_order에 그 순서를 넣는다. 씬 순서가 바뀌면 조감독 승인이 붙는다."""
         body = {
             "taskId": task_id,
             "eventId": event_id,
