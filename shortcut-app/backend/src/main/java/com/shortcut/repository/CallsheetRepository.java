@@ -48,15 +48,31 @@ public class CallsheetRepository {
     }
 
     public Callsheet insert(long shootDayId, int versionNo, long proposalId, PlanSnapshot pm) {
+        return insert(shootDayId, versionNo, proposalId, pm, null, null, null);
+    }
+
+    /** 앞 버전(restoredFrom)으로 되돌려 새 버전을 만든다. 변경안 없이 사람이 직접 만든 버전이다. */
+    public Callsheet insertRestored(long shootDayId, int versionNo, PlanSnapshot pm, int restoredFrom, String note,
+                                    String createdBy) {
+        return insert(shootDayId, versionNo, null, pm, restoredFrom, note, createdBy);
+    }
+
+    private Callsheet insert(long shootDayId, int versionNo, Long proposalId, PlanSnapshot pm, Integer restoredFrom,
+                             String note, String createdBy) {
         long id = jdbc.sql("""
                         INSERT INTO callsheet_versions
-                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost)
-                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost)
+                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost,
+                             restored_from, note, created_by)
+                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost,
+                                :restoredFrom, :note, :createdBy)
                         RETURNING id
                         """)
                 .param("id", shootDayId)
                 .param("versionNo", versionNo)
                 .param("proposalId", proposalId)
+                .param("restoredFrom", restoredFrom)
+                .param("note", note)
+                .param("createdBy", createdBy)
                 .param("location", pm.locationId())
                 .param("equipment", json.write(pm.equipmentIds()))
                 .param("start", pm.start())
@@ -130,6 +146,7 @@ public class CallsheetRepository {
         PlanSnapshot pm = new PlanSnapshot(rs.getLong("pm_location_id"), json.longs(rs.getString("equipment_json")),
                 time(rs, "pm_start"), time(rs, "pm_end"), rs.getLong("pm_cost"));
         return new Callsheet(rs.getLong("id"), rs.getLong("shoot_day_id"), rs.getInt("version_no"),
-                rs.getObject("proposal_id", Long.class), pm, rs.getObject("created_at", OffsetDateTime.class));
+                rs.getObject("proposal_id", Long.class), pm, rs.getObject("created_at", OffsetDateTime.class),
+                rs.getObject("restored_from", Integer.class), rs.getString("note"), rs.getString("created_by"));
     }
 }

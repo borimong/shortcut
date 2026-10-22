@@ -111,7 +111,7 @@ public class BoardService {
     public List<CallsheetSummary> callsheets(long shootDayId) {
         planData.load(shootDayId);
         return callsheets.findAll(shootDayId).stream()
-                .map(c -> new CallsheetSummary(c.versionNo(), c.createdAt(), c.proposalId()))
+                .map(c -> new CallsheetSummary(c.versionNo(), c.createdAt(), c.proposalId(), c.restoredFrom(), c.note()))
                 .toList();
     }
 
@@ -164,6 +164,9 @@ public class BoardService {
         for (Callsheet c : callsheets.findAll(shootDayId)) {
             if (c.proposalId() != null) {
                 items.add(new HistoryItem(c.createdAt(), "COMMITTED", "확정 콜시트 v" + c.versionNo(), "/"));
+            } else if (c.restoredFrom() != null) {
+                items.add(new HistoryItem(c.createdAt(), "RESTORED", "콜시트 v" + c.restoredFrom() + "으로 되돌려 v"
+                        + c.versionNo() + " 배포" + (c.note() == null ? "" : " (" + c.note() + ")"), "/callsheet"));
             }
         }
         callsheets.findDistributions(shootDayId).forEach(d -> items.add(new HistoryItem(d.at(), "DISTRIBUTED",

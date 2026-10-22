@@ -144,7 +144,7 @@ public class TaskRepository {
         jdbc.sql("""
                         UPDATE ai_tasks SET status = 'WAITING_APPROVAL', proposal_id = COALESCE(:proposalId, proposal_id),
                                updated_at = now()
-                        WHERE id = :id
+                        WHERE id = :id AND status <> 'CANCELLED'
                         """)
                 .param("id", id)
                 .param("proposalId", proposalId)
@@ -159,7 +159,7 @@ public class TaskRepository {
                                trace_url = COALESCE(:traceUrl, trace_url),
                                proposal_id = COALESCE(:proposalId, proposal_id),
                                updated_at = now()
-                        WHERE id = :id
+                        WHERE id = :id AND status <> 'CANCELLED'
                         """)
                 .param("id", id)
                 .param("status", status)

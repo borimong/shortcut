@@ -99,6 +99,9 @@ public class ProposalService {
     public ProposalCreated create(CreateProposalRequest request) {
         AiTask task = tasks.findTask(request.taskId())
                 .orElseThrow(() -> ApiException.notFound("TASK_NOT_FOUND", "작업이 없습니다: " + request.taskId()));
+        if ("CANCELLED".equals(task.status())) {
+            throw ApiException.conflict("TASK_CANCELLED", "중단한 재계획이라 변경안을 올릴 수 없습니다.");
+        }
         long shootDayId = request.shootDayId();
         int current = plans.lockDataVersion(shootDayId)
                 .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId));

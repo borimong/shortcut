@@ -610,3 +610,10 @@ CREATE INDEX IF NOT EXISTS actor_availability_date_idx ON actor_availability (on
 -- 낮/밤 장면 판정에 쓰는 일출과 일몰이다. 비어 있으면 낮/밤 규칙을 건너뛴다.
 ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunrise time;
 ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunset time;
+
+-- ===== 콜시트 되돌리기와 재계획 중단 =====
+-- 확정한 콜시트를 앞 버전의 오후 블록으로 되돌리면 새 버전으로 다시 배포한다. 그 버전이 어느 버전으로 되돌린 것인지,
+-- 누가 왜 되돌렸는지 남긴다. 변경안으로 확정한 버전은 restored_from이 비어 있다.
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS restored_from integer;
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS note text;
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS created_by varchar(40);

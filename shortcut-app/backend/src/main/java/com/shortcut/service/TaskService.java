@@ -99,7 +99,10 @@ public class TaskService {
         if (!EVENT_TYPES.contains(request.type())) {
             throw ApiException.badRequest("UNKNOWN_EVENT_TYPE", "알 수 없는 이벤트 유형입니다: " + request.type());
         }
-        find(id);
+        // 중단한 작업에는 진행 이벤트를 더 받지 않는다. Agent는 이 응답을 보고 그래프를 멈춘다.
+        if ("CANCELLED".equals(find(id).status())) {
+            throw ApiException.conflict("TASK_CANCELLED", "중단한 작업입니다: " + id);
+        }
         JsonNode payload = request.payload() == null ? JsonNodeFactory.instance.objectNode() : request.payload();
         TaskEvent saved = tasks.insertTaskEvent(id, request.type(), json.write(payload));
         switch (request.type()) {

@@ -18,7 +18,7 @@ from app.config import Settings
 from app.harness.instructions import prompt_versions
 from app.harness.limits import new_counter
 from app.harness.model import ModelGateway
-from app.harness.observability import BackendEventPublisher, log_event, run_config, trace_url_for
+from app.harness.observability import BackendEventPublisher, TaskCancelled, log_event, run_config, trace_url_for
 from app.harness.tools import McpConnections, ToolGateway
 from app.runtime import RunContext
 
@@ -211,6 +211,9 @@ async def consume(settings: Settings, runner: TaskRunner, http: httpx.AsyncClien
                 attempt = int((message.headers or {}).get("x-attempt", 1))
                 try:
                     await runner.run(body)
+                except TaskCancelled:
+                    # 사람이 중단한 작업이다. 다시 시도하거나 실패로 바꾸지 않고 메시지만 처리한다.
+                    log_event("task_cancelled", task_id=body.get("taskId"), trace_id=body.get("traceId"))
                 except Exception as error:
                     log_event(
                         "task_failed",

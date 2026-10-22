@@ -16,6 +16,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty'
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
@@ -269,6 +270,26 @@ function openEvidence(id) {
   evidence.value = found ?? { id, title: id, text: '이 근거의 원문을 변경안에서 찾지 못했습니다.' }
 }
 
+// 확정 전 변경안은 제작 PD나 연출감독이 철회할 수 있다. 재계획 작업을 멈추고 남은 승인 요청을 취소한다.
+const confirmingWithdraw = ref(false)
+const withdrawReason = ref('')
+const withdrawing = ref(false)
+const canWithdraw = computed(() => auth.canSubmitChange && ['PENDING', 'APPROVED'].includes(proposal.value?.status))
+
+async function withdraw() {
+  withdrawing.value = true
+  try {
+    await api(`/ai/tasks/${proposal.value.taskId}/cancel`, { method: 'POST', body: { reason: withdrawReason.value } })
+    confirmingWithdraw.value = false
+    toast.info('변경안을 철회하고 재계획을 멈췄습니다.')
+    await load()
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    withdrawing.value = false
+  }
+}
+
 async function decide(decision) {
   if (decision === 'REJECT' && !canReject.value) return
   deciding.value = true
@@ -327,7 +348,17 @@ onBeforeUnmount(() => {
           <Button as-child variant="outline" size="sm">
             <RouterLink :to="`/tasks/${proposal.taskId}`">Agent 진행 보기</RouterLink>
           </Button>
+          <Button v-if="canWithdraw && !confirmingWithdraw" variant="outline" size="sm" @click="confirmingWithdraw = true">
+            변경안 철회
+          </Button>
         </div>
+      </div>
+
+      <div v-if="canWithdraw && confirmingWithdraw" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+        <span class="text-sm">이 변경안을 철회하고 재계획을 멈춥니다. 남은 승인 요청은 취소됩니다.</span>
+        <Input v-model="withdrawReason" class="min-w-[220px] flex-1" placeholder="철회 사유 (비워도 됩니다)" maxlength="200" />
+        <Button size="sm" variant="destructive" :disabled="withdrawing" @click="withdraw">철회</Button>
+        <Button size="sm" variant="ghost" :disabled="withdrawing" @click="confirmingWithdraw = false">취소</Button>
       </div>
 
       <Alert v-if="proposal.status === 'REJECTED'" class="flex flex-wrap items-center justify-between gap-3 border-primary/50">

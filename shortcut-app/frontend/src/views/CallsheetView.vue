@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -12,7 +13,9 @@ import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import ForecastSource from '../components/ForecastSource.vue'
 import { api } from '../api.js'
+import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useToastStore } from '../stores/toast.js'
 import { useShootDayStore } from '../stores/shootDay.js'
 import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
 
@@ -76,6 +79,33 @@ watch(
 )
 
 const isLatest = computed(() => String(board.value?.callsheet?.versionNo ?? '') === selectedVersion.value)
+
+// 지난 버전을 보고 있으면 제작 PD와 연출감독은 그 버전으로 되돌릴 수 있다. 오후 블록을 그 버전으로 복구해 새 버전으로 다시 배포한다.
+const auth = useAuthStore()
+const toast = useToastStore()
+const confirmingRestore = ref(false)
+const restoreReason = ref('')
+const restoring = ref(false)
+const canRestore = computed(() => auth.canSubmitChange && board.value && selectedVersion.value && !isLatest.value)
+
+async function restore() {
+  restoring.value = true
+  try {
+    const r = await api(`/callsheets/${board.value.shootDay.id}/${selectedVersion.value}/restore`, {
+      method: 'POST',
+      body: { reason: restoreReason.value }
+    })
+    confirmingRestore.value = false
+    restoreReason.value = ''
+    toast.info(`${ver(r.restoredFrom)}으로 되돌려 ${ver(r.versionNo)}로 배포했습니다.`)
+    selectedVersion.value = ''
+    await load()
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    restoring.value = false
+  }
+}
 const sheetMeta = computed(() => versions.value.find((v) => String(v.versionNo) === selectedVersion.value))
 const blocks = computed(() => sheet.value?.blocks ?? board.value?.blocks ?? [])
 const shootDate = computed(() => sheet.value?.shootDate ?? board.value?.shootDay.date)
@@ -195,15 +225,27 @@ function print() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="v in versions" :key="v.versionNo" :value="String(v.versionNo)">
-              {{ ver(v.versionNo) }}{{ String(v.versionNo) === String(board?.callsheet?.versionNo) ? ' (최신)' : '' }}
+              {{ ver(v.versionNo) }}{{ v.restoredFrom ? ` (${ver(v.restoredFrom)} 되돌림)` : '' }}{{ String(v.versionNo) === String(board?.callsheet?.versionNo) ? ' (최신)' : '' }}
             </SelectItem>
           </SelectContent>
         </Select>
+        <Button v-if="canRestore && !confirmingRestore" variant="outline" @click="confirmingRestore = true">
+          이 버전으로 되돌리기
+        </Button>
         <Button :disabled="!board" @click="print">
           <Printer />
           인쇄
         </Button>
       </div>
+    </div>
+
+    <div v-if="canRestore && confirmingRestore" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 print:hidden">
+      <span class="text-sm">
+        오후 블록을 {{ ver(selectedVersion) }}로 되돌려 새 버전으로 다시 배포합니다. 지금 데이터로 하드 제약을 어기면 되돌리지 않습니다.
+      </span>
+      <Input v-model="restoreReason" class="min-w-[220px] flex-1" placeholder="되돌리는 사유 (비워도 됩니다)" maxlength="200" />
+      <Button size="sm" :disabled="restoring" @click="restore">되돌리기</Button>
+      <Button size="sm" variant="ghost" :disabled="restoring" @click="confirmingRestore = false">취소</Button>
     </div>
 
     <Alert v-if="error" variant="destructive">

@@ -3,9 +3,12 @@ package com.shortcut.web;
 import com.shortcut.dto.ProposalDtos.ApprovalRequest;
 import com.shortcut.dto.ProposalDtos.ApprovalResult;
 import com.shortcut.dto.TaskDtos.AskRequest;
+import com.shortcut.dto.TaskDtos.CancelRequest;
+import com.shortcut.dto.TaskDtos.CancelResult;
 import com.shortcut.dto.TaskDtos.TaskCreated;
 import com.shortcut.dto.TaskDtos.TaskView;
 import com.shortcut.security.CurrentUser;
+import com.shortcut.service.CancelService;
 import com.shortcut.service.ProposalService;
 import com.shortcut.service.TaskService;
 import jakarta.validation.Valid;
@@ -31,10 +34,19 @@ public class AiTaskController {
 
     private final TaskService tasks;
     private final ProposalService proposals;
+    private final CancelService cancels;
 
-    public AiTaskController(TaskService tasks, ProposalService proposals) {
+    public AiTaskController(TaskService tasks, ProposalService proposals, CancelService cancels) {
         this.tasks = tasks;
         this.proposals = proposals;
+        this.cancels = cancels;
+    }
+
+    /** 재계획을 멈춘다. 승인을 기다리던 변경안이 있으면 함께 철회한다. */
+    @PostMapping("/{id}/cancel")
+    public CancelResult cancel(@AuthenticationPrincipal Jwt jwt, @PathVariable long id,
+                               @Valid @RequestBody(required = false) CancelRequest request) {
+        return cancels.cancel(CurrentUser.from(jwt), id, request == null ? null : request.reason());
     }
 
     @PostMapping

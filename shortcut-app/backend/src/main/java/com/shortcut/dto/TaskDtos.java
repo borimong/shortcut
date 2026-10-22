@@ -92,4 +92,12 @@ public final class TaskDtos {
 
     public record TaskEventRequest(@NotBlank String type, JsonNode payload) {
     }
+
+    /** 재계획 중단 사유다. 비우면 "사유 없음"으로 남는다. */
+    public record CancelRequest(@Size(max = 200) String reason) {
+    }
+
+    /** proposalId는 함께 철회한 변경안이다. 승인을 기다리던 변경안이 없었으면 비어 있다. */
+    public record CancelResult(long taskId, Long proposalId, String status) {
+    }
 }

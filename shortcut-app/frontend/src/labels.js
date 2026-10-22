@@ -88,6 +88,7 @@ export const STATUS = {
   APPROVED: ['승인', 'ok'],
   REJECTED: ['거절', 'bad'],
   CANCELLED: ['취소됨', 'wait'],
+  WITHDRAWN: ['철회', 'stale'],
   STALE: ['오래됨', 'stale'],
   COMMITTED: ['확정', 'ok'],
   QUEUED: ['대기열', 'wait'],

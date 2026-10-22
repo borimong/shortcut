@@ -1,6 +1,7 @@
 package com.shortcut.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -76,7 +77,16 @@ public final class BoardDtos {
     public record PendingProposalView(long id, String versionNo, String status) {
     }
 
-    public record CallsheetSummary(int versionNo, OffsetDateTime createdAt, Long proposalId) {
+    /** restoredFrom은 앞 버전으로 되돌려 만든 버전일 때 그 버전 번호다. note는 되돌린 사유다. */
+    public record CallsheetSummary(int versionNo, OffsetDateTime createdAt, Long proposalId, Integer restoredFrom,
+                                   String note) {
+    }
+
+    public record RestoreRequest(@Size(max = 200) String reason) {
+    }
+
+    /** reservationStatus는 되돌린 장소의 예약 상태(HELD 가예약 있음, MANUAL_PENDING 제작부가 직접 잡아야 함)다. */
+    public record RestoreResult(int versionNo, int restoredFrom, String reservationStatus) {
     }
 
     public record CallsheetContent(long shootDayId, int versionNo, Long proposalId, OffsetDateTime createdAt,
