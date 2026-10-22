@@ -30,8 +30,7 @@ public class AlternativeLocationService {
 
     @Transactional
     public List<AlternativeLocationView> register(long shootDayId, List<Long> externalIds, List<String> keywords) {
-        plans.findShootDay(shootDayId)
-                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId));
+        plans.findShootDay(shootDayId).orElseThrow(() -> PlanDataService.shootDayNotFound(shootDayId));
         Map<Long, ExternalLocation> catalog = plans.findExternalLocations().stream()
                 .collect(Collectors.toMap(ExternalLocation::id, Function.identity()));
         List<String> wanted = keywords == null ? List.of() : keywords.stream().map(String::strip).filter(k -> !k.isEmpty()).toList();

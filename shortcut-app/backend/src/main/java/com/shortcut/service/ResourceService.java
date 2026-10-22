@@ -5,11 +5,13 @@ import com.shortcut.domain.Block;
 import com.shortcut.domain.DataOverride;
 import com.shortcut.domain.Equipment;
 import com.shortcut.domain.Location;
+import com.shortcut.domain.Role;
 import com.shortcut.domain.Scene;
 import com.shortcut.dto.ResourceDtos.ActiveOverride;
 import com.shortcut.dto.ResourceDtos.ResourceBoard;
 import com.shortcut.dto.ResourceDtos.ResourceItem;
 import com.shortcut.repository.OverrideRepository;
+import com.shortcut.repository.PlanRepository;
 import com.shortcut.security.CurrentUser;
 import java.util.List;
 import java.util.Optional;
@@ -20,9 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ResourceService {
-
-    // 화면이 shootDayId를 보내지 않는 단일 촬영일 시연을 위해 기본값을 둔다.
-    private static final long DEFAULT_SHOOT_DAY = 1L;
 
     private final PlanDataService planData;
     private final OverrideRepository overrides;
@@ -38,7 +37,7 @@ public class ResourceService {
      */
     @Transactional(readOnly = true)
     public ResourceBoard board(CurrentUser user, Long requestedShootDayId) {
-        long shootDayId = requestedShootDayId == null ? DEFAULT_SHOOT_DAY : requestedShootDayId;
+        long shootDayId = PlanDataService.orDefault(requestedShootDayId);
         PlanData data = planData.load(shootDayId);
         List<DataOverride> active = overrides.find(shootDayId);
         Block pm = data.changingBlock();
@@ -50,16 +49,16 @@ public class ResourceService {
         List<ResourceItem> equipment = data.equipment().values().stream()
                 .map(e -> equipmentItem(e, latest(active, "EQUIPMENT_UNAVAILABLE", e.id()), pm, shootDayId))
                 .toList();
-        // 100번대 이상은 4안 탐색으로 등록한 외부 장소라 패널에서 고치지 않는다.
+        // 4안 탐색으로 등록한 외부 장소는 패널에서 고치지 않는다.
         List<ResourceItem> locations = data.locations().values().stream()
-                .filter(l -> l.id() < 100)
+                .filter(l -> l.id() < PlanRepository.ALTERNATIVE_LOCATION_ID_BASE)
                 .map(l -> locationItem(l, latest(active, "LOCATION_UNAVAILABLE", l.id()), pm, shootDayId))
                 .toList();
         List<ResourceItem> actors = data.actors().values().stream()
                 .map(a -> actorItem(a, latest(active, "ACTOR_WINDOW", a.id()), pmActors, shootDayId))
                 .toList();
         return new ResourceBoard(shootDayId, data.shootDay().shootDate(), data.shootDay().dataVersion(),
-                EventService.CHANGE_ROLES.contains(user.role()), equipment, locations, actors);
+                Role.CHANGERS.contains(user.role()), equipment, locations, actors);
     }
 
     private static ResourceItem equipmentItem(Equipment e, Optional<DataOverride> o, Block pm, long shootDayId) {
