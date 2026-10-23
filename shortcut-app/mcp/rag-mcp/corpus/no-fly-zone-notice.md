@@ -3,6 +3,7 @@ doc_id: no-fly-zone-notice
 title: 드론 비행 금지와 제한 구역 안내 (시연용 요약)
 doc_type: NO_FLY
 version: 2026-10
+section_locations: 휴전선 인근 비행금지구역=파주
 ---
 드론 촬영 전에 확인해야 할 비행 금지와 제한 구역 기준을 요약한 자료입니다.
 

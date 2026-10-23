@@ -17,8 +17,9 @@ from app.graph.schemas import (
     ConstraintSet,
     ImpactSummary,
     PlanExplanation,
-    PlanReview,
+    QuotedCheck,
     RejectionPlan,
+    ReviewChecks,
     WeightAdjustment,
 )
 from app.graph.state import HARD_CONSTRAINTS
@@ -367,13 +368,13 @@ def _hit(constraint: str) -> dict:
 class FakeModel:
     """노드 프롬프트의 첫 줄을 보고 정해진 행동을 돌려주는 가짜 LLM입니다."""
 
-    def __init__(self, *, cite_evidence: bool = True, review_scores=None, review_actions=None, explanation_extras=None):
+    def __init__(self, *, cite_evidence: bool = True, review_misses=None, explanation_extras=None):
         self.cite_evidence = cite_evidence
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
-        # 자체 검토 회차마다 돌려줄 총점과 행동이다. 다 쓰면 마지막 값을 반복한다.
-        self.review_scores = list(review_scores or [90])
-        self.review_actions = list(review_actions or ["REWRITE"])
+        # 자체 검토 회차마다 아니오로 답할 점검 질문 이름이다. 다 쓰면 마지막 값을 반복한다.
+        # change, reason, responds, element, cost 중에서 고른다.
+        self.review_misses = [set(m) for m in (review_misses or [()])]
         self.structured_calls: list[str] = []
         self.impact_prompts: list[str] = []
 
@@ -430,10 +431,12 @@ class FakeModel:
             ]
             chosen = re.search(r"## 선택한 후보\n장소 (.+?)\(", text).group(1)
             extra = self.explanation_extras.pop(0) if self.explanation_extras else ""
+            rejection = re.search(r"## 직전 거절\n거절 사유: (.+?) /", text)
+            answered = f"직전 거절 사유인 {rejection.group(1)} 문제를 보완했습니다. " if rejection else ""
             return PlanExplanation(
-                explanation=f"우천으로 {chosen}로 옮깁니다. {extra}".strip(),
+                explanation=f"우천으로 {chosen}로 옮깁니다(13시 이후 비 80%). {answered}{extra}".strip(),
                 checklist=checklist,
-                unresolved=["예약 확정"],
+                unresolved=["제작부: 예약 확정, 승인 후 1시간 안"],
                 needs_more_info=False,
             )
         if schema is RejectionPlan:
@@ -443,19 +446,28 @@ class FakeModel:
             else:
                 item = ConstraintItem(type="EXCLUDE_LOCATION", location_id=location_id)
             return RejectionPlan(constraints=[item], summary=f"장소 {location_id}을 빼고 다시 짭니다")
-        if schema is PlanReview:
-            score = self.review_scores.pop(0) if len(self.review_scores) > 1 else self.review_scores[0]
-            action = self.review_actions.pop(0) if len(self.review_actions) > 1 else self.review_actions[0]
-            each, rest = divmod(score, 5)
-            parts = [each + (1 if i < rest else 0) for i in range(5)]
-            return PlanReview(
-                evidence=parts[0],
-                rejection=parts[1],
-                optimization=parts[2],
-                explanation=parts[3],
-                risk=parts[4],
-                feedback=[f"{score}점 피드백"],
-                action=action,
+        if schema is ReviewChecks:
+            misses = self.review_misses.pop(0) if len(self.review_misses) > 1 else self.review_misses[0]
+            explanation = re.search(r"## 설명\n(.*?)(?:\n\n## |\Z)", text, re.S).group(1)
+            sentence = re.search(r"우천으로 [^.]*", explanation).group(0)
+            # 비용 이유는 비용 단어가 든 구절이어야 인정되므로, 설명에 그런 문장이 있으면 그것을 인용한다.
+            cost = re.search(r"[^.]*비용[^.]*", explanation)
+
+            def check(name: str) -> QuotedCheck:
+                if name in misses:
+                    return QuotedCheck(found=False, quote="")
+                answered = re.search(r"직전 거절 사유인 [^.]*", explanation)
+                quote = cost.group(0).strip() if name == "cost" and cost else sentence
+                if name == "responds" and answered:
+                    quote = answered.group(0)
+                return QuotedCheck(found=True, quote=quote)
+
+            return ReviewChecks(
+                change=check("change"),
+                reason=check("reason"),
+                responds=check("responds"),
+                rejected_element=check("element"),
+                cost_reason=check("cost"),
             )
         if schema is AlternativeKeywords:
             return AlternativeKeywords(keywords=["실내", "자연광"], max_distance_km=40)

@@ -9,8 +9,20 @@ from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
-from app.graph.nodes import constraints_for_issues, pick_after_rejection
+from app.graph.nodes import (
+    applies_to_places,
+    candidate_places,
+    constraints_for_issues,
+    counts_as_evidence,
+    evidence_score,
+    fact_problems,
+    mentions,
+    pick_after_rejection,
+    quoted,
+)
 from app.graph.qa import build_qa_graph
+from app.graph.schemas import QuotedCheck
+from app.graph.state import HARD_CONSTRAINTS
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
 from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
 
@@ -306,20 +318,25 @@ def _validate_calls(clients):
     return sum(1 for name, _ in clients["business"].calls if name == "validate_plan")
 
 
+# 가짜 검토 모델이 아니오로 답할 점검 질문 묶음이다. 가짜 설명에는 숫자가 한 종류뿐이고 비용 이유가 없어 모두 맞혀도 86점이다.
+BAD = ("change", "reason")  # 73점
+MID = ("reason",)  # 79점
+
+
 def test_review_below_threshold_rewrites_until_it_passes():
-    ctx, backend, clients, _ = make_context(model=FakeModel(review_scores=[60, 70, 85], review_actions=["REWRITE"]))
+    ctx, backend, clients, _ = make_context(model=FakeModel(review_misses=[BAD, MID, ()]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
     review = backend.proposals[0]["review"]
-    assert review["passed"] is True and review["score"] == 85 and review["rounds"] == 3
-    assert [h["score"] for h in review["history"]] == [60, 70, 85]
+    assert review["passed"] is True and review["score"] == 86 and review["rounds"] == 3
+    assert [h["score"] for h in review["history"]] == [73, 79, 86]
     # 설명만 고친 회차는 같은 후보라 검증 게이트를 다시 부르지 않는다.
     assert _validate_calls(clients) == 1
     assert ctx.model.structured_calls.count("PlanExplanation") == 3
 
 
 def test_review_stops_after_five_rounds_and_submits_the_best_round():
-    ctx, backend, _, _ = make_context(model=FakeModel(review_scores=[50, 65, 40, 55, 30], review_actions=["REWRITE"]))
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[BAD, MID, BAD, BAD, BAD]))
     graph, _ = compile_graph(ctx)
 
     async def scenario():
@@ -330,25 +347,95 @@ def test_review_stops_after_five_rounds_and_submits_the_best_round():
     assert state.next == ("await_approval",)
     review = backend.proposals[0]["review"]
     assert review["passed"] is False and review["rounds"] == 5
-    assert review["score"] == 65 and review["chosenRound"] == 2
+    assert review["score"] == 79 and review["chosenRound"] == 2
 
 
-def test_review_can_switch_to_the_next_candidate():
-    ctx, backend, clients, _ = make_context(model=FakeModel(review_scores=[50, 90], review_actions=["NEXT_CANDIDATE", "REWRITE"]))
+def test_blocking_reason_stops_a_plan_even_at_the_pass_score():
+    # 숫자 두 종류와 비용 이유를 넣으면 변경 이벤트에 대응하지 않아도 80점이 되지만 통과시키지 않는다.
+    extra = "촬영은 14:00~16:00, 추가 비용 150,000원은 대관료입니다."
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[("responds",), ()], explanation_extras=[extra]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
-    assert backend.proposals[0]["candidate"]["location_id"] == 3
-    assert backend.proposals[0]["review"]["history"][0]["action"] == "NEXT_CANDIDATE"
-    assert _validate_calls(clients) == 2
+    first, second = backend.proposals[0]["review"]["history"]
+    assert first["score"] == 80 and first["passed"] is False and first["blocking"] == ["변경 이벤트 미대응"]
+    assert second["passed"] is True
 
 
 def test_review_switches_method_when_the_score_does_not_improve():
-    ctx, backend, _, _ = make_context(model=FakeModel(review_scores=[60, 60, 85], review_actions=["REWRITE"]))
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[BAD, BAD, ()]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
     history = backend.proposals[0]["review"]["history"]
     assert [h["action"] for h in history[:2]] == ["REWRITE", "NEXT_CANDIDATE"]
     assert backend.proposals[0]["candidate"]["location_id"] == 3
+
+
+def test_missing_citation_with_collected_evidence_is_rewritten_not_searched_again():
+    from app.graph.nodes import score_review
+    from app.graph.schemas import ReviewChecks
+
+    checklist = [{"constraint": c, "status": "PASS", "evidenceIds": ["x#1"]} for c in HARD_CONSTRAINTS]
+    checklist[-1] = {"constraint": "WEATHER", "status": "WARN", "evidenceIds": []}
+    text = "우천으로 성수 스튜디오로 옮깁니다(13시 이후 비 80%)."
+    plan = {"candidate": SEONGSU, "explanation": text, "checklist": checklist, "unresolved": []}
+    yes = QuotedCheck(found=True, quote=text)
+    checks = ReviewChecks(change=yes, reason=yes, responds=yes, rejected_element=yes, cost_reason=yes)
+    state = {"candidates": [SEONGSU], "event": {"detail": "13시 이후 비 80%"}, "info_retries": 0}
+    assert score_review(checks, plan, state)["action"] == "MORE_EVIDENCE"
+    state["hard_constraints"] = [{"constraint": "WEATHER", "evidence_ids": ["safety-disaster-weather#2"]}]
+    scored = score_review(checks, plan, state)
+    assert scored["action"] == "REWRITE" and "safety-disaster-weather#2" in " ".join(scored["feedback"])
+
+
+def test_evidence_score_caps_categories_without_evidence():
+    checklist = [{"constraint": c, "status": "PASS", "evidenceIds": ["x#1"]} for c in HARD_CONSTRAINTS]
+    assert evidence_score(checklist) == (20, [], [])
+    checklist[0] = {"constraint": "CONTRACT", "status": "WARN", "evidenceIds": []}
+    checklist[1] = {"constraint": "SCHEDULE", "status": "WARN", "evidenceIds": ["x#2"]}
+    assert evidence_score(checklist) == (12, ["SCHEDULE"], ["CONTRACT"])
+
+
+def test_fact_problems_catch_wrong_numbers_and_cost_claims():
+    state = {"candidates": [SEONGSU, PAJU], "plan_set": {"current": {"cost": 300000}}, "event": {"detail": "13시 이후 비"}}
+    good = "성수 스튜디오, 14:00~16:00, 14km, 추가 비용 150,000원(450,000원)"
+    assert fact_problems(good, SEONGSU, state) == []
+    wrong = "성수 스튜디오, 15:30 시작, 5km, 추가 비용이 없습니다."
+    problems = fact_problems(wrong, SEONGSU, state)
+    assert len(problems) == 3 and any("추가 비용이 없다고" in p for p in problems)
+
+
+def test_rejected_place_named_in_the_rejection_reason_is_not_a_fact_error():
+    # 거절 사유를 풀어 쓰며 거절된 파주의 이름을 적어도 사실 오류가 아니다.
+    state = {
+        "candidates": [SEONGSU, PAJU],
+        "plan_set": {"current": {"cost": 300000}, "options": [{"location": {"id": 3, "name": "파주 세트장"}}]},
+        "event": {"detail": "13시 이후 비"},
+        "last_rejection": {"reason": "파주 세트장은 장면 의도와 맞지 않음", "location_id": 3},
+    }
+    text = "파주 세트장이 장면 의도에 맞지 않는다는 거절을 반영해 성수 스튜디오로 옮깁니다."
+    assert fact_problems(text, SEONGSU, state) == []
+    # 거절된 안이 다른 장소였어도, 승인자가 사유에 적은 장소 이름은 설명에 쓸 수 있다.
+    state["last_rejection"]["location_id"] = 102
+    assert fact_problems(text, SEONGSU, state) == []
+    assert fact_problems(text + " 짐벌 세트도 씁니다.", SEONGSU, state) != []
+
+
+def test_mentions_checks_the_explanation_when_the_model_copies_the_event():
+    state = {"candidates": [SEONGSU, PAJU], "event": {"detail": "13시 이후 한강 강수확률 80%"}}
+    text = "성수 스튜디오 실내 촬영으로 강수확률 80%의 우천을 피했습니다."
+    copied = QuotedCheck(found=True, quote="13시 이후 한강 강수확률 80%")
+    assert mentions(copied, text, state["event"]["detail"], state)
+    assert not mentions(copied, "성수 스튜디오로 옮깁니다.", state["event"]["detail"], state)
+    # 사유를 밝히지 않은 거절 언급은 인용이 설명에 있어도 사유의 낱말이 없어 아니오다.
+    vague = QuotedCheck(found=True, quote="직전 의견도 반영했습니다")
+    assert not mentions(vague, "직전 의견도 반영했습니다. 파주 세트장으로 옮깁니다.", "성수 스튜디오 공사 소음", state)
+
+
+def test_quoted_rejects_quotes_not_in_the_explanation():
+    text = "우천으로 성수 스튜디오로 옮깁니다."
+    assert quoted(QuotedCheck(found=True, quote="성수 스튜디오로 옮깁니다"), text)
+    assert not quoted(QuotedCheck(found=True, quote="직전 거절 사유인 소음을 해결했습니다"), text)
+    assert not quoted(QuotedCheck(found=False, quote=""), text)
 
 
 def test_explanation_naming_another_candidate_is_rewritten_once():
@@ -361,11 +448,14 @@ def test_explanation_naming_another_candidate_is_rewritten_once():
     assert not any(u.startswith("설명 확인 필요") for u in proposal["unresolved"])
 
 
-def test_explanation_still_wrong_after_rewrite_goes_to_unresolved():
+def test_explanation_still_wrong_after_rewrite_is_blocked_by_review():
+    # 다시 써도 다른 후보의 장비를 적으면 미확정 항목에 올리고, 자체 검토가 사실 오류로 통과를 막아 다시 쓰게 한다.
     ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."] * 2))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
-    assert any("짐벌 세트" in u for u in backend.proposals[0]["unresolved"] if u.startswith("설명 확인 필요"))
+    history = backend.proposals[0]["review"]["history"]
+    assert history[0]["blocking"] == ["설명의 사실 오류"] and history[-1]["passed"] is True
+    assert "짐벌 세트" not in backend.proposals[0]["explanation"]
 
 
 def test_explanation_may_name_the_original_plan():
@@ -451,3 +541,31 @@ def test_rejection_of_other_elements_does_not_search_new_places():
     run(scenario())
     nodes = [p["node"] for t, p in events.events if t == "NODE" and p["phase"] == "end"]
     assert "suggest_alternatives" not in nodes
+
+
+def test_candidate_places_come_from_current_plan_and_options():
+    plan_set = {
+        "current": {"location": {"name": "한강 공원"}},
+        "options": [{"location": {"name": "한강 공원"}}, {"location": {"name": "파주 세트장"}}, {"optionNo": 3}],
+    }
+    assert candidate_places(plan_set) == ["한강 공원", "파주 세트장"]
+
+
+def test_clauses_for_other_places_are_not_evidence():
+    places = ["한강 공원", "파주 세트장"]
+    # 북촌, 광화문, 남산의 비행금지구역 조항은 한강과 파주 재계획의 근거가 아니다.
+    assert not applies_to_places({"locations": ["북촌", "광화문", "남산"]}, places)
+    assert applies_to_places({"locations": ["파주"]}, places)
+    assert applies_to_places({"locations": ["한강공원"]}, places)
+    # 적용 장소가 없는 법령이나 사내 규정, 후보 장소를 모르는 경우는 그대로 둔다.
+    assert applies_to_places({"locations": []}, places)
+    assert applies_to_places({"locations": ["북촌"]}, [])
+
+
+def test_citation_must_match_document_type_and_not_be_an_intro():
+    law = {"doc_type": "LAW", "heading": "제53조 연장 근로의 제한"}
+    permit_hours = {"doc_type": "PERMIT", "heading": "허가 시간"}
+    assert counts_as_evidence("LAW", law)
+    assert not counts_as_evidence("SCHEDULE", law)
+    assert counts_as_evidence("SCHEDULE", permit_hours)
+    assert not counts_as_evidence("NO_FLY_ZONE", {"doc_type": "NO_FLY", "heading": "개요"})

@@ -1,0 +1,984 @@
+{
+  "permit-seoul-forest-filming": {
+    "scope": {
+      "locations": [
+        "seoul-forest"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "기상 악화 시 조치": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain"
+        ]
+      },
+      "시민 통행과 구역 통제": {
+        "cats": [],
+        "topics": []
+      },
+      "촬영 후 원상 복구": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-bukchon-filming": {
+    "scope": {
+      "locations": [
+        "bukchon"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "주민 동의와 소음": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "noise"
+        ]
+      },
+      "드론 비행": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "우천 시 골목 촬영": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain"
+        ]
+      },
+      "촬영 차량 주차": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-gwanghwamun-filming": {
+    "scope": {
+      "locations": [
+        "gwanghwamun"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "인파 밀집 행사일 안전": {
+        "cats": [
+          "DISASTER"
+        ],
+        "topics": [
+          "crowd"
+        ]
+      },
+      "사용료와 취소": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "location_fee",
+          "cancel"
+        ]
+      },
+      "시설물 보호": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-namsan-filming": {
+    "scope": {
+      "locations": [
+        "namsan"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "산책로 경사와 기상": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "wind"
+        ]
+      },
+      "야생 동물 보호": {
+        "cats": [],
+        "topics": []
+      },
+      "기념품과 광고물": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-olympic-park-filming": {
+    "scope": {
+      "locations": [
+        "olympic-park"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행 승인": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "강풍과 낙뢰": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "wind",
+          "lightning"
+        ]
+      },
+      "장소 사용료": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "location_fee",
+          "cancel"
+        ]
+      },
+      "조형물 촬영": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-subway-euljiro-filming": {
+    "scope": {
+      "locations": [
+        "subway-euljiro"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "야간 작업 인원과 안전 요원": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "night"
+        ]
+      },
+      "전력과 장비 반입": {
+        "cats": [],
+        "topics": []
+      },
+      "사용료와 취소": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "location_fee",
+          "cancel"
+        ]
+      },
+      "광고 매체 노출": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-haeundae-filming": {
+    "scope": {
+      "locations": [
+        "haeundae"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 운용": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "파도와 수상 장면": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "water",
+          "wind"
+        ]
+      },
+      "태풍과 해일": {
+        "cats": [
+          "DISASTER",
+          "WEATHER"
+        ],
+        "topics": [
+          "typhoon",
+          "earthquake"
+        ]
+      },
+      "사용료와 정리": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-bukhansan-filming": {
+    "scope": {
+      "locations": [
+        "bukhansan"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행 금지": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "산악 기상": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "wind",
+          "rain"
+        ]
+      },
+      "촬영 인원과 장비 운반": {
+        "cats": [],
+        "topics": []
+      },
+      "자연 훼손 금지": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-paju-set-usage": {
+    "scope": {
+      "locations": [
+        "paju-set"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "이용 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론과 항공 촬영": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "실내 세트 전환": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "wind"
+        ]
+      },
+      "이용료와 취소": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "location_fee",
+          "cancel"
+        ]
+      },
+      "세트 소품 관리": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-ilsan-studio-usage": {
+    "scope": {
+      "locations": [
+        "ilsan-studio"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "대관 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "실내 촬영과 기상": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "typhoon"
+        ]
+      },
+      "소음과 방음": {
+        "cats": [],
+        "topics": []
+      },
+      "대관료와 취소": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "location_fee",
+          "cancel"
+        ]
+      },
+      "반입 장비와 하중": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "permit-incheon-wharf-access": {
+    "scope": {
+      "locations": [
+        "incheon-wharf"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "출입 허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "드론 비행 승인": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "강풍과 해무": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "wind"
+        ]
+      },
+      "안전 장비 착용": {
+        "cats": [],
+        "topics": []
+      },
+      "보안 촬영 제한": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "nofly-p73-seoul": {
+    "scope": {
+      "locations": [
+        "bukchon",
+        "gwanghwamun",
+        "namsan"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "구역 범위": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "촬영 목적 비행 승인": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "구역 밖 대체 촬영": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "위반 시 조치": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "drone-general-flight-rules": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "야간 비행": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": [
+          "night"
+        ]
+      },
+      "비행 고도": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "인구 밀집 지역 상공": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": [
+          "crowd"
+        ]
+      },
+      "기체 신고와 조종 자격": {
+        "cats": [],
+        "topics": []
+      },
+      "기상 조건": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "wind"
+        ]
+      }
+    }
+  },
+  "nofly-national-park-drone": {
+    "scope": {
+      "locations": [
+        "bukhansan"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "공원 안 비행 금지": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "공원 경계 밖 이륙": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "야생 동물 보호": {
+        "cats": [],
+        "topics": []
+      },
+      "위반 시 처분": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "nofly-haeundae-beach-drone": {
+    "scope": {
+      "locations": [
+        "haeundae"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "개장 기간 비행 제한": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "비개장 기간 비행 조건": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "해상 비행과 바람": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "WEATHER"
+        ],
+        "topics": [
+          "wind"
+        ]
+      },
+      "구조 활동 우선": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "nofly-airport-control-zone": {
+    "scope": {
+      "locations": [
+        "incheon-wharf"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "관제권 비행 승인": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "인천 내항 부두 적용": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "승인 신청 기한": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "비행 중 유의 사항": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "law-youth-performer-protection": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "용역 제공 시간 한도": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor"
+        ]
+      },
+      "야간 용역 제공 제한": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor",
+          "night"
+        ]
+      },
+      "학습권과 휴식권 보장": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor"
+        ]
+      },
+      "보호자 동행": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor"
+        ]
+      }
+    }
+  },
+  "law-labor-minor-workers": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "제64조 최저 연령과 취직인허증": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor"
+        ]
+      },
+      "제66조 연소자 증명서": {
+        "cats": [],
+        "topics": []
+      },
+      "제69조 근로시간": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor"
+        ]
+      },
+      "제70조 야간근로와 휴일근로의 제한": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "minor",
+          "night"
+        ]
+      }
+    }
+  },
+  "law-heat-rest-standard": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "폭염 작업의 휴식 부여": {
+        "cats": [
+          "LAW",
+          "WEATHER"
+        ],
+        "topics": [
+          "heat"
+        ]
+      },
+      "폭염특보 단계별 조치": {
+        "cats": [
+          "LAW",
+          "WEATHER"
+        ],
+        "topics": [
+          "heat"
+        ]
+      },
+      "온열질환 대응": {
+        "cats": [],
+        "topics": []
+      },
+      "고령자와 취약 근로자": {
+        "cats": [
+          "LAW",
+          "WEATHER"
+        ],
+        "topics": [
+          "heat",
+          "elderly"
+        ]
+      }
+    }
+  },
+  "law-road-occupancy-filming": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "도로 점용 허가": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "road"
+        ]
+      },
+      "교통 통제 협조": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "road"
+        ]
+      },
+      "보행자 안전": {
+        "cats": [],
+        "topics": []
+      },
+      "야간 도로 촬영": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "road",
+          "night"
+        ]
+      }
+    }
+  },
+  "law-noise-time-standard": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "시간대 구분": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "noise",
+          "night"
+        ]
+      },
+      "주거지역 야간 기준": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "noise",
+          "night"
+        ]
+      },
+      "확성기 사용": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": [
+          "noise"
+        ]
+      },
+      "공사장 소음과의 구분": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "law-aviation-safety-drone": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "비행 승인": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone"
+        ]
+      },
+      "조종자 준수 사항": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": [
+          "drone",
+          "night",
+          "crowd"
+        ]
+      },
+      "기체 신고와 보험": {
+        "cats": [],
+        "topics": []
+      },
+      "사고 보고": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "law-privacy-portrait-filming": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "행인 얼굴 노출": {
+        "cats": [],
+        "topics": []
+      },
+      "차량 번호판과 간판": {
+        "cats": [],
+        "topics": []
+      },
+      "촬영 동의서": {
+        "cats": [],
+        "topics": []
+      },
+      "원본 영상 보관": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  }
+}

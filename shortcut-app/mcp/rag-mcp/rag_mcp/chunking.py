@@ -5,7 +5,7 @@ chunk 원문은 반드시 문서 원문의 부분 문자열이어야 한다. Age
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # 조항 하나가 이 길이를 넘으면 문단 단위로 다시 나눈다.
 # 근거 패널에 그대로 보여 줄 수 있고 임베딩 한 번에 의미가 섞이지 않는 크기다.
@@ -21,6 +21,10 @@ class Document:
     doc_type: str  # LAW, PERMIT, NO_FLY, SAFETY, POLICY, CONTRACT
     version: str
     text: str
+    # 특정 장소에만 적용되는 문서면 장소 이름 키워드(예: 한강). 비어 있으면 어디에나 적용된다.
+    locations: tuple[str, ...] = ()
+    # 문서 안 일부 조항만 다른 장소에 적용될 때 조항 제목 -> 장소 키워드. 문서 단위 값보다 우선한다.
+    section_locations: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -32,10 +36,15 @@ class Chunk:
     chunk_no: int
     heading: str
     text: str
+    locations: tuple[str, ...] = ()
 
 
 def parse_markdown(raw: str) -> Document:
-    """머리말(---로 감싼 key: value)과 본문으로 된 코퍼스 파일을 읽는다."""
+    """머리말(---로 감싼 key: value)과 본문으로 된 코퍼스 파일을 읽는다.
+
+    적용 장소는 선택 항목이다. `locations: 한강, 여의도`처럼 쉼표로 적고, 조항 일부만 다른 장소면
+    `section_locations: 조항 제목=파주; 다른 조항 제목=서울숲`처럼 세미콜론으로 나눈다.
+    """
     lines = raw.strip().splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("문서 머리말(---)이 없다")
@@ -50,7 +59,21 @@ def parse_markdown(raw: str) -> Document:
     if missing:
         raise ValueError(f"머리말에 {', '.join(missing)}가 없다")
     body = "\n".join(lines[end + 1 :]).strip()
-    return Document(meta["doc_id"], meta["title"], meta["doc_type"], meta["version"], body)
+    sections = {}
+    for item in meta.get("section_locations", "").split(";"):
+        heading, _, places = item.partition("=")
+        if heading.strip() and places.strip():
+            sections[heading.strip()] = split_places(places)
+    return Document(
+        meta["doc_id"], meta["title"], meta["doc_type"], meta["version"], body,
+        split_places(meta.get("locations", "")), sections,
+    )
+
+
+def split_places(value: str | list[str] | tuple[str, ...]) -> tuple[str, ...]:
+    """쉼표로 적은 장소 키워드(또는 목록)를 공백을 정리한 튜플로 만든다."""
+    items = value.split(",") if isinstance(value, str) else value
+    return tuple(item.strip() for item in items if item.strip())
 
 
 def split_into_chunks(document: Document) -> list[Chunk]:
@@ -69,7 +92,8 @@ def split_into_chunks(document: Document) -> list[Chunk]:
             continue
         for piece in _split_long(body):
             chunk_no = len(chunks)
-            chunks.append(Chunk(f"{document.doc_id}#{chunk_no}", document.doc_id, chunk_no, heading, piece))
+            places = document.section_locations.get(heading, document.locations)
+            chunks.append(Chunk(f"{document.doc_id}#{chunk_no}", document.doc_id, chunk_no, heading, piece, places))
     return chunks
 
 
