@@ -549,6 +549,9 @@ def test_adjusted_time_candidate_is_described_outside_reviewed_options():
     adjusted = {**SEONGSU, "time": {"optionNo": 0, "start": "14:30", "end": "16:30"}}
     assert "시간 14:30~16:30(조정 시간, 1/2/3안 밖)" in describe(adjusted)
     assert to_mcp_candidate(adjusted)["source"]["time"] == 0
+    # 세트 장소가 1/2/3안 장소에 없어 엔진이 더한 장소(안 번호 5)다.
+    at_set = {**SEONGSU, "location": {**SEONGSU["location"], "optionNo": 5}}
+    assert "(세트 장소, 1/2/3안 밖)" in describe(at_set)
 
 
 def _reject_location(graph, ctx):

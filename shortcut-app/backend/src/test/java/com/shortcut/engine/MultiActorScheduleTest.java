@@ -111,6 +111,33 @@ class MultiActorScheduleTest {
                 .containsExactlyInAnyOrder("LOCATION_CANCELLED", "ACTOR_UNAVAILABLE");
     }
 
+    @Test
+    void 세트_장소가_1_2_3안에_없으면_후보로_더해_평가한다() {
+        // S18, S19 세트가 목동 오피스 세트(1/2/3안 장소가 아님)에만 있다고 바꾼다. 목동은 06~13시만 열어 오후에는 못 쓰지만,
+        // 평가는 되어야 "그곳을 쓸 수 없다" 대신 무엇이 막는지 나온다.
+        PlanInput seed = SeedPlan.day2(true);
+        List<ScenePlan> atMokdong = seed.blockScenes().stream()
+                .map(s -> new ScenePlan(s.code(), s.durationMin(), s.exterior(), s.night(), true, 4L, s.uncastCharacters(),
+                        s.mustEquipmentIds(), s.wantEquipmentIds(), s.actorIds()))
+                .toList();
+        PlanInput input = new PlanInput(seed.callTime(), seed.morningEnd(), seed.budgetCap(), seed.crewWeeklyHoursUsed(),
+                seed.current(), seed.blockActorIds(), seed.actorOtherBlockMinutes(), seed.actors(), seed.locations(),
+                seed.equipment(), seed.options(), seed.precipByLocation(), seed.alerts(), seed.alternativeLocationIds(),
+                seed.rainBlockMm(), seed.rainWarnMm(), atMokdong, seed.actorDays(), seed.otherBlocks(), seed.sunrise(),
+                seed.sunset());
+
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+        List<String> blockers = PlanEngine.locationProofBlockers(input, result.candidates());
+
+        assertThat(result.candidates()).anySatisfy(c -> {
+            assertThat(c.location().id()).isEqualTo(4L);
+            assertThat(c.locationOptionNo()).isEqualTo(PlanEngine.SET_LOCATION_OPTION_NO);
+        });
+        assertThat(blockers.getFirst())
+                .isEqualTo("S18, S19는 세트가 목동 오피스 세트에만 있는데 목동 오피스 세트에서 찍는 후보도 모두 막혔습니다.");
+        assertThat(blockers).anyMatch(line -> line.startsWith("목동 오피스 세트 이용 가능 시간(06:00~13:00) 밖"));
+    }
+
     /** 비가 오지 않는 입력이다. 시드 입력은 한강 공원에 13시부터 비가 와서 배우 일정만 따로 보기 어렵다. */
     private static PlanInput dry(PlanInput in) {
         Map<Long, Map<Integer, Double>> precip = new HashMap<>();

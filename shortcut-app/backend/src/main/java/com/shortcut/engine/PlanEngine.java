@@ -33,6 +33,9 @@ public final class PlanEngine {
     // 1/2/3안 시간대가 배우 일정으로 모두 막혀 배우 가능 시간에 맞춰 엔진이 만든 시간대다. 제작사가 검토한 시간이 아니라
     // 안 번호를 0으로 두고 경고를 붙여 승인 화면에서 따로 보이게 한다.
     public static final int ADJUSTED_TIME_OPTION_NO = 0;
+    // 세트 고정 씬의 세트 장소가 1/2/3안 장소에 없을 때 후보로 더하는 장소의 안 번호다. 더하지 않으면 그 씬을 찍을 수 있는
+    // 유일한 장소가 평가되지 않아 "그곳을 쓸 수 없다"는 틀린 원인이 나오고, 세트 장소에서 찍는 안은 절대 제안되지 않는다.
+    public static final int SET_LOCATION_OPTION_NO = 5;
     // 조정 시간대의 시작 시각을 훑는 간격(분)이다. 콜시트가 15분 단위로 시각을 적는다.
     private static final int ADJUSTED_STEP_MINUTES = 15;
     // 배우 일정 위반이다. 같은 규칙이어도 배우가 다르면 사람에게 넘길 때 따로 적는다.
@@ -86,6 +89,13 @@ public final class PlanEngine {
         List<long[]> locationChoices = new ArrayList<>();
         options.forEach(option -> locationChoices.add(new long[] {option.optionNo(), option.locationId()}));
         input.alternativeLocationIds().forEach(id -> locationChoices.add(new long[] {ALTERNATIVE_OPTION_NO, id}));
+        Set<Long> chosen = locationChoices.stream().map(c -> c[1]).collect(Collectors.toSet());
+        input.blockScenes().stream()
+                .filter(s -> s.settingLocked() && s.locationId() != null)
+                .map(ScenePlan::locationId)
+                .distinct()
+                .filter(id -> !chosen.contains(id) && input.locations().containsKey(id))
+                .forEach(id -> locationChoices.add(new long[] {SET_LOCATION_OPTION_NO, id}));
 
         List<CandidateResult> candidates = new ArrayList<>();
         for (long[] locationChoice : locationChoices) {

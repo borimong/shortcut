@@ -76,15 +76,23 @@ def _json(value: Any) -> str:
 ADJUSTED_TIME_OPTION_NO = 0
 
 
+# 세트 고정 씬의 세트 장소가 1/2/3안 장소에 없어 엔진이 후보로 더한 장소의 안 번호다(PlanEngine.SET_LOCATION_OPTION_NO).
+SET_LOCATION_OPTION_NO = 5
+
+
 def _time_source(option_no: int) -> str:
     return "조정 시간, 1/2/3안 밖" if option_no == ADJUSTED_TIME_OPTION_NO else f"{option_no}안"
+
+
+def _location_source(option_no: int) -> str:
+    return "세트 장소, 1/2/3안 밖" if option_no == SET_LOCATION_OPTION_NO else f"{option_no}안"
 
 
 def describe(candidate: dict[str, Any]) -> str:
     """후보안을 사람이 읽는 한 줄로 바꿉니다. 엔진이 씬 순서를 바꾼 후보는 새 씬 시각표를 붙입니다."""
     names = ", ".join(item["name"] for item in candidate["equipment"]["items"])
     text = (
-        f"장소 {candidate['location']['name']}({candidate['location']['optionNo']}안), "
+        f"장소 {candidate['location']['name']}({_location_source(candidate['location']['optionNo'])}), "
         f"장비 {names}({candidate['equipment']['optionNo']}안), "
         f"시간 {candidate['time']['start']}~{candidate['time']['end']}({_time_source(candidate['time']['optionNo'])}), "
         f"종합 점수 {candidate['totalScore']}"

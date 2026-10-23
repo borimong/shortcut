@@ -136,9 +136,11 @@ function sameIds(a, b) {
 // 오후 블록 씬 시각표를 한 줄로 쓴다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다.
 const sceneLine = (scenes) => (scenes ?? []).map((s) => `${s.code} ${s.start}~${s.end}`).join(' → ')
 
-// 안 번호 4는 1/2/3안 밖의 대체 장소, 0은 배우 일정에 맞춰 엔진이 만든 시간대(제작사가 검토하지 않은 시간)다.
+// 안 번호 4는 1/2/3안 밖의 대체 장소, 5는 1/2/3안에 없던 세트 고정 씬의 세트 장소,
+// 0은 배우 일정에 맞춰 엔진이 만든 시간대(제작사가 검토하지 않은 시간)다.
 function sourceLabel(source) {
   if (source === 4) return '4안 (대체 장소)'
+  if (source === 5) return '세트 장소 (1/2/3안 밖)'
   if (source === 0) return '조정 시간 (1/2/3안 밖)'
   return `${source}안`
 }
