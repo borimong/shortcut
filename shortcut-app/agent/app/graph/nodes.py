@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import difflib
 import json
+import re
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -14,8 +16,8 @@ from app.graph.schemas import (
     ConstraintSet,
     ImpactSummary,
     PlanExplanation,
-    PlanReview,
     RejectionPlan,
+    ReviewChecks,
     WeightAdjustment,
 )
 from app.graph.state import DEFAULT_WEIGHTS, HARD_CONSTRAINTS
@@ -450,6 +452,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             0,
         ),
         Section("변경 이벤트", _json(state["event"]), 0),
+        Section("직전 거절", _rejection_line(state.get("last_rejection")), 0),
         Section("자체 검토 피드백 (반드시 반영)", "\n".join(state.get("review_feedback") or []) or "없음", 0),
         Section("하드 제약과 근거 요약", _json(state.get("hard_constraints") or []), 1),
         Section("가중치", f"{_json(state['weights'])} {state.get('weight_rationale', '')}", 1),
@@ -539,6 +542,276 @@ async def validation_gate(state: dict[str, Any], ctx: RunContext) -> dict[str, A
     return {"gate_result": "PASS", "validated_hash": plan["hash"], "_detail": "하드 제약 위반 없음"}
 
 
+# 자체 검토 항목마다 20점이다. 셀 수 있는 항목은 코드가 계산하고, 글을 읽어야 하는 항목만 모델의 점검 답을 쓴다.
+REVIEW_ITEM_MAX = 20
+# compose_plan이 스스로 붙이는 미확정 항목이다. 근거 점수와 사실 대조에서 이미 깎으므로 담당과 기한 점검에서 뺀다.
+SYSTEM_UNRESOLVED = ("근거 조항 확인 필요", "설명 확인 필요")
+NUMBER_KINDS = {
+    "시간": re.compile(r"\d{1,2}:\d{2}|\d{1,2}\s*시"),
+    "비용": re.compile(r"\d[\d,]*\s*원|\d+\s*만\s*원"),
+    "거리": re.compile(r"\d+(?:\.\d+)?\s*km"),
+    "강수량": re.compile(r"\d+(?:\.\d+)?\s*mm|강수\s*확률\s*\d+\s*%"),
+}
+# 미확정 항목의 담당과 기한은 표현이 정해져 있어 코드로 찾는다. 모델은 통보 대상을 담당으로 옮기는 경우가 있었다.
+OWNER = re.compile(r"제작실장|제작부|제작\s*PD|연출|조감독|감독|촬영팀|조명팀|동시녹음|녹음팀|미술팀|팀장|실장|매니저|담당")
+DEADLINE = re.compile(r"\d{1,2}\s*시|\d{1,2}:\d{2}|즉시|직후|이내|까지|\d+\s*(분|시간)\s*안|오늘|내일|당일|전날|\d+일")
+COST_WORDS = re.compile(r"비용|원|료|예산|금액|대여|대관")
+# 비용 이유는 금액을 다시 적은 문장이 아니라 원인을 밝힌 문장이어야 한다. 모델은 금액 문장을 이유로 인용하는 경우가 있었다.
+COST_CAUSE = re.compile(r"때문|위해|인해|이유|원인|대관료|대여료|사용료|임대료|료가|료이|료로|붙")
+# 현재 확정안에서 빠지는 장비를 언급할 때 붙는 표현이다. 없으면 그 장비를 계속 쓴다고 읽힌다.
+REMOVAL = re.compile(r"제외|빼|뺐|대신|없이|제거|교체|바꾸|바꿨|반납|취소")
+NO_EXTRA_COST = re.compile(r"추가\s*비용(이|은)?\s*없|추가\s*비용\s*0\s*원|비용(은|이)?\s*(현재\s*확정안과\s*)?같")
+
+
+def evidence_score(checklist: list[dict[str, Any]]) -> tuple[int, list[str], list[str]]:
+    """WARN 하나에 2점, 근거 0건 범주 하나에 4점을 빼고, 근거 0건 범주가 있으면 12점을 넘지 않게 합니다."""
+    by_constraint = {c["constraint"]: c for c in checklist}
+    empty = [c for c in HARD_CONSTRAINTS if not (by_constraint.get(c) or {}).get("evidenceIds")]
+    warns = [c for c in HARD_CONSTRAINTS if c not in empty and by_constraint[c]["status"] == "WARN"]
+    score = max(REVIEW_ITEM_MAX - 2 * len(warns) - 4 * len(empty), 0)
+    return (min(score, 12) if empty else score), warns, empty
+
+
+def number_kinds(text: str) -> list[str]:
+    return [kind for kind, pattern in NUMBER_KINDS.items() if pattern.search(text)]
+
+
+def fact_problems(text: str, choice: dict[str, Any], state: dict[str, Any]) -> list[str]:
+    """설명의 장소와 장비 이름, 금액, 거리, 시각이 엔진이 준 값과 맞는지 봅니다.
+    비교 후보와 현재 확정안의 값은 비교 설명에 쓸 수 있으므로 허용합니다."""
+    plan_set = state.get("plan_set") or {}
+    current = plan_set.get("current") or {}
+    candidates = state["candidates"]
+    options = plan_set.get("options") or []
+    # 거절된 장소와, 사람이 거절 사유나 사건 내용에 직접 적은 장소와 장비 이름은 그 사유를 설명하는 데 필요하므로 이름 검사에서 뺀다.
+    named = text
+    rejections = [state.get("last_rejection") or {}, *(state.get("rejected_plans") or [])]
+    # 거절된 장소는 거절 뒤 후보에서 빠지므로 1/2/3안과 현재 확정안에서도 이름을 찾는다.
+    locations = [
+        *(c["location"] for c in candidates),
+        *((o.get("location") or {}) for o in options),
+        current.get("location") or {},
+    ]
+    names = {loc.get("id"): loc.get("name", "") for loc in locations}
+    context = " ".join([state["event"].get("detail") or "", *(r.get("reason", "") for r in rejections)])
+    every = {loc.get("name", "") for loc in locations} | {i["name"] for c in candidates for i in c["equipment"]["items"]}
+    allowed = {names.get(r.get("location_id"), "") for r in rejections} | {n for n in every if n and n in context}
+    for part in sorted(allowed - {""}, key=len, reverse=True):
+        named = named.replace(part, " ")
+    if choice["location"]["name"] in text:
+        named += f" {choice['location']['name']}"
+    problems = explanation_problems(named, choice, candidates, current)
+    chosen = {item["name"] for item in choice["equipment"]["items"]}
+    dropped = {item.get("name") for item in current.get("equipment") or []} - chosen - {None, ""}
+    # 사건이나 거절 사유에 나온 장비(예: 고장 난 반사판)는 그 문제를 설명하느라 언급하므로 뺀다.
+    dropped = {name for name in dropped if name not in context}
+    for sentence in re.split(r"(?<=[.다])\s+", text):
+        named_here = sorted(name for name in dropped if name in sentence)
+        if named_here and not REMOVAL.search(sentence):
+            problems.append(f"현재 확정안에서 빠지는 장비를 쓴다고 적었습니다: {', '.join(named_here)}")
+    amounts = {abs(v) for c in candidates for v in (c["cost"], c["extraCost"], c["cost"] - c["extraCost"])}
+    amounts |= {current.get("cost"), *((o.get("location") or {}).get("cost") for o in options)}
+    for raw in re.findall(r"(\d[\d,]*)\s*원", text):
+        if int(raw.replace(",", "")) not in amounts:
+            problems.append(f"엔진 값에 없는 금액이 있습니다: {raw}원")
+    for raw in re.findall(r"(\d+)\s*만\s*원", text):
+        if int(raw) * 10000 not in amounts:
+            problems.append(f"엔진 값에 없는 금액이 있습니다: {raw}만 원")
+    distances = {c["distanceKm"] for c in candidates}
+    distances |= {
+        (current.get("location") or {}).get("distanceKm"),
+        *((o.get("location") or {}).get("distanceKm") for o in options),
+    }
+    for raw in re.findall(r"(\d+(?:\.\d+)?)\s*km", text):
+        if float(raw) not in distances:
+            problems.append(f"엔진 값에 없는 거리가 있습니다: {raw}km")
+    times = {c["time"][k] for c in candidates for k in ("start", "end")}
+    times |= {current.get("start"), current.get("end"), *(o.get(k) for o in options for k in ("start", "end"))}
+    times |= set(re.findall(r"\d{1,2}:\d{2}", state["event"].get("detail") or ""))
+    for raw in re.findall(r"\d{1,2}:\d{2}", text):
+        if raw not in times:
+            problems.append(f"후보와 사건에 없는 시각이 있습니다: {raw}")
+    if choice["extraCost"] > 0 and NO_EXTRA_COST.search(text):
+        problems.append(f"추가 비용이 {choice['extraCost']:,}원인데 추가 비용이 없다고 적었습니다")
+    return problems
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"[\s'\"“”‘’.,()]", "", text)
+
+
+def quoted(check: Any, text: str, *must: re.Pattern) -> bool:
+    """모델이 그렇다고 답해도 근거 구절이 설명에 없으면 아니오로 봅니다. 글을 읽지 않고 답하는 것을 막는다.
+    must를 주면 인용에 그 표현이 모두 있어야 합니다. 질문과 상관없는 문장을 인용하는 경우를 거른다."""
+    if not check.found or not all(pattern.search(check.quote) for pattern in must):
+        return False
+    quote, body = _squash(check.quote), _squash(text)
+    if len(quote) < 4:
+        return False
+    if quote in body:
+        return True
+    # 모델이 조사나 어미를 조금 바꿔 옮기는 경우가 있어 가장 긴 공통 구간이 인용의 80% 이상이면 인정한다.
+    match = difflib.SequenceMatcher(None, quote, body).find_longest_match(0, len(quote), 0, len(body))
+    return match.size >= 0.8 * len(quote)
+
+
+def review_questions(plan: dict[str, Any], state: dict[str, Any]) -> str:
+    """상황에 맞는 질문만 적습니다. 조건이 붙은 질문을 하나로 묶으면 모델이 엉뚱한 쪽으로 답하는 경우가 있었다."""
+    candidate = plan["candidate"]
+    rejection = state.get("last_rejection")
+    skip = "해당 없음. found를 false로 둡니다."
+    lines = [
+        "- change: 설명이 무엇이 바뀌었는지(장소, 장비, 시간 중 바뀐 것)를 적었는가",
+        "- reason: 설명이 왜 이 조합을 골랐는지 구체적인 이유를 적었는가. 무슨 일(비, 소음, 재난, 장비 고장 등)이 생겼고 이 조합이 그것을"
+        " 어떻게 피하는지가 함께 있어야 합니다. '상황 변화에 맞춰', '여러 요소를 고려해' 같은 일반적인 말은 이유가 아닙니다.",
+    ]
+    if rejection:
+        issues = ", ".join(ISSUE_LABELS.get(i, i) for i in rejection.get("issues") or []) or "문제 요소"
+        lines.append(
+            f"- responds: 설명이 직전 거절 사유('{rejection.get('reason', '')}')를 직접 언급했는가. "
+            "'의견을 반영했다'처럼 무슨 사유인지 밝히지 않은 말은 false입니다."
+        )
+        lines.append(f"- rejected_element: 설명이 직전 거절에서 지목된 {issues}를 무엇으로 바꿨는지 적었는가")
+    else:
+        detail = state["event"].get("detail") or ""
+        lines.append(f"- responds: 설명이 변경 이벤트('{detail}')에서 무슨 일이 생겼는지를 언급했는가")
+        lines.append(f"- rejected_element: {skip}")
+    if candidate["extraCost"] > 0:
+        lines.append(
+            f"- cost_reason: 설명이 추가 비용 {candidate['extraCost']:,}원이 무엇 때문에 드는지(대관료, 장비 대여료처럼 비용의 원인)를 적었는가. "
+            "'문제없다', '예산 상한 안이다'는 원인이 아닙니다."
+        )
+    else:
+        lines.append(f"- cost_reason: {skip}")
+    return "\n".join(lines)
+
+
+# 사건 문장에서 대응 여부를 가르는 데 쓰지 않는 낱말이다.
+GENERIC_WORDS = {"이후", "이전", "오전", "오후", "예보", "너무", "모두", "갑자기", "그리고", "있는", "없는", "발생"}
+
+
+def key_words(text: str, state: dict[str, Any]) -> list[str]:
+    """사건이나 거절 사유의 낱말 중 장소 이름과 흔한 말을 뺀 것입니다. 설명이 그 일을 언급했는지 볼 때 씁니다."""
+    plan_set = state.get("plan_set") or {}
+    places = [c["location"]["name"] for c in state["candidates"]]
+    places += [
+        (o.get("location") or {}).get("name", "") for o in [*(plan_set.get("options") or []), plan_set.get("current") or {}]
+    ]
+    place_words = {w for name in places for w in name.split()}
+    words = re.findall(r"[가-힣A-Za-z]{2,}|\d+\s*(?:시|mm|%)", text)
+    return [w for w in words if w not in place_words and w not in GENERIC_WORDS]
+
+
+def mentions(check: Any, text: str, source: str, state: dict[str, Any]) -> bool:
+    """설명이 사건이나 거절 사유(source)를 언급했는지 봅니다. 인용이 설명에 있으면 인용에 source 낱말이 있어야 하고,
+    모델이 설명 대신 source 문장을 그대로 베껴 온 경우에는 설명 전체에 source 낱말이 있는지 코드가 직접 확인합니다."""
+    words = key_words(source, state)
+    if not check.found:
+        return False
+    if quoted(check, text):
+        return not words or any(w in check.quote for w in words)
+    copied = len(_squash(check.quote)) >= 4 and _squash(check.quote) in _squash(source)
+    return copied and any(w in text for w in words)
+
+
+def score_review(checks: ReviewChecks, plan: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
+    """점검 답과 코드 검사로 항목 점수, 통과를 막는 사유, 고칠 점을 만듭니다."""
+    candidate = plan["candidate"]
+    text = plan["explanation"]
+    rejection = state.get("last_rejection")
+    feedback: list[str] = []
+    blocking: list[str] = []
+
+    evidence, warns, empty = evidence_score(plan["checklist"])
+    # 제약 수집이 이미 찾은 근거가 있는데 설명 단계에서 인용만 빠진 범주는 다시 검색하지 않고 그 ID를 인용하게 한다.
+    # 다시 검색하면 같은 근거를 또 찾느라 도구 호출만 늘어 루프 한도에 걸린 적이 있다.
+    found = {h["constraint"]: h.get("evidence_ids") or [] for h in state.get("hard_constraints") or []}
+    citable = {c: found[c][:2] for c in empty if found.get(c)}
+    if empty:
+        blocking.append("근거 0건 범주")
+    if citable:
+        feedback.append(
+            "체크리스트에 근거 ID가 빠진 범주가 있습니다. 이미 찾은 근거를 인용하세요: "
+            + ", ".join(f"{c} {' '.join(ids)}" for c, ids in citable.items())
+        )
+    if set(empty) - set(citable):
+        missing = [c for c in empty if c not in citable]
+        feedback.append(f"{', '.join(missing)} 범주에 근거 조항이 없습니다. 규정을 더 찾아 근거를 붙이세요.")
+    if warns:
+        feedback.append(
+            f"{', '.join(warns)} 범주가 WARN입니다. 근거 조항으로 확인되면 PASS로, 아니면 미확정 항목에 담당과 기한을 적으세요."
+        )
+
+    facts = fact_problems(text, candidate, state)
+    if facts:
+        explanation = 0
+        blocking.append("설명의 사실 오류")
+        feedback.append(f"설명이 엔진 값과 다릅니다: {'; '.join(facts)}. 엔진 값 그대로 고치세요.")
+    else:
+        kinds = number_kinds(text)
+        explanation = (6 if quoted(checks.change, text) else 0) + (7 if quoted(checks.reason, text) else 0)
+        explanation += 7 if len(kinds) >= 2 else 3 if kinds else 0
+        if not quoted(checks.change, text):
+            feedback.append(
+                f"무엇이 바뀌었는지(장소, 장비, 시간)를 설명에 적으세요. 선택한 장소는 {candidate['location']['name']}입니다."
+            )
+        if not quoted(checks.reason, text):
+            feedback.append("왜 이 조합인지 변경 이벤트와 연결한 이유를 적으세요.")
+        if len(kinds) < 2:
+            feedback.append("시간, 비용, 거리, 강수량 중 숫자를 두 가지 이상 적으세요.")
+
+    # '의견을 반영했다'처럼 사유를 밝히지 않은 문장은 사유의 낱말이 없어 걸러진다.
+    source = (rejection.get("reason") or "") if rejection else (state["event"].get("detail") or "")
+    responds = mentions(checks.responds, text, source, state)
+    if rejection:
+        element = quoted(checks.rejected_element, text)
+        answered = (12 if responds else 0) + (8 if element else 0)
+        if not responds:
+            blocking.append("직전 거절 사유 미언급")
+            feedback.append(
+                f"직전 거절 사유('{rejection.get('reason', '')}')를 설명에서 직접 언급하고 어떻게 보완했는지 적으세요."
+            )
+        if not element:
+            issues = ", ".join(ISSUE_LABELS.get(i, i) for i in rejection.get("issues") or []) or "문제 요소"
+            feedback.append(f"거절에서 지목된 {issues}를 무엇으로 바꿨는지 적으세요.")
+    else:
+        answered = REVIEW_ITEM_MAX if responds else 0
+        if not responds:
+            blocking.append("변경 이벤트 미대응")
+            feedback.append(f"변경 이벤트('{state['event'].get('detail', '')}')에 어떻게 대응하는지 적으세요.")
+
+    # 엔진이 비용과 거리를 이미 점수에 넣었으므로 여기서는 늘어난 비용의 이유를 적었는지만 본다.
+    optimization = REVIEW_ITEM_MAX
+    if candidate["extraCost"] > 0 and not quoted(checks.cost_reason, text, COST_WORDS, COST_CAUSE):
+        optimization = 10
+        feedback.append(f"추가 비용 {candidate['extraCost']:,}원이 왜 드는지 적으세요.")
+
+    items = [u for u in plan["unresolved"] if not any(mark in u for mark in SYSTEM_UNRESOLVED)]
+    filled = sum(0.5 * bool(OWNER.search(u)) + 0.5 * bool(DEADLINE.search(u)) for u in items)
+    vague = [u for u in items if not (OWNER.search(u) and DEADLINE.search(u))]
+    risk = round(REVIEW_ITEM_MAX * filled / len(items)) if items else REVIEW_ITEM_MAX
+    if vague:
+        feedback.append(f"미확정 항목에 담당과 기한을 적으세요: {', '.join(vague[:3])}")
+
+    breakdown = {
+        "evidence": evidence,
+        "rejection": answered,
+        "optimization": optimization,
+        "explanation": explanation,
+        "risk": risk,
+    }
+    uncited = set(empty) - set(citable)
+    action = "MORE_EVIDENCE" if uncited and state.get("info_retries", 0) < MAX_INFO_RETRIES else "REWRITE"
+    return {"breakdown": breakdown, "blocking": blocking, "feedback": feedback, "action": action}
+
+
+def _rejection_line(rejection: dict[str, Any] | None) -> str:
+    if not rejection:
+        return "없음"
+    issues = ", ".join(ISSUE_LABELS.get(i, i) for i in rejection.get("issues") or []) or "지정 없음"
+    return f"거절 사유: {rejection.get('reason', '')} / 문제 요소: {issues}"
+
+
 def review_facts(candidate: dict[str, Any]) -> str:
     """검토 모델이 비용이나 날씨를 잘못 읽고 감점하지 않도록 엔진이 확인한 값을 그대로 적습니다."""
     warnings = ", ".join(w["message"] for w in candidate.get("warnings") or []) or "없음"
@@ -552,53 +825,52 @@ def review_facts(candidate: dict[str, Any]) -> str:
 
 @harnessed("self_review", "자체 검토")
 async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
-    """승인 요청 전에 승인자 입장에서 안을 채점합니다. 통과 점수 미만이면 고쳐서 다시 검토하고,
-    상한 회차에 닿으면 그때까지 가장 점수가 높았던 안으로 승인을 요청합니다."""
+    """승인 요청 전에 안을 점검합니다. 통과 점수 미만이거나 통과를 막는 사유가 있으면 고쳐서 다시 검토하고,
+    상한 회차에 닿으면 그때까지 가장 나았던 안으로 승인을 요청합니다."""
     limits = ctx.settings.limits
     plan = state["selected_plan"]
     candidate = plan["candidate"]
     round_no = state.get("review_round", 0) + 1
-    checklist = "\n".join(
-        f"{c['constraint']} {c['status']} 근거 {len(c['evidenceIds'])}건: {c['note']}" for c in plan["checklist"]
-    )
+    # 앞 회차 점수는 넣지 않는다. 낮은 점수를 보면 고친 안도 낮게 매기는 경향이 평가에서 확인됐다.
     body = fit_sections(
         [
             Section("업무 규칙 엔진이 확인한 사실", review_facts(candidate), 0),
             Section("변경안", describe(candidate), 0),
-            Section("엔진 항목별 점수(0~1)", _json(candidate["softScores"]), 0),
-            Section("설명", plan["explanation"], 0),
-            Section("하드 제약 체크리스트", checklist, 0),
-            Section("미확정 항목", "\n".join(plan["unresolved"]) or "없음", 1),
-            Section("변경 이벤트", _json(state["event"]), 1),
+            Section("변경 이벤트", state["event"].get("detail") or _json(state["event"]), 0),
             Section("직전 거절", _json(state.get("last_rejection")) if state.get("last_rejection") else "없음", 0),
-            Section("이전 검토 회차", _json(state.get("review_history") or []), 2),
+            Section("설명", plan["explanation"], 0),
         ],
         ctx.settings.context_token_budget,
     )
-    review = await ctx.model.structured(
-        ctx, [SystemMessage(_system()), HumanMessage(render("self_review", context=body))], PlanReview
+    checks = await ctx.model.structured(
+        ctx,
+        [SystemMessage(_system()), HumanMessage(render("self_review", questions=review_questions(plan, state), context=body))],
+        ReviewChecks,
     )
-    breakdown = {k: getattr(review, k) for k in ("evidence", "rejection", "optimization", "explanation", "risk")}
-    # 합계를 모델에게 맡기면 덧셈이 틀리는 경우가 있어 항목 점수를 코드가 더한다.
+    scored = score_review(checks, plan, state)
+    breakdown, blocking = scored["breakdown"], scored["blocking"]
     score = sum(breakdown.values())
+    passed = score >= limits.review_pass_score and not blocking
     history = [
         *(state.get("review_history") or []),
         {
             "round": round_no,
             "score": score,
+            "passed": passed,
             "hash": plan["hash"],
-            "action": review.action,
+            "action": scored["action"],
             "breakdown": breakdown,
-            "feedback": review.feedback,
+            "blocking": blocking,
+            "feedback": scored["feedback"],
         },
     ]
+    # 상한 회차에서 올릴 안은 통과를 막는 사유가 없는 안을 먼저, 그다음 점수가 높은 안을 고른다.
     best = state.get("best_review")
-    if best is None or score > best["score"]:
-        best = {"score": score, "round": round_no, "plan": plan}
+    if best is None or (not blocking, score) > (not best.get("blocking"), best["score"]):
+        best = {"score": score, "round": round_no, "plan": plan, "blocking": blocking}
 
     update: dict[str, Any] = {"review_round": round_no, "review_history": history, "best_review": best}
-    if score >= limits.review_pass_score or round_no >= limits.max_review_rounds:
-        passed = score >= limits.review_pass_score
+    if passed or round_no >= limits.max_review_rounds:
         chosen = plan if passed else best["plan"]
         final_score = score if passed else best["score"]
         update.update(
@@ -617,13 +889,13 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
                 + (
                     "통과"
                     if passed
-                    else f"{limits.max_review_rounds}회 도달, 가장 높은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+                    else f"{limits.max_review_rounds}회 도달, 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
                 ),
             }
         )
         return update
 
-    action = review.action
+    action = scored["action"]
     skipped = [*(state.get("review_skipped") or []), plan["hash"]]
     failed = set(state.get("failed_hashes") or [])
     has_other = any(c["feasible"] and c["hash"] not in failed and c["hash"] not in skipped for c in state["candidates"])
@@ -636,9 +908,9 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         action = "REWRITE"
     if action == "MORE_EVIDENCE" and state.get("info_retries", 0) >= MAX_INFO_RETRIES:
         action = "REWRITE"
-    # 이력에는 모델이 제안한 행동이 아니라 실제로 실행한 행동을 남겨야 다음 회차의 정체 판단과 화면 표시가 맞는다.
+    # 이력에는 실제로 실행한 행동을 남겨야 다음 회차의 정체 판단과 화면 표시가 맞는다.
     history[-1]["action"] = action
-    update["review_feedback"] = review.feedback
+    update["review_feedback"] = scored["feedback"]
     if action == "NEXT_CANDIDATE":
         update.update({"review_skipped": skipped, "review_next": "compose_plan"})
     elif action == "MORE_EVIDENCE":
@@ -647,9 +919,8 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     else:
         update["review_next"] = "compose_plan"
     labels = {"REWRITE": "설명과 근거 보완", "NEXT_CANDIDATE": "다른 조합으로 교체", "MORE_EVIDENCE": "규정 근거 추가 검색"}
-    update["_detail"] = (
-        f"{round_no}회차 {score}점, {limits.review_pass_score}점 미만이라 {labels[action]}: {'; '.join(review.feedback[:2])}"
-    )
+    reason = f"통과를 막는 사유({', '.join(blocking)})가 있어" if blocking else f"{limits.review_pass_score}점 미만이라"
+    update["_detail"] = f"{round_no}회차 {score}점, {reason} {labels[action]}: {'; '.join(scored['feedback'][:2])}"
     return update
 
 

@@ -98,15 +98,17 @@ class AlternativeKeywords(BaseModel):
     max_distance_km: float = Field(gt=0, le=100)
 
 
-class PlanReview(BaseModel):
-    """승인 요청 전에 승인자 입장에서 매기는 자체 검토 점수입니다. 합계는 코드가 더한다."""
+class QuotedCheck(BaseModel):
+    found: bool
+    quote: str = Field(description="found가 true면 판단 근거가 된 설명 속 구절을 고치지 말고 그대로 옮김, false면 빈 문자열")
 
-    evidence: int = Field(ge=0, le=20, description="하드 제약마다 원문 근거가 붙어 있고 WARN이 적은가")
-    rejection: int = Field(ge=0, le=20, description="앞선 거절 사유를 보완했는가. 거절이 없었으면 변경 이벤트에 맞게 대응했는가")
-    optimization: int = Field(ge=0, le=20, description="비용, 이동, 날씨, 시간의 균형이 합리적인가")
-    explanation: int = Field(ge=0, le=20, description="무엇이 왜 바뀌었는지 숫자와 근거로 구체적으로 설명했는가")
-    risk: int = Field(ge=0, le=20, description="미확정 항목과 실행 위험이 관리 가능한가")
-    feedback: list[str] = Field(description="점수를 깎은 이유와 고칠 점, 한 문장씩")
-    action: Literal["REWRITE", "NEXT_CANDIDATE", "MORE_EVIDENCE"] = Field(
-        description="REWRITE 설명과 체크리스트 보완, NEXT_CANDIDATE 다른 조합으로 교체, MORE_EVIDENCE 규정 근거 추가 검색"
-    )
+
+class ReviewChecks(BaseModel):
+    """자체 검토에서 모델이 답하는 점검 질문입니다. 질문 문장은 상황에 맞게 코드가 프롬프트에 적는다.
+    점수와 통과 여부는 코드가 계산하고, 인용이 설명에 실제로 없으면 그 답을 아니오로 본다."""
+
+    change: QuotedCheck = Field(description="점검 질문 change에 대한 답")
+    reason: QuotedCheck = Field(description="점검 질문 reason에 대한 답")
+    responds: QuotedCheck = Field(description="점검 질문 responds에 대한 답")
+    rejected_element: QuotedCheck = Field(description="점검 질문 rejected_element에 대한 답")
+    cost_reason: QuotedCheck = Field(description="점검 질문 cost_reason에 대한 답")
