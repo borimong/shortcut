@@ -646,7 +646,11 @@ SELECT ensure_constraint('proposals', 'proposals_status_check',
 SELECT ensure_constraint('approvals', 'approvals_status_check',
     'CHECK (status IN (''PENDING'', ''APPROVED'', ''REJECTED'', ''CANCELLED''))');
 SELECT ensure_constraint('outbox', 'outbox_status_check', 'CHECK (status IN (''NEW'', ''SENT''))');
-SELECT ensure_constraint('job_logs', 'job_logs_status_check', 'CHECK (status IN (''SUCCESS'', ''RETRY'', ''DLQ''))');
+-- 작업 로그: 성공, 재시도, DLQ, 건너뜀(배포할 콜시트 버전이 초기화로 지워진 작업). 건너뜀을 더하면서 제약 이름을 바꿨다.
+-- ensure_constraint는 이름이 있으면 그대로 두므로, 예전 이름의 제약을 지우고 새 이름으로 건다.
+ALTER TABLE job_logs DROP CONSTRAINT IF EXISTS job_logs_status_check;
+SELECT ensure_constraint('job_logs', 'job_logs_status_check_v2',
+    'CHECK (status IN (''SUCCESS'', ''RETRY'', ''DLQ'', ''SKIPPED''))');
 SELECT ensure_constraint('distribution_logs', 'distribution_logs_status_check', 'CHECK (status IN (''SENT''))');
 -- 예약: 아워플레이스 가예약, 대체 장소를 직접 잡아 확인을 기다리는 예약
 SELECT ensure_constraint('reservations', 'reservations_status_check',
