@@ -16,6 +16,16 @@ UPDATE script_scenes s SET est_minutes = v.minutes
 FROM (VALUES ('S09', 30), ('S10', 30), ('S11', 15), ('S20', 30), ('S23', 45)) AS v (code, minutes)
 WHERE s.project_id = 1 AND s.code = v.code AND s.est_minutes IS NULL;
 
+-- 대본 씬마다 찍을 장소다. 로케이션 헌팅으로 정하는 값이라 대본에는 없다. 바꾼 장소는 덮지 않는다.
+-- 배정한 씬은 처음 잡은 블록 장소, 세트 고정 씬은 세트 장소, 미배정 씬은 장면 설정에 맞는 장소를 쓴다.
+-- S20(작업실 문 앞)은 작업실 세트 바로 앞이라 성수에서 찍지만, 문 앞은 다른 복도로 대신할 수 있어 고정하지 않는다.
+UPDATE script_scenes s SET location_id = v.location_id
+FROM (VALUES ('S01', 4), ('S02', 4), ('S03', 4), ('S04', 4), ('S05', 4), ('S06', 4), ('S07', 4), ('S08', 4),
+             ('S09', 6), ('S10', 7), ('S11', 1), ('S12', 1), ('S13', 1), ('S14', 4), ('S15', 4), ('S16', 3),
+             ('S17', 3), ('S18', 2), ('S19', 2), ('S20', 2), ('S21', 5), ('S22', 5), ('S23', 1))
+         AS v (code, location_id)
+WHERE s.project_id = 1 AND s.code = v.code AND s.location_id IS NULL;
+
 -- 씬 요구. 모든 1/2/3안에 카메라 패키지(1)가 있으므로 필수로 둬도 시연이 막히지 않는다.
 -- 드론과 반사판은 선호라 성수 2안(장비 1, 4)은 경고만 받는다.
 INSERT INTO scene_requirements (project_id, scene_code, kind, equipment_id, label, qty, level)

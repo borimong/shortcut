@@ -654,3 +654,10 @@ SELECT ensure_constraint('reservations', 'reservations_status_check',
 
 -- DB 도구에서도 씬 장소의 뜻이 보이게 칸 설명을 단다.
 COMMENT ON COLUMN scenes.location_id IS '세트 고정 씬(script_scenes.setting_locked)의 세트 장소. 엔진은 고정 씬에만 강제하고, 고정이 아닌 씬은 블록 장소(blocks.location_id)에서 찍는다.';
+
+-- ===== 대본 씬 촬영 장소 =====
+-- 제작부가 로케이션 헌팅으로 정한 씬별 촬영 장소다. 아직 촬영일에 배정하지 않은 씬도 어디서 찍을지 알아야
+-- 다른 날 씬을 당겨 찍는 후보를 만들 수 있다. 세트 고정 씬은 이 장소에서만 찍으므로 scenes.location_id와 같아야 하고,
+-- 고정이 아닌 씬은 블록이 대체 장소로 옮겨 가면 거기서 찍으므로 지금 블록 장소와 다를 수 있다.
+ALTER TABLE script_scenes ADD COLUMN IF NOT EXISTS location_id bigint REFERENCES locations (id);
+COMMENT ON COLUMN script_scenes.location_id IS '제작부가 정한 이 씬의 촬영 장소. 세트 고정 씬은 scenes.location_id와 같고, 고정이 아닌 씬은 블록이 옮겨 가면 그 장소에서 찍는다.';
