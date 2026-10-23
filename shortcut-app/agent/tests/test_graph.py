@@ -9,7 +9,13 @@ from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
-from app.graph.nodes import constraints_for_issues, pick_after_rejection
+from app.graph.nodes import (
+    applies_to_places,
+    candidate_places,
+    constraints_for_issues,
+    counts_as_evidence,
+    pick_after_rejection,
+)
 from app.graph.qa import build_qa_graph
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
 from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
@@ -451,3 +457,31 @@ def test_rejection_of_other_elements_does_not_search_new_places():
     run(scenario())
     nodes = [p["node"] for t, p in events.events if t == "NODE" and p["phase"] == "end"]
     assert "suggest_alternatives" not in nodes
+
+
+def test_candidate_places_come_from_current_plan_and_options():
+    plan_set = {
+        "current": {"location": {"name": "한강 공원"}},
+        "options": [{"location": {"name": "한강 공원"}}, {"location": {"name": "파주 세트장"}}, {"optionNo": 3}],
+    }
+    assert candidate_places(plan_set) == ["한강 공원", "파주 세트장"]
+
+
+def test_clauses_for_other_places_are_not_evidence():
+    places = ["한강 공원", "파주 세트장"]
+    # 북촌, 광화문, 남산의 비행금지구역 조항은 한강과 파주 재계획의 근거가 아니다.
+    assert not applies_to_places({"locations": ["북촌", "광화문", "남산"]}, places)
+    assert applies_to_places({"locations": ["파주"]}, places)
+    assert applies_to_places({"locations": ["한강공원"]}, places)
+    # 적용 장소가 없는 법령이나 사내 규정, 후보 장소를 모르는 경우는 그대로 둔다.
+    assert applies_to_places({"locations": []}, places)
+    assert applies_to_places({"locations": ["북촌"]}, [])
+
+
+def test_citation_must_match_document_type_and_not_be_an_intro():
+    law = {"doc_type": "LAW", "heading": "제53조 연장 근로의 제한"}
+    permit_hours = {"doc_type": "PERMIT", "heading": "허가 시간"}
+    assert counts_as_evidence("LAW", law)
+    assert not counts_as_evidence("SCHEDULE", law)
+    assert counts_as_evidence("SCHEDULE", permit_hours)
+    assert not counts_as_evidence("NO_FLY_ZONE", {"doc_type": "NO_FLY", "heading": "개요"})

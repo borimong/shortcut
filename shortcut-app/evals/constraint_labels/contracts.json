@@ -1,0 +1,163 @@
+{
+  "contract-actor-d-v1": {
+    "scope": {"actor": "actor-d", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제3조 출연료 지급": {"cats": [], "topics": []},
+      "제5조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제7조 휴게": {"cats": ["CONTRACT"], "topics": []},
+      "제9조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제12조 초상권과 홍보 활동": {"cats": [], "topics": []},
+      "제14조 위약": {"cats": ["CONTRACT"], "topics": []}
+    }
+  },
+  "contract-actor-e-v2": {
+    "scope": {"actor": "actor-e", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제6조 우천 대기": {"cats": ["CONTRACT", "WEATHER"], "topics": ["rain", "cancel"]},
+      "제7조 휴게와 식사": {"cats": ["CONTRACT"], "topics": []},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제10조 비밀 유지": {"cats": [], "topics": []},
+      "제11조 출연료 지급": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-e-v1": {
+    "scope": {"actor": "actor-e", "current": false},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제6조 우천 대기": {"cats": ["CONTRACT", "WEATHER"], "topics": ["rain", "cancel"]},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제11조 출연료 지급": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-f-v1": {
+    "scope": {"actor": "actor-f", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 야간 촬영 금지": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제6조 보호자 동반": {"cats": ["CONTRACT"], "topics": []},
+      "제7조 휴게와 학습권": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제8조 위험 장면 제외": {"cats": ["CONTRACT"], "topics": ["stunt", "water", "height"]},
+      "제9조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제12조 출연료 관리": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-g-v1": {
+    "scope": {"actor": "actor-g", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제6조 휴게": {"cats": ["CONTRACT"], "topics": []},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제10조 교육과 정서 보호": {"cats": [], "topics": []},
+      "제13조 홍보 활동": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-h-v2": {
+    "scope": {"actor": "actor-h", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 위험 장면 조건": {"cats": ["CONTRACT"], "topics": ["stunt"]},
+      "제6조 와이어 액션과 기상": {"cats": ["CONTRACT", "WEATHER"], "topics": ["wind", "rain", "stunt"]},
+      "제7조 수상과 고소 촬영": {"cats": ["CONTRACT"], "topics": ["water", "height"]},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제9조 보험": {"cats": ["CONTRACT"], "topics": ["stunt"]},
+      "제11조 출연료와 위험 수당": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-i-v1": {
+    "scope": {"actor": "actor-i", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제3조 체류 기간과 촬영 기간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 통역 동반": {"cats": ["CONTRACT"], "topics": []},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제10조 숙박과 항공": {"cats": [], "topics": []},
+      "제12조 출연료 지급과 환율": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-j-v3": {
+    "scope": {"actor": "actor-j", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 폭염과 한파 시 야외 촬영 제한": {"cats": ["CONTRACT", "SCHEDULE", "WEATHER"], "topics": ["heat", "cold"]},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제7조 휴게와 건강 관리": {"cats": ["CONTRACT"], "topics": []},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제11조 초상과 크레딧 표기": {"cats": [], "topics": []},
+      "제13조 위약": {"cats": ["CONTRACT"], "topics": []}
+    }
+  },
+  "contract-actor-j-v2": {
+    "scope": {"actor": "actor-j", "current": false},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 기상 악화 시 야외 촬영": {"cats": ["CONTRACT", "SCHEDULE", "WEATHER"], "topics": ["heat"]},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제13조 위약": {"cats": ["CONTRACT"], "topics": []}
+    }
+  },
+  "contract-actor-k-v1": {
+    "scope": {"actor": "actor-k", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 공연 일정 우선": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제7조 휴게": {"cats": ["CONTRACT"], "topics": []},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제10조 음원과 저작권": {"cats": [], "topics": []},
+      "제12조 홍보 활동": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-l-v1": {
+    "scope": {"actor": "actor-l", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제3조 출연 동물과 핸들러": {"cats": ["CONTRACT"], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 기상 조건": {"cats": ["CONTRACT", "SCHEDULE", "WEATHER"], "topics": ["heat", "rain", "cold"]},
+      "제6조 동물 복지": {"cats": ["CONTRACT"], "topics": []},
+      "제8조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제10조 출연료 지급": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-m-v1": {
+    "scope": {"actor": "actor-m", "current": true},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제3조 공급 인원": {"cats": ["CONTRACT"], "topics": []},
+      "제4조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제5조 대기 수당": {"cats": ["CONTRACT"], "topics": []},
+      "제6조 우천과 기상 취소": {"cats": ["CONTRACT", "SCHEDULE", "WEATHER"], "topics": ["rain", "cancel"]},
+      "제7조 집결 장소와 이동": {"cats": ["CONTRACT"], "topics": []},
+      "제9조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제11조 개인정보와 출입": {"cats": [], "topics": []}
+    }
+  },
+  "contract-actor-a-v2": {
+    "scope": {"actor": "actor-a", "current": false},
+    "sections": {
+      "개요": {"cats": [], "topics": []},
+      "제5조 촬영 시간": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제6조 야간 촬영": {"cats": ["CONTRACT", "SCHEDULE"], "topics": ["night"]},
+      "제7조 초과 촬영과 휴게": {"cats": ["CONTRACT"], "topics": []},
+      "제9조 일정 변경 통보": {"cats": ["CONTRACT", "SCHEDULE"], "topics": []},
+      "제11조 위약": {"cats": ["CONTRACT"], "topics": []}
+    }
+  }
+}

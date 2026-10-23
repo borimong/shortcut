@@ -59,6 +59,19 @@ MAX_ALTERNATIVES = 3
 MIN_WEIGHT, MAX_WEIGHT = 0.05, 0.6
 # 규정 검색을 실행하는 총 횟수 상한이다. 세 번 찾고도 근거가 없으면 미확정 항목으로 넘긴다.
 MAX_INFO_RETRIES = 3
+# 범주마다 근거가 될 수 있는 문서 종류다. 허가서는 장소별 허가 시간, 드론, 기상 조건, 사용료를 함께 담고 있어 여러 범주에 쓴다.
+# 다른 종류의 조항을 인용하면(예: SCHEDULE에 근로기준법) 범주 근거로 세지 않는다.
+EVIDENCE_TYPES = {
+    "CONTRACT": {"CONTRACT"},
+    "SCHEDULE": {"CONTRACT", "PERMIT"},
+    "LAW": {"LAW", "PERMIT"},
+    "BUDGET": {"POLICY", "PERMIT"},
+    "NO_FLY_ZONE": {"NO_FLY", "PERMIT", "LAW"},
+    "DISASTER": {"SAFETY", "PERMIT"},
+    "WEATHER": {"SAFETY", "PERMIT"},
+}
+# 문서 첫 제목 앞의 머리글 조각이다. 문서 소개일 뿐 조항이 아니므로 근거로 세지 않는다.
+INTRO_HEADING = "개요"
 
 
 def _system() -> str:
@@ -126,6 +139,27 @@ def _evidence_lines(evidence: dict[str, dict[str, Any]], limit_chars: int = 220)
         "\n".join(f"[{cid}] {hit['title']} / {hit['heading']}: {hit['text'][:limit_chars]}" for cid, hit in evidence.items())
         or "검색된 근거 없음"
     )
+
+
+def candidate_places(plan_set: dict[str, Any]) -> list[str]:
+    """현재 확정안과 1/2/3안의 장소 이름을 중복 없이 모읍니다."""
+    plans = [plan_set.get("current") or {}, *(plan_set.get("options") or [])]
+    names = [(plan.get("location") or {}).get("name") for plan in plans]
+    return list(dict.fromkeys(name for name in names if name))
+
+
+def applies_to_places(hit: dict[str, Any], places: list[str]) -> bool:
+    """조항에 적용 장소가 붙어 있으면 후보 장소 이름 가운데 하나에 그 키워드가 들어 있어야 합니다.
+    적용 장소가 없는 조항(법령, 사내 규정)이나 후보 장소를 모르는 경우는 그대로 둡니다."""
+    keywords = [k.replace(" ", "") for k in hit.get("locations") or []]
+    if not keywords or not places:
+        return True
+    names = [p.replace(" ", "") for p in places]
+    return any(k in name for k in keywords for name in names)
+
+
+def counts_as_evidence(constraint: str, hit: dict[str, Any]) -> bool:
+    return hit.get("heading") != INTRO_HEADING and hit.get("doc_type") in EVIDENCE_TYPES.get(constraint, set())
 
 
 def repeats_rejection(candidate: dict[str, Any], rejected: list[dict[str, Any]]) -> bool:
@@ -288,10 +322,13 @@ async def analyze_impact(state: dict[str, Any], ctx: RunContext) -> dict[str, An
 async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """모델이 규정 검색 도구를 골라 하드 제약 범주별 원문 근거를 모읍니다."""
     impacted = state["impacted_entities"]
+    places = candidate_places(state.get("plan_set") or {})
+    contracts = set(impacted["contract_doc_ids"])
     user = render(
         "constraint_collection",
         event=_json(state["event"]),
         contracts=", ".join(impacted["contract_doc_ids"]),
+        places=", ".join(places) or "알 수 없음",
         risks="\n".join(impacted["risks"]) or "없음",
         alerts=_json(state["conditions"]["disaster_alerts"]),
         missing=", ".join(state.get("missing_info") or []) or "없음",
@@ -299,20 +336,32 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
     outcomes, _ = await run_tool_loop(ctx, _system(), user, CONSTRAINT_TOOLS, ctx.settings.limits.max_node_tool_rounds)
 
     evidence = dict(state.get("evidence") or {})
+    excluded = set()
     for outcome in outcomes:
         if outcome.ok:
             for hit in outcome.data:
+                # 다른 장소의 허가서나 비행 금지 구역, 대상이 아닌 배우의 계약서는 이번 재계획의 근거가 아니다.
+                # 정리 단계에 넘기면 범주 이름만 보고 인용하는 경우가 있어 여기서 뺀다.
+                if not applies_to_places(hit, places) or (hit["doc_type"] == "CONTRACT" and hit["doc_id"] not in contracts):
+                    excluded.add(hit["chunk_id"])
+                    continue
                 evidence[hit["chunk_id"]] = hit
 
     found = await ctx.model.structured(
         ctx,
-        [SystemMessage(_system()), HumanMessage(render("constraint_summary", evidence=_evidence_lines(evidence)))],
+        [
+            SystemMessage(_system()),
+            HumanMessage(
+                render("constraint_summary", places=", ".join(places) or "알 수 없음", evidence=_evidence_lines(evidence))
+            ),
+        ],
         ConstraintSet,
     )
     findings = []
     for finding in found.findings:
         # 모델이 검색하지 않은 ID를 근거로 적으면 확인할 수 없으므로 실제로 받은 chunk_id만 남긴다.
-        cited = [cid for cid in finding.evidence_ids if cid in evidence]
+        # 범주와 맞지 않는 종류의 문서를 적은 것도 그 범주의 근거로 세지 않는다.
+        cited = [cid for cid in finding.evidence_ids if cid in evidence and counts_as_evidence(finding.constraint, evidence[cid])]
         findings.append({"constraint": finding.constraint, "summary": finding.summary, "evidence_ids": cited})
     covered = {f["constraint"] for f in findings if f["evidence_ids"]}
     missing = [c for c in HARD_CONSTRAINTS if c not in covered]
@@ -321,7 +370,7 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         "hard_constraints": findings,
         "missing_info": missing,
         "info_retries": state.get("info_retries", 0) + 1,
-        "_detail": f"근거 {len(evidence)}건, 근거 부족 범주 {', '.join(missing) or '없음'}",
+        "_detail": f"근거 {len(evidence)}건, 대상 밖 조항 {len(excluded)}건 제외, 근거 부족 범주 {', '.join(missing) or '없음'}",
     }
 
 

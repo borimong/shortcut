@@ -3,6 +3,7 @@ doc_id: permit-hangang-filming
 title: 한강공원 촬영 허가 조건 (시연용 샘플)
 doc_type: PERMIT
 version: 2026-10
+locations: 한강
 ---
 시연용 데이터의 한강 공원 촬영 허가서 조건을 정리한 자료입니다.
 

@@ -1,0 +1,581 @@
+{
+ "safety-heat-wave": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "폭염 특보 단계별 촬영 판단": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "heat"
+    ]
+   },
+   "휴식과 그늘 확보": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "heat"
+    ]
+   },
+   "고위험군 보호": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "heat",
+     "minor",
+     "elderly",
+     "animal"
+    ]
+   },
+   "온열질환 대응": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-cold-wave": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "한파 특보와 촬영 판단": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "cold"
+    ]
+   },
+   "방한과 대기 공간": {
+    "cats": [],
+    "topics": []
+   },
+   "고령자와 아동 보호": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "cold",
+     "elderly",
+     "minor"
+    ]
+   },
+   "결빙과 장비 관리": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "cold"
+    ]
+   }
+  }
+ },
+ "safety-typhoon-wind": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "태풍 특보 시 촬영 판단": {
+    "cats": [
+     "DISASTER",
+     "WEATHER"
+    ],
+    "topics": [
+     "typhoon",
+     "wind"
+    ]
+   },
+   "풍속에 따른 고소 장비 운용": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "wind",
+     "stunt",
+     "height",
+     "equipment"
+    ]
+   },
+   "천막과 세트 고정": {
+    "cats": [],
+    "topics": []
+   },
+   "풍속 확인 방법": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-lightning": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "낙뢰 관측 시 즉시 중지": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "lightning"
+    ]
+   },
+   "대피 장소": {
+    "cats": [],
+    "topics": []
+   },
+   "장비 처리": {
+    "cats": [],
+    "topics": []
+   },
+   "낙뢰 예보 시 일정 판단": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "lightning"
+    ]
+   }
+  }
+ },
+ "safety-fine-dust": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "농도 단계별 판단": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "dust"
+    ]
+   },
+   "보호구 지급": {
+    "cats": [],
+    "topics": []
+   },
+   "민감군 보호": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "dust",
+     "minor",
+     "elderly"
+    ]
+   },
+   "장비와 화면 관리": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-earthquake": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "지진 재난 문자 수신 시 원칙": {
+    "cats": [
+     "DISASTER"
+    ],
+    "topics": [
+     "earthquake"
+    ]
+   },
+   "실내 촬영 중 대피": {
+    "cats": [],
+    "topics": []
+   },
+   "야외 촬영 중 대피": {
+    "cats": [],
+    "topics": []
+   },
+   "인원 확인": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-water-filming": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "수상 촬영 가능 조건": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "water",
+     "wind"
+    ]
+   },
+   "안전 인력 배치": {
+    "cats": [],
+    "topics": []
+   },
+   "기상 악화 시 중지": {
+    "cats": [
+     "WEATHER"
+    ],
+    "topics": [
+     "water",
+     "rain",
+     "wind",
+     "lightning"
+    ]
+   },
+   "입수 시간 제한": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-crowd-control": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "인파 밀집 위험 판단": {
+    "cats": [
+     "DISASTER"
+    ],
+    "topics": [
+     "crowd"
+    ]
+   },
+   "통제선과 안전요원": {
+    "cats": [],
+    "topics": []
+   },
+   "비상 대피로 확보": {
+    "cats": [],
+    "topics": []
+   },
+   "사고 발생 시 대응": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "safety-special-effects": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "화약류 취급 자격": {
+    "cats": [],
+    "topics": []
+   },
+   "안전 거리와 리허설": {
+    "cats": [],
+    "topics": []
+   },
+   "연기 효과 사용": {
+    "cats": [],
+    "topics": []
+   },
+   "사후 점검": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-equipment-rental": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "장비 렌탈 비용 상한": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "equipment"
+    ]
+   },
+   "고장 장비 대체 비용": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "equipment"
+    ]
+   },
+   "드론 보험 가입": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "drone",
+     "equipment"
+    ]
+   },
+   "장비 반납과 연체료": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "equipment",
+     "overtime"
+    ]
+   }
+  }
+ },
+ "policy-overtime-settlement": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "초과 촬영 수당 기준": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "overtime",
+     "night"
+    ]
+   },
+   "초과 비용 승인 한도": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "overtime"
+    ]
+   },
+   "정산 서류": {
+    "cats": [],
+    "topics": []
+   },
+   "지급 시기": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-location-fee": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "장소 대여료 상한": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "location_fee"
+    ]
+   },
+   "취소 위약금 기준": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "cancel",
+     "location_fee"
+    ]
+   },
+   "위약금 승인": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "cancel"
+    ]
+   },
+   "계약서 보관": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-alternative-location": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "대체 장소 추가 비용 한도": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "location_fee",
+     "cancel"
+    ]
+   },
+   "섭외 수수료": {
+    "cats": [
+     "BUDGET"
+    ],
+    "topics": [
+     "location_fee"
+    ]
+   },
+   "이동 거리 기준": {
+    "cats": [],
+    "topics": []
+   },
+   "섭외 기록": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-catering": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "1인 식대 기준": {
+    "cats": [],
+    "topics": []
+   },
+   "케이터링 업체 선정": {
+    "cats": [],
+    "topics": []
+   },
+   "식이 제한 확인": {
+    "cats": [],
+    "topics": []
+   },
+   "영수증 처리": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-corporate-card": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "사용 가능 항목": {
+    "cats": [],
+    "topics": []
+   },
+   "1회 결제 한도": {
+    "cats": [],
+    "topics": []
+   },
+   "증빙 제출": {
+    "cats": [],
+    "topics": []
+   },
+   "분실 신고": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-travel-lodging": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "숙박 대상": {
+    "cats": [],
+    "topics": []
+   },
+   "숙박비 기준": {
+    "cats": [],
+    "topics": []
+   },
+   "출장 교통비": {
+    "cats": [],
+    "topics": []
+   },
+   "출장 신청": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-vehicle-parking": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "운전자 자격": {
+    "cats": [],
+    "topics": []
+   },
+   "연속 운전 제한": {
+    "cats": [],
+    "topics": []
+   },
+   "현장 주차": {
+    "cats": [],
+    "topics": []
+   },
+   "차량 점검": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ },
+ "policy-sponsorship-ppl": {
+  "scope": {},
+  "sections": {
+   "개요": {
+    "cats": [],
+    "topics": []
+   },
+   "노출 횟수와 시간": {
+    "cats": [],
+    "topics": []
+   },
+   "경쟁사 상품 가림": {
+    "cats": [],
+    "topics": []
+   },
+   "방송 심의 기준": {
+    "cats": [],
+    "topics": []
+   },
+   "협찬 물품 관리": {
+    "cats": [],
+    "topics": []
+   }
+  }
+ }
+}
