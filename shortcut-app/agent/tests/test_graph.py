@@ -523,6 +523,16 @@ def test_reordered_candidate_carries_scene_order_to_tools_and_explanation():
     ]
 
 
+def test_adjusted_time_candidate_is_described_outside_reviewed_options():
+    # 1/2/3안 시간대가 배우 일정으로 모두 막혀 엔진이 배우 가능 시간에 맞춰 만든 시간대(안 번호 0)다.
+    from app.graph.nodes import describe, to_mcp_candidate
+    from tests.fakes import SEONGSU
+
+    adjusted = {**SEONGSU, "time": {"optionNo": 0, "start": "14:30", "end": "16:30"}}
+    assert "시간 14:30~16:30(조정 시간, 1/2/3안 밖)" in describe(adjusted)
+    assert to_mcp_candidate(adjusted)["source"]["time"] == 0
+
+
 def _reject_location(graph, ctx):
     async def scenario():
         await graph.ainvoke(initial_state(), CONFIG, context=ctx)

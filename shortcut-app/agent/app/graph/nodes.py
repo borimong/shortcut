@@ -72,13 +72,21 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+# 1/2/3안 시간대가 배우 일정으로 모두 막혀 엔진이 배우 가능 시간에 맞춰 만든 시간대의 안 번호다(PlanEngine.ADJUSTED_TIME_OPTION_NO).
+ADJUSTED_TIME_OPTION_NO = 0
+
+
+def _time_source(option_no: int) -> str:
+    return "조정 시간, 1/2/3안 밖" if option_no == ADJUSTED_TIME_OPTION_NO else f"{option_no}안"
+
+
 def describe(candidate: dict[str, Any]) -> str:
     """후보안을 사람이 읽는 한 줄로 바꿉니다. 엔진이 씬 순서를 바꾼 후보는 새 씬 시각표를 붙입니다."""
     names = ", ".join(item["name"] for item in candidate["equipment"]["items"])
     text = (
         f"장소 {candidate['location']['name']}({candidate['location']['optionNo']}안), "
         f"장비 {names}({candidate['equipment']['optionNo']}안), "
-        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({candidate['time']['optionNo']}안), "
+        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({_time_source(candidate['time']['optionNo'])}), "
         f"종합 점수 {candidate['totalScore']}"
     )
     if candidate.get("sceneOrderChanged"):
