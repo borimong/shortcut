@@ -47,7 +47,9 @@ public class PlanService {
                 .filter(candidate -> !excluded.contains(candidate.hash()))
                 .toList();
         long feasibleCount = remaining.stream().filter(CandidateResult::feasible).count();
-        List<CandidateView> top = remaining.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
+        // 되는 후보가 없으면 Agent가 사람에게 넘길 가장 가까운 후보를 고를 수 있게, 점수 순 대신 가까운 후보 순으로 넘긴다.
+        List<CandidateResult> ordered = feasibleCount == 0 ? PlanEngine.closestFirst(remaining) : remaining;
+        List<CandidateView> top = ordered.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
         return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top,
                 PlanEngine.locationProofBlockers(input, remaining));
     }

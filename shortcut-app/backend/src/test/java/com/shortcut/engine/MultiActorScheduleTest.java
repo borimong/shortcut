@@ -84,6 +84,33 @@ class MultiActorScheduleTest {
                 "배우 B는 오늘 촬영에 참여할 수 없습니다.");
     }
 
+    @Test
+    void 되는_후보가_없으면_세트_장소에서_위반이_가장_적은_후보가_가장_가깝다() {
+        // 2회차 성수 취소와 배우 C 불참. 점수 1등인 한강안은 S18, S19가 성수 세트에만 있어 어떤 조율로도 성립하지 않는다.
+        PlanInput seed = SeedPlan.day2(true);
+        Map<Long, ActorDay> days = new HashMap<>(seed.actorDays());
+        days.put(3L, new ActorDay(3, true, null, List.of(), List.of()));
+        Map<Long, com.shortcut.domain.Location> locations = new HashMap<>(seed.locations());
+        locations.computeIfPresent(2L, (id, l) -> l.unavailable());
+        PlanInput withDays = withActorDays(seed, days);
+        PlanInput input = new PlanInput(withDays.callTime(), withDays.morningEnd(), withDays.budgetCap(),
+                withDays.crewWeeklyHoursUsed(), withDays.current(), withDays.blockActorIds(),
+                withDays.actorOtherBlockMinutes(), withDays.actors(), locations, withDays.equipment(), withDays.options(),
+                withDays.precipByLocation(), withDays.alerts(), withDays.alternativeLocationIds(), withDays.rainBlockMm(),
+                withDays.rainWarnMm(), withDays.blockScenes(), withDays.actorDays(), withDays.otherBlocks(),
+                withDays.sunrise(), withDays.sunset());
+
+        EvaluationResult result = engine.evaluate(input, null, List.of());
+        CandidateResult closest = PlanEngine.closestFirst(result.candidates()).getFirst();
+
+        assertThat(result.candidates()).noneMatch(CandidateResult::feasible);
+        assertThat(result.candidates().getFirst().violations()).extracting(Finding::code).contains("SCRIPT_SETTING_LOCKED");
+        assertThat(closest.location().id()).isEqualTo(2L);
+        assertThat(closest.start()).isEqualTo(t("14:00"));
+        assertThat(closest.violations()).extracting(Finding::code)
+                .containsExactlyInAnyOrder("LOCATION_CANCELLED", "ACTOR_UNAVAILABLE");
+    }
+
     /** 비가 오지 않는 입력이다. 시드 입력은 한강 공원에 13시부터 비가 와서 배우 일정만 따로 보기 어렵다. */
     private static PlanInput dry(PlanInput in) {
         Map<Long, Map<Integer, Double>> precip = new HashMap<>();

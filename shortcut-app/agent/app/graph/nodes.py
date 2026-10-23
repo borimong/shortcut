@@ -1054,11 +1054,27 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
     }
 
 
+def closest_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """사람에게 보여 줄 가장 가까운 후보입니다. 되는 후보가 있으면 점수 1등을, 없으면 세트 고정에 걸리지 않은 후보 가운데
+    위반이 가장 적은 것을 고릅니다. 점수 1등은 세트 밖 장소처럼 어떤 조율로도 성립하지 않는 안일 수 있습니다."""
+    if not candidates:
+        return None
+    feasible = [c for c in candidates if c["feasible"]]
+    if feasible:
+        return feasible[0]
+
+    def locked(candidate: dict[str, Any]) -> bool:
+        return any(v["code"] == "SCRIPT_SETTING_LOCKED" for v in candidate["violations"])
+
+    pool = [c for c in candidates if not locked(c)] or candidates
+    return min(pool, key=lambda c: (len(c["violations"]), -c["totalScore"]))
+
+
 @harnessed("report_human", "사람에게 보고")
 async def report_human(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """멈춤 조건에 걸리면 지금까지의 최선안, 위반, 추천을 정리합니다. NEEDS_HUMAN 이벤트는 worker가 보냅니다."""
     stop = stop_condition(ctx.counter, ctx.settings.limits) or state.get("stop_condition") or NO_FEASIBLE_PLAN
-    best = next(iter(state.get("candidates") or []), None)
+    best = closest_candidate(state.get("candidates") or [])
     blockers = state.get("location_blockers") or []
     reason = STOP_MESSAGES[stop]
     if blockers:

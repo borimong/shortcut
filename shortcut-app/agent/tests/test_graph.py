@@ -523,6 +523,24 @@ def test_reordered_candidate_carries_scene_order_to_tools_and_explanation():
     ]
 
 
+def test_closest_candidate_skips_locked_set_and_prefers_fewest_violations():
+    # 2회차 성수 취소와 배우 C 불참. 점수 1등 한강안은 세트 고정에 걸려 어떤 조율로도 성립하지 않는다.
+    from app.graph.nodes import closest_candidate
+    from tests.fakes import SEONGSU
+
+    def blocked(name, location_id, score, codes):
+        return {**SEONGSU, "hash": name, "location": {**SEONGSU["location"], "id": location_id}, "feasible": False,
+                "totalScore": score, "violations": [{"code": c} for c in codes]}
+
+    hangang = blocked("hangang", 1, 0.887, ["ACTOR_UNAVAILABLE", "SCRIPT_SETTING_LOCKED"])
+    seongsu_early = blocked("seongsu-13", 2, 0.70, ["LOCATION_CANCELLED", "ACTOR_UNAVAILABLE", "LOCATION_CLOSED"])
+    seongsu = blocked("seongsu-14", 2, 0.65, ["LOCATION_CANCELLED", "ACTOR_UNAVAILABLE"])
+    assert closest_candidate([hangang, seongsu_early, seongsu])["hash"] == "seongsu-14"
+    assert closest_candidate([hangang])["hash"] == "hangang"
+    assert closest_candidate([{**SEONGSU, "feasible": True}, seongsu]) == {**SEONGSU, "feasible": True}
+    assert closest_candidate([]) is None
+
+
 def test_adjusted_time_candidate_is_described_outside_reviewed_options():
     # 1/2/3안 시간대가 배우 일정으로 모두 막혀 엔진이 배우 가능 시간에 맞춰 만든 시간대(안 번호 0)다.
     from app.graph.nodes import describe, to_mcp_candidate

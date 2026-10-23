@@ -237,6 +237,20 @@ public final class PlanEngine {
         return finding.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".");
     }
 
+    /**
+     * 되는 후보가 없을 때 사람에게 보여 줄 가까운 후보 순서다. 세트 고정에 걸리지 않은 후보, 위반이 적은 후보, 점수가 높은 후보 순이다.
+     * 점수 1등은 세트 밖 장소처럼 어떤 조율로도 성립하지 않는 안일 수 있어, 무엇을 풀면 되는지 보이는 후보를 앞에 둔다.
+     */
+    public static List<CandidateResult> closestFirst(List<CandidateResult> candidates) {
+        return candidates.stream()
+                .sorted(Comparator.comparing((CandidateResult c) -> c.violations().stream()
+                                .anyMatch(f -> "SCRIPT_SETTING_LOCKED".equals(f.code())))
+                        .thenComparingInt(c -> c.violations().size())
+                        .thenComparing(Comparator.comparingDouble(CandidateResult::totalScore).reversed())
+                        .thenComparing(CandidateResult::hash))
+                .toList();
+    }
+
     private static boolean actorBlocked(CandidateResult candidate) {
         return candidate.violations().stream().anyMatch(f -> ACTOR_CODES.contains(f.code()));
     }
