@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
  * 대본 시드(data-script.sql)와 제작부 시드(data-schedule.sql), 기본 시드(data.sql)를 DB 없이 맞춰 본다.
  * 촬영 배정한 씬은 대본에 있고 등장 배역이 모두 캐스팅되어 있어야 하며,
  * 블록 씬 길이 합이 블록 길이와 같아야 한다. 배우 일정 목데이터의 시연용 겹친 날도 확인한다.
+ * 대본 씬은 모두 촬영 장소가 있어야 하고, 배정한 씬의 촬영 장소는 세트 장소나 처음 잡은 블록 장소와 같아야 한다.
  */
 class ScriptSeedTest {
 
@@ -59,5 +60,45 @@ class ScriptSeedTest {
     @Test
     void 시연용으로_겹친_배우_일정은_세_건이다() {
         assertThat(SEED.split("\\[시연]", -1)).hasSize(4);
+    }
+
+    @Test
+    void 대본_씬은_모두_있는_장소에_배정되어_있다() {
+        Set<String> script = SeedRows.rows(SEED, "script_scenes").stream().map(s -> s.get("code"))
+                .collect(Collectors.toSet());
+        Set<String> locations = SeedRows.rows(SEED, "locations").stream().map(l -> l.get("id"))
+                .collect(Collectors.toSet());
+        Map<String, String> placed = sceneLocations();
+        assertThat(placed.keySet()).isEqualTo(script);
+        assertThat(placed.values()).allSatisfy(id -> assertThat(locations).contains(id));
+    }
+
+    @Test
+    void 배정한_씬의_촬영_장소는_세트_장소이고_없으면_처음_잡은_블록_장소다() {
+        Map<String, String> placed = sceneLocations();
+        Map<String, String> blocks = new HashMap<>();
+        for (Map<String, String> block : SeedRows.rows(SEED, "blocks")) {
+            blocks.put(block.get("shoot_day_id") + "-" + block.get("code"), block.get("location_id"));
+        }
+        for (Map<String, String> scene : SeedRows.rows(SEED, "scenes")) {
+            String expected = "NULL".equals(scene.get("location_id"))
+                    ? blocks.get(scene.get("shoot_day_id") + "-" + scene.get("block_code"))
+                    : scene.get("location_id");
+            assertThat(placed.get(scene.get("code"))).as(scene.get("code") + "의 촬영 장소").isEqualTo(expected);
+        }
+    }
+
+    @Test
+    void 모든_장소에_날씨_예보용_좌표가_있다() {
+        Set<String> located = SeedRows.updateRows(SEED, "locations").stream().filter(r -> r.containsKey("lat"))
+                .map(r -> r.get("id")).collect(Collectors.toSet());
+        assertThat(SeedRows.rows(SEED, "locations")).extracting(l -> l.get("id"))
+                .allSatisfy(id -> assertThat(located).contains(id));
+    }
+
+    /** data-schedule.sql이 대본 씬에 얹는 촬영 장소다. 씬 코드 → 장소 id. */
+    private static Map<String, String> sceneLocations() {
+        return SeedRows.updateRows(SEED, "script_scenes").stream().filter(r -> r.containsKey("location_id"))
+                .collect(Collectors.toMap(r -> r.get("code"), r -> r.get("location_id")));
     }
 }

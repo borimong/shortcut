@@ -110,6 +110,19 @@ public class CallsheetRepository {
     }
 
     /**
+     * 배포할 콜시트 버전을 트랜잭션이 끝날 때까지 지우지 못하게 잡는다. 이미 지워졌으면 false다.
+     * 확인과 기록 사이에 초기화가 버전을 지우면 기록이 외래키에 걸리므로 그냥 읽지 않고 잡는다.
+     * 배포 중에 초기화가 돌면 버전 삭제가 이 잠금을 기다렸다가 배포 기록까지 CASCADE로 지운다.
+     */
+    public boolean lockForDistribution(long callsheetVersionId) {
+        return jdbc.sql("SELECT id FROM callsheet_versions WHERE id = :id FOR KEY SHARE")
+                .param("id", callsheetVersionId)
+                .query(Long.class)
+                .optional()
+                .isPresent();
+    }
+
+    /**
      * 같은 배포 메시지가 다시 와도 수신자별 기록이 하나만 남도록 유니크 키에 맡긴다.
      */
     public int insertDistribution(long callsheetVersionId, long userId) {

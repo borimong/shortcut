@@ -30,6 +30,21 @@ public final class PlanEngine {
     public static final Map<String, Double> DEFAULT_WEIGHTS = defaultWeights();
     // 1/2/3안 밖에서 찾은 대체 장소는 4안으로 표시한다.
     public static final int ALTERNATIVE_OPTION_NO = 4;
+    // 1/2/3안 시간대가 배우 일정으로 모두 막혀 배우 가능 시간에 맞춰 엔진이 만든 시간대다. 제작사가 검토한 시간이 아니라
+    // 안 번호를 0으로 두고 경고를 붙여 승인 화면에서 따로 보이게 한다.
+    public static final int ADJUSTED_TIME_OPTION_NO = 0;
+    // 세트 고정 씬의 세트 장소가 1/2/3안 장소에 없을 때 후보로 더하는 장소의 안 번호다. 더하지 않으면 그 씬을 찍을 수 있는
+    // 유일한 장소가 평가되지 않아 "그곳을 쓸 수 없다"는 틀린 원인이 나오고, 세트 장소에서 찍는 안은 절대 제안되지 않는다.
+    public static final int SET_LOCATION_OPTION_NO = 5;
+    // 조정 시간대의 시작 시각을 훑는 간격(분)이다. 콜시트가 15분 단위로 시각을 적는다.
+    private static final int ADJUSTED_STEP_MINUTES = 15;
+    // 배우 일정 위반이다. 같은 규칙이어도 배우가 다르면 사람에게 넘길 때 따로 적는다.
+    private static final Set<String> ACTOR_CODES = Set.of("ACTOR_BUSY", "ACTOR_UNAVAILABLE", "ACTOR_OVERLAP");
+    // 시간대를 바꿔도 그 장소를 쓸 수 없는 위반이다. 세트 장소가 이것에 걸려야 "그곳을 쓸 수 없다"고 쓴다.
+    private static final Set<String> PLACE_UNUSABLE_CODES = Set.of("LOCATION_CANCELLED", "DISASTER_ALERT", "RAIN_HARD");
+    // 사람에게 넘길 때 알려 주는 "배우들이 함께 되는 시간"의 최소 길이(분)와 개수다.
+    private static final int TOGETHER_MIN_MINUTES = 15;
+    private static final int TOGETHER_MAX_SPANS = 3;
 
     // 이동 시간은 목동 기준 거리 1km당 2분으로 어림한다.
     private static final double TRAVEL_MINUTES_PER_KM = 2.0;
@@ -74,6 +89,13 @@ public final class PlanEngine {
         List<long[]> locationChoices = new ArrayList<>();
         options.forEach(option -> locationChoices.add(new long[] {option.optionNo(), option.locationId()}));
         input.alternativeLocationIds().forEach(id -> locationChoices.add(new long[] {ALTERNATIVE_OPTION_NO, id}));
+        Set<Long> chosen = locationChoices.stream().map(c -> c[1]).collect(Collectors.toSet());
+        input.blockScenes().stream()
+                .filter(s -> s.settingLocked() && s.locationId() != null)
+                .map(ScenePlan::locationId)
+                .distinct()
+                .filter(id -> !chosen.contains(id) && input.locations().containsKey(id))
+                .forEach(id -> locationChoices.add(new long[] {SET_LOCATION_OPTION_NO, id}));
 
         List<CandidateResult> candidates = new ArrayList<>();
         for (long[] locationChoice : locationChoices) {
@@ -83,6 +105,11 @@ public final class PlanEngine {
                             equipmentOption, timeOption));
                 }
             }
+        }
+        // 1/2/3안 시간대가 모두 막혔고 배우 일정이 원인에 있으면, 배우들이 함께 되는 시간을 찾아 조정 시간대를 더한다.
+        // 1/2/3안으로 되는 후보가 있으면 검토한 시간을 쓰므로 만들지 않는다.
+        if (candidates.stream().noneMatch(CandidateResult::feasible) && candidates.stream().anyMatch(PlanEngine::actorBlocked)) {
+            candidates.addAll(adjustedTimeCandidates(input, weights, constraints, locationChoices, options));
         }
         // 같은 점수일 때 실행마다 순서가 바뀌면 Agent 판단이 흔들리므로 해시로 순서를 고정한다.
         candidates.sort(Comparator.comparing(CandidateResult::feasible).reversed()
@@ -137,6 +164,7 @@ public final class PlanEngine {
      * 블록에 세트 고정 씬이 있으면 새 장소는 그 세트일 수 없어 언제나 풀 수 없다. 그 밖에는 모든 후보에 새 장소로 풀 수 없는
      * 위반이 하나 이상 있을 때다. 하나라도 장소만 문제인 후보가 있으면 빈 목록이다(4안 장소를 찾아볼 가치가 있다).
      * Agent는 이 목록이 있으면 대체 장소를 찾지 않고 사람에게 원인을 넘긴다.
+     * 원인을 막은 후보마다 배우 일정이 걸려 있으면 마지막 줄에 블록 배우들이 함께 되는 시간을 덧붙여 일정 조율을 돕는다.
      */
     public static List<String> locationProofBlockers(PlanInput input, List<CandidateResult> candidates) {
         if (candidates.isEmpty() || candidates.stream().anyMatch(CandidateResult::feasible)) {
@@ -151,12 +179,14 @@ public final class PlanEngine {
                 return List.of();
             }
         }
-        return rankedCauses(candidates, PlanEngine::locationProof);
+        return withTogetherHint(input, candidates, null, rankedCauses(candidates, PlanEngine::locationProof));
     }
 
     /**
      * 세트 고정 씬은 그 세트 장소에서만 찍을 수 있다. 씬 순서를 바꿔 배우 일정이 풀리는 후보가 있어도 세트 장소가 취소되거나
      * 이용 시간 밖이면 남는 길은 사람이 정하는 일정 변경뿐이라, 세트 장소 후보를 모두 막는 원인을 이어 적는다.
+     * 세트 장소 자체를 못 쓰는 경우(취소, 재난 문자, 비)에만 "그곳을 쓸 수 없다"고 쓴다. 배우 불참처럼 다른 원인으로 막혔는데
+     * 장소를 쓸 수 없다고 쓰면 사람이 엉뚱한 곳을 조율한다.
      */
     private static List<String> lockedSetBlockers(PlanInput input, List<CandidateResult> candidates) {
         Map<Long, String> sets = input.blockScenes().stream()
@@ -164,28 +194,39 @@ public final class PlanEngine {
                 .collect(Collectors.groupingBy(ScenePlan::locationId, LinkedHashMap::new,
                         Collectors.mapping(ScenePlan::code, Collectors.joining(", "))));
         List<String> lines = new ArrayList<>();
+        List<String> hints = new ArrayList<>();
         sets.forEach((setId, codes) -> {
             Location set = input.locations().get(setId);
-            lines.add(Josa.eunNeun(codes) + " 세트가 " + (set == null ? "지정 장소" : set.name()) + "에만 있는데 그곳을 쓸 수 없습니다.");
+            String name = set == null ? "지정 장소" : set.name();
             List<CandidateResult> atSet = candidates.stream().filter(c -> c.location().id() == setId).toList();
+            boolean unusable = atSet.isEmpty() || atSet.stream()
+                    .allMatch(c -> c.violations().stream().anyMatch(f -> PLACE_UNUSABLE_CODES.contains(f.code())));
+            lines.add(Josa.eunNeun(codes) + " 세트가 " + name
+                    + (unusable ? "에만 있는데 그곳을 쓸 수 없습니다." : "에만 있는데 " + name + "에서 찍는 후보도 모두 막혔습니다."));
             lines.addAll(rankedCauses(atSet, f -> !"SCRIPT_SETTING_LOCKED".equals(f.code())));
+            // 세트 장소를 쓸 수 없으면 그날 그 장소에서 함께 되는 시간은 쓸모가 없어 덧붙이지 않는다.
+            if (!unusable) {
+                hints.addAll(withTogetherHint(input, atSet, set, List.of()));
+            }
         });
-        return lines.stream().distinct().limit(MAX_BLOCKERS).toList();
+        List<String> result = new ArrayList<>(lines.stream().distinct().limit(MAX_BLOCKERS).toList());
+        result.addAll(hints);
+        return List.copyOf(result);
     }
 
     /**
      * 위반을 규칙마다 한 문장으로 모은다. 모든 후보에 걸린 규칙이 있으면 그것만 쓴다. 일부 후보에만 걸린 규칙(씬 순서나
      * 다른 시간대로 풀리는 배우 일정, 이른 시작의 이용 시간 밖)은 진짜 원인이 아니라 사람이 헷갈린다.
-     * 모든 후보에 걸린 규칙이 없으면 많은 후보를 막는 순서로 세운다.
+     * 모든 후보에 걸린 규칙이 없으면 많은 후보를 막는 순서로 세운다. 배우 일정은 배우마다 따로 센다.
+     * 규칙만으로 묶으면 배우 B와 배우 C가 함께 막을 때 먼저 나온 배우 하나만 남아 사람이 반만 조율한다.
      */
     private static List<String> rankedCauses(List<CandidateResult> candidates, Predicate<Finding> counted) {
         Map<String, Integer> hits = new LinkedHashMap<>();
         Map<String, String> firstMessage = new LinkedHashMap<>();
         for (CandidateResult candidate : candidates) {
             List<Finding> found = candidate.violations().stream().filter(counted).toList();
-            found.stream().map(Finding::code).distinct().forEach(code -> hits.merge(code, 1, Integer::sum));
-            // 위반 문장 끝의 "(현장 13:00~15:00)"는 후보마다 다른 시각이라, 사람에게 넘기는 원인에서는 뺀다.
-            found.forEach(f -> firstMessage.putIfAbsent(f.code(), f.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".")));
+            found.stream().map(PlanEngine::causeKey).distinct().forEach(key -> hits.merge(key, 1, Integer::sum));
+            found.forEach(f -> firstMessage.putIfAbsent(causeKey(f), causeMessage(f)));
         }
         boolean common = hits.containsValue(candidates.size());
         return hits.entrySet().stream()
@@ -194,6 +235,119 @@ public final class PlanEngine {
                 .limit(MAX_BLOCKERS)
                 .map(e -> firstMessage.get(e.getKey()))
                 .toList();
+    }
+
+    /** 원인을 세는 키다. 배우 일정은 문장(배우 이름이 들어 있다)까지, 나머지는 규칙 코드만 본다. */
+    private static String causeKey(Finding finding) {
+        return ACTOR_CODES.contains(finding.code()) ? finding.code() + "|" + causeMessage(finding) : finding.code();
+    }
+
+    /** 위반 문장 끝의 "(현장 13:00~15:00)"는 후보마다 다른 시각이라, 사람에게 넘기는 원인에서는 뺀다. */
+    private static String causeMessage(Finding finding) {
+        return finding.message().replaceFirst("\\(현장 [0-9:~]+\\)\\.$", ".");
+    }
+
+    /**
+     * 되는 후보가 없을 때 사람에게 보여 줄 가까운 후보 순서다. 세트 고정에 걸리지 않은 후보, 위반이 적은 후보, 점수가 높은 후보 순이다.
+     * 점수 1등은 세트 밖 장소처럼 어떤 조율로도 성립하지 않는 안일 수 있어, 무엇을 풀면 되는지 보이는 후보를 앞에 둔다.
+     */
+    public static List<CandidateResult> closestFirst(List<CandidateResult> candidates) {
+        return candidates.stream()
+                .sorted(Comparator.comparing((CandidateResult c) -> c.violations().stream()
+                                .anyMatch(f -> "SCRIPT_SETTING_LOCKED".equals(f.code())))
+                        .thenComparingInt(c -> c.violations().size())
+                        .thenComparing(Comparator.comparingDouble(CandidateResult::totalScore).reversed())
+                        .thenComparing(CandidateResult::hash))
+                .toList();
+    }
+
+    private static boolean actorBlocked(CandidateResult candidate) {
+        return candidate.violations().stream().anyMatch(f -> ACTOR_CODES.contains(f.code()));
+    }
+
+    /**
+     * 막은 후보마다 배우 일정이 걸려 있으면 블록 배우들이 함께 되는 시간을 한 줄로 덧붙인다. 세트 장소가 정해져 있으면
+     * 그 장소 이용 시간 안에서만 본다. 종일 불가인 배우가 있으면 함께 되는 시간이 없으므로 덧붙이지 않는다(원인에 이미 나온다).
+     */
+    private static List<String> withTogetherHint(PlanInput input, List<CandidateResult> blocked, Location place,
+                                                 List<String> lines) {
+        if (blocked.isEmpty() || !blocked.stream().allMatch(PlanEngine::actorBlocked)) {
+            return lines;
+        }
+        Set<Long> actorIds = new LinkedHashSet<>(input.blockActorIds());
+        input.blockScenes().forEach(scene -> actorIds.addAll(scene.actorIds()));
+        if (actorIds.size() < 2 || actorIds.stream().anyMatch(id -> input.actorDay(id).off())) {
+            return lines;
+        }
+        List<int[]> spans = List.of(new int[] {0, 24 * 60});
+        if (place != null) {
+            spans = List.of(new int[] {minutes(place.openFrom()), minutes(place.openTo())});
+        }
+        for (long actorId : actorIds) {
+            spans = intersect(spans, freeSpans(input, actorId));
+        }
+        int blockMinutes = minutes(input.current().end()) - minutes(input.current().start());
+        String names = actorIds.stream().map(id -> input.actors().get(id).name()).collect(Collectors.joining(", "));
+        String where = place == null ? "" : place.name() + " 이용 시간 안에서 ";
+        List<int[]> usable = spans.stream().filter(s -> s[1] - s[0] >= TOGETHER_MIN_MINUTES)
+                .limit(TOGETHER_MAX_SPANS).toList();
+        String hint;
+        if (usable.isEmpty()) {
+            hint = where + Josa.iGa(names) + " 함께 되는 시간이 없습니다.";
+        } else {
+            int longest = usable.stream().mapToInt(s -> s[1] - s[0]).max().orElse(0);
+            hint = where + Josa.iGa(names) + " 함께 되는 시간: "
+                    + usable.stream().map(s -> fmtMinutes(s[0]) + "~" + fmtMinutes(s[1]) + "(" + (s[1] - s[0]) + "분)")
+                            .collect(Collectors.joining(", "))
+                    + (longest < blockMinutes ? ". 블록 " + blockMinutes + "분을 한 번에 찍기에는 짧습니다." : ".");
+        }
+        List<String> result = new ArrayList<>(lines);
+        result.add(hint);
+        return List.copyOf(result);
+    }
+
+    /** 배우의 그날 가능 시간에서 다른 일정과 같은 날 다른 블록 출연 시간을 뺀 구간(분)이다. */
+    private static List<int[]> freeSpans(PlanInput input, long actorId) {
+        ActorDay day = input.actorDay(actorId);
+        List<int[]> free = new ArrayList<>();
+        day.windows().forEach(w -> free.add(new int[] {minutes(w.from()), minutes(w.to())}));
+        List<int[]> taken = new ArrayList<>();
+        day.busy().forEach(b -> taken.add(new int[] {minutes(b.from()), minutes(b.to())}));
+        input.otherBlocks().stream().filter(b -> b.actorIds().contains(actorId))
+                .forEach(b -> taken.add(new int[] {minutes(b.start()), minutes(b.end())}));
+        List<int[]> result = free;
+        for (int[] t : taken) {
+            List<int[]> next = new ArrayList<>();
+            for (int[] s : result) {
+                if (t[1] <= s[0] || s[1] <= t[0]) {
+                    next.add(s);
+                    continue;
+                }
+                if (s[0] < t[0]) {
+                    next.add(new int[] {s[0], t[0]});
+                }
+                if (t[1] < s[1]) {
+                    next.add(new int[] {t[1], s[1]});
+                }
+            }
+            result = next;
+        }
+        return result;
+    }
+
+    private static List<int[]> intersect(List<int[]> a, List<int[]> b) {
+        List<int[]> result = new ArrayList<>();
+        for (int[] x : a) {
+            for (int[] y : b) {
+                int from = Math.max(x[0], y[0]);
+                int to = Math.min(x[1], y[1]);
+                if (from < to) {
+                    result.add(new int[] {from, to});
+                }
+            }
+        }
+        result.sort(Comparator.comparingInt(s -> s[0]));
+        return result;
     }
 
     private static boolean locationProof(Finding finding) {
@@ -265,6 +419,66 @@ public final class PlanEngine {
                 check.feasible(), check.violations(), check.warnings(),
                 soft, round(total), cost, cost - input.current().cost(), location.distanceKm(),
                 check.sceneOrder(), check.sceneOrderChanged());
+    }
+
+    /**
+     * 1/2/3안 시간대가 배우 일정으로 모두 막혔을 때 배우 가능 시간에 맞춘 시간대(조정 시간)를 만든다.
+     * 장소 이용 시간 안에서 15분 간격으로 시작 시각을 훑어, 지금 판정(씬 순서 바꾸기 포함)을 그대로 통과하는 시간만 쓴다.
+     * 장소와 장비 묶음마다 하나만 남기는데, 콜타임이 덜 흔들리도록 지금 확정 시작 시각에 가장 가까운 것을 고른다.
+     * 검토하지 않은 시간이라 경고를 붙여 승인 화면과 Agent 설명에 드러나게 한다.
+     */
+    private List<CandidateResult> adjustedTimeCandidates(PlanInput input, Map<String, Double> weights,
+                                                         List<ExtraConstraint> constraints, List<long[]> locationChoices,
+                                                         List<PlanOption> options) {
+        int blockMinutes = minutes(input.current().end()) - minutes(input.current().start());
+        int currentStart = minutes(input.current().start());
+        Set<String> reviewed = options.stream().map(o -> fmt(o.start()) + "~" + fmt(o.end())).collect(Collectors.toSet());
+        List<CandidateResult> adjusted = new ArrayList<>();
+        for (long[] choice : locationChoices) {
+            Location location = input.locations().get(choice[1]);
+            if (location == null || !location.available()) {
+                continue;
+            }
+            int first = ceilToStep(minutes(location.openFrom()));
+            int last = minutes(location.openTo()) - blockMinutes;
+            for (PlanOption equipmentOption : options) {
+                CandidateResult best = null;
+                for (int start = first; start <= last; start += ADJUSTED_STEP_MINUTES) {
+                    LocalTime from = LocalTime.of(start / 60, start % 60);
+                    LocalTime to = from.plusMinutes(blockMinutes);
+                    if (reviewed.contains(fmt(from) + "~" + fmt(to))) {
+                        continue;
+                    }
+                    PlanOption time = new PlanOption(ADJUSTED_TIME_OPTION_NO, location.id(), List.of(), 0, from, to);
+                    CandidateResult candidate = candidate(input, weights, constraints, (int) choice[0], location.id(),
+                            equipmentOption, time);
+                    if (candidate.feasible() && (best == null
+                            || Math.abs(start - currentStart) < Math.abs(minutes(best.start()) - currentStart))) {
+                        best = candidate;
+                    }
+                }
+                if (best != null) {
+                    adjusted.add(withWarning(best, new Finding("TIME_ADJUSTED", "SCHEDULE",
+                            "1/2/3안에 없는 시간대(" + fmt(best.start()) + "~" + fmt(best.end())
+                                    + ")입니다. 배우들이 함께 되는 시간에 맞춰 엔진이 만든 시간이라 제작부 확인이 필요합니다.",
+                            "SCHEDULE_TIME_ADJUSTED")));
+                }
+            }
+        }
+        return adjusted;
+    }
+
+    private static int ceilToStep(int minutes) {
+        return (minutes + ADJUSTED_STEP_MINUTES - 1) / ADJUSTED_STEP_MINUTES * ADJUSTED_STEP_MINUTES;
+    }
+
+    private static CandidateResult withWarning(CandidateResult c, Finding warning) {
+        List<Finding> warnings = new ArrayList<>(c.warnings());
+        warnings.add(warning);
+        return new CandidateResult(c.hash(), c.locationOptionNo(), c.location(), c.equipmentOptionNo(), c.equipment(),
+                c.timeOptionNo(), c.start(), c.end(), c.feasible(), c.violations(), List.copyOf(warnings),
+                c.softScores(), c.totalScore(), c.cost(), c.extraCost(), c.distanceKm(), c.sceneOrder(),
+                c.sceneOrderChanged());
     }
 
     /**
@@ -394,27 +608,37 @@ public final class PlanEngine {
     /**
      * 배우 일정, 같은 배우의 블록 겹침, 해 때문에 지금 순서로 막히면 블록 안 씬 순서를 바꿔 본다.
      * 씬이 5개 이하면 모든 순서(최대 120개)를, 넘으면 걸린 씬을 맨 앞이나 맨 뒤로 옮긴 순서만 본다.
-     * 되는 순서 가운데 배우 대기 시간이 가장 짧은 것을 고르고, 되는 순서가 없으면 지금 순서를 둔다.
+     * 되는 순서 가운데 배우 대기 시간이 가장 짧은 것을 고른다. 되는 순서가 없으면 걸리는 위반이 가장 적은 순서를 두고,
+     * 같으면 지금 순서를 둔다. 지금 순서를 그대로 두면 순서만 바꾸면 풀리는 위반(배우 C 일정 등)이 사람에게 넘기는 원인에 섞인다.
      * 순서는 후보 축이 아니라 후보마다 고치는 값이라 후보 수는 늘지 않는다.
      */
     private static List<ScenePlan> arrange(PlanInput input, Location location, LocalTime start, LocalTime end) {
         List<ScenePlan> current = input.blockScenes();
-        if (current.size() < 2 || timedFindings(input, location, current, start, end).isEmpty()) {
+        if (current.size() < 2) {
             return current;
         }
-        List<ScenePlan> best = current;
+        int currentCount = timedFindings(input, location, current, start, end).size();
+        if (currentCount == 0) {
+            return current;
+        }
+        List<ScenePlan> best = null;
         int bestWait = Integer.MAX_VALUE;
+        List<ScenePlan> fewest = current;
+        int fewestCount = currentCount;
         for (List<ScenePlan> order : reorderings(input, location, current, start, end)) {
-            if (!timedFindings(input, location, order, start, end).isEmpty()) {
-                continue;
-            }
-            int wait = waitingMinutes(order, timetable(order, start));
-            if (wait < bestWait) {
-                best = order;
-                bestWait = wait;
+            int count = timedFindings(input, location, order, start, end).size();
+            if (count == 0) {
+                int wait = waitingMinutes(order, timetable(order, start));
+                if (wait < bestWait) {
+                    best = order;
+                    bestWait = wait;
+                }
+            } else if (count < fewestCount) {
+                fewest = order;
+                fewestCount = count;
             }
         }
-        return best;
+        return best != null ? best : fewest;
     }
 
     private static List<List<ScenePlan>> reorderings(PlanInput input, Location location, List<ScenePlan> current,
