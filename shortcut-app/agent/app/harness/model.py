@@ -51,12 +51,16 @@ class ModelGateway:
             bound = model.with_structured_output(schema, method="function_calling", include_raw=True)
             return lambda: bound.ainvoke(messages)
 
-        result = await self._recover(ctx, call)
-        raw = result["raw"]
-        add_usage(ctx.counter, _model_name(raw), raw.usage_metadata)
-        if result.get("parsing_error") or result.get("parsed") is None:
-            raise ValueError(f"구조화 응답 해석 실패: {result.get('parsing_error')}")
-        return result["parsed"]
+        # 모델이 필수 필드를 빠뜨려 해석에 실패하는 일이 드물게 있어(근거 인용 평가 150개 중 4개), 한 번 다시 묻는다.
+        for attempt in range(2):
+            result = await self._recover(ctx, call)
+            raw = result["raw"]
+            add_usage(ctx.counter, _model_name(raw), raw.usage_metadata)
+            if not result.get("parsing_error") and result.get("parsed") is not None:
+                return result["parsed"]
+            if attempt == 0:
+                ctx.counter["retries"] = ctx.counter.get("retries", 0) + 1
+        raise ValueError(f"구조화 응답 해석 실패: {result.get('parsing_error')}")
 
     async def stream_text(self, ctx: RunContext, messages: list[BaseMessage]) -> str:
         """답변을 토큰 단위로 TOKEN 이벤트로 내보내면서 전체 문장을 모읍니다."""

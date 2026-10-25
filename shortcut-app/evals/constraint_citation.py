@@ -32,7 +32,7 @@ sys.path[:0] = [str(ROOT / "agent"), str(ROOT / "mcp" / "rag-mcp")]
 
 from fastmcp import Client  # noqa: E402
 
-from app.graph.nodes import EVIDENCE_TYPES, counts_as_evidence  # noqa: E402
+from app.graph.nodes import EVIDENCE_TYPES, NO_DISASTER_ALERT_ID, counts_as_evidence  # noqa: E402
 from evals.constraint_scenarios import LOCATIONS, Scenario, build_scenarios  # noqa: E402
 from rag_mcp.chunking import parse_markdown, split_into_chunks  # noqa: E402
 from rag_mcp.embedding import OpenAIEmbedder  # noqa: E402
@@ -211,6 +211,10 @@ def score(result: dict, table: dict[str, dict], scenario: Scenario) -> dict:
     """범주마다 최종 인용을 정답과 비교하고, 문서 종류 규칙이 모델 인용에서 지운 것도 셉니다."""
     final = result["rounds"][-1]
     retrieved = set(result["evidence"])
+    # 재난 문자 조회 결과는 문서 조항이 아니라 라벨 표에 없습니다. 발령된 재난 문자가 없는 시나리오에서만
+    # DISASTER의 정답 근거이고, 다른 범주나 재난 문자가 있는 시나리오에서는 근거가 아닙니다.
+    data_cats = set() if scenario.alerts else {"DISASTER"}
+    table = {**table, NO_DISASTER_ALERT_ID: {"doc_type": "DATA", "cats": data_cats, "topics": set(), "scope": {}}}
     cited_by_cat = {f["constraint"]: f["evidence_ids"] for f in final["hard_constraints"]}
     raw_by_cat: dict[str, list[str]] = defaultdict(list)
     for finding in final["raw_findings"]:

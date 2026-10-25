@@ -716,3 +716,31 @@ def test_recheck_files_clauses_under_their_own_category_when_the_model_mislabels
     assert filled == ["SCHEDULE"]
     assert findings["SCHEDULE"]["evidence_ids"] == ["c#1"]
     assert "호우" not in findings["SCHEDULE"]["summary"]
+
+
+def test_recheck_offers_only_the_main_document_type_of_each_category():
+    from app.graph.nodes import recheck_empty_categories
+
+    class GreedyModel(FakeModel):
+        async def structured(self, ctx, messages, schema):
+            # 후보 목록에 무엇이 있든 근로기준법 조항을 비행금지 근거로 고른다.
+            return ConstraintSet(
+                findings=[ConstraintFinding(constraint="NO_FLY_ZONE", summary="적용", evidence_ids=["law#1"])],
+                thought=THOUGHT,
+            )
+
+    ctx, _, _, _ = make_context(model=GreedyModel())
+    evidence = {"law#1": {"doc_type": "LAW", "heading": "제53조", "title": "근로기준법", "text": "주 52시간"}}
+    findings = {"NO_FLY_ZONE": {"constraint": "NO_FLY_ZONE", "summary": "", "evidence_ids": []}}
+    # 비행금지 범주의 후보는 비행금지 안내뿐이라, 법령만 있으면 모델을 부르지 않고 빈칸으로 둔다.
+    assert run(recheck_empty_categories(ctx, {"event": {}}, findings, evidence, only={"NO_FLY_ZONE"})) == []
+    assert findings["NO_FLY_ZONE"]["evidence_ids"] == []
+
+
+def test_partial_thought_is_accepted_and_filled_from_the_node_default():
+    from app.graph.common import thought_of
+    from app.graph.schemas import Thought
+
+    found = ConstraintSet(findings=[], thought=Thought(observation="배우 C 일정 확인"))
+    filled = thought_of(found, {"observation": "기본", "decision": "기본 결정", "reason": "기본 이유"})
+    assert filled == {"observation": "배우 C 일정 확인", "decision": "기본 결정", "reason": "기본 이유"}

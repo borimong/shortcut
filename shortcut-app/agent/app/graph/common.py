@@ -137,7 +137,12 @@ def thought_of(model: Any, fallback: dict[str, str] | None = None) -> dict[str, 
     """구조화 출력의 thought 필드를 이벤트에 실을 dict로 바꿉니다.
     모델이 thought를 빼먹어도 작업은 이어 가야 하므로, 그때는 노드가 코드로 만든 기본 생각(fallback)을 씁니다."""
     thought = getattr(model, "thought", None)
-    return thought.model_dump() if thought is not None else fallback
+    if thought is None:
+        return fallback
+    dumped = thought.model_dump()
+    if fallback:
+        dumped = {k: v or fallback.get(k, "") for k, v in dumped.items()}
+    return dumped
 
 
 def feedback_block(state: dict[str, Any]) -> str:

@@ -229,3 +229,20 @@ def test_exec_revision_after_done_reruns_execution_once_even_if_delivered_twice(
     assert len(venue_reports) == 2
     assert state.values["revisions_done"] == [7]
     assert state.values["result"]["execution"]["status"] == "DONE"
+
+
+def test_ledger_references_come_only_from_agents_that_ran():
+    from app.graph.execution import ledger_refs
+
+    prior = {
+        "venue": {"artifacts": {"reservationId": "R-1", "cancelled": [{"reservationId": "R-0", "cancelFeeKrw": 0}]}},
+        "permit": {
+            "artifacts": {"permits": [{"permitId": "PM-1", "status": "APPROVED"}, {"permitId": "PM-2", "status": "DENIED"}]}
+        },
+        "transport": {"artifacts": {"bookingId": "TB-1"}},
+    }
+    refs = ledger_refs(prior)
+    # 렌탈을 건너뛰면 렌탈 계정 번호가 없어야 장부 Agent가 번호를 지어내지 않는다.
+    assert {r["account"] for r in refs} == {"VENUE", "CANCEL_FEE", "PERMIT_FEE", "TRANSPORT"}
+    assert {"account": "PERMIT_FEE", "ref_type": "PERMIT", "ref_id": "PM-1"} in refs
+    assert all(r["ref_id"] != "PM-2" for r in refs)

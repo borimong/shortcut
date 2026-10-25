@@ -85,6 +85,18 @@ EVIDENCE_TYPES = {
     "DISASTER": {"SAFETY", "PERMIT", "DATA"},
     "WEATHER": {"SAFETY", "PERMIT"},
 }
+# 빈 범주를 다시 고를 때 후보로 보여 줄 대표 문서 종류다. 근거 자격(EVIDENCE_TYPES)보다 좁다.
+# 자격 전체를 보여 주면 모델이 빈칸으로 두지 않고 비행금지 범주에 근로기준법을, 기상 범주에 허가 시간을
+# 고르는 일이 150개 중 16건 생겼다.
+RECHECK_TYPES = {
+    "CONTRACT": {"CONTRACT"},
+    "SCHEDULE": {"CONTRACT", "PERMIT"},
+    "LAW": {"LAW"},
+    "BUDGET": {"POLICY"},
+    "NO_FLY_ZONE": {"NO_FLY"},
+    "DISASTER": {"SAFETY", "DATA"},
+    "WEATHER": {"SAFETY"},
+}
 # 문서 첫 제목 앞의 머리글 조각이다. 문서 소개일 뿐 조항이 아니므로 근거로 세지 않는다.
 INTRO_HEADING = "개요"
 # 업무 데이터 조회 결과를 근거로 쓸 때의 ID다. 문서 조항이 아니라 조회한 사실이라 원문 대조 없이 그대로 싣는다.
@@ -483,7 +495,11 @@ async def recheck_empty_categories(
     for constraint in HARD_CONSTRAINTS:
         if (findings.get(constraint) or {}).get("evidence_ids") or (only is not None and constraint not in only):
             continue
-        ids = [cid for cid, hit in evidence.items() if counts_as_evidence(constraint, hit)]
+        ids = [
+            cid
+            for cid, hit in evidence.items()
+            if counts_as_evidence(constraint, hit) and hit.get("doc_type") in RECHECK_TYPES[constraint]
+        ]
         if ids:
             options[constraint] = ids
     if not options:
