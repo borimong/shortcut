@@ -19,7 +19,7 @@ import java.util.Set;
 public final class ApproverRule {
 
     /** 변경 종류와 확인 순서다. 관리자 페이지의 승인자 표도 이 순서로 보인다. */
-    public static final List<String> CHANGE_KINDS = List.of("ALWAYS", "LOCATION", "EQUIPMENT", "TIME", "COST");
+    public static final List<String> CHANGE_KINDS = List.of("ALWAYS", "LOCATION", "EQUIPMENT", "TIME", "SCENE", "COST");
 
     /** 관리자가 규칙을 바꾸기 전의 기본값이다. data.sql의 approver_rules 시드와 같다. */
     public static final Map<String, List<String>> DEFAULT_RULES = defaultRules();
@@ -47,6 +47,10 @@ public final class ApproverRule {
         if (!current.sameTime(candidate)) {
             addSorted(roles, rules.get("TIME"));
         }
+        // 씬 순서가 바뀌면 배우 콜타임과 현장 동선이 바뀌므로 조감독들이 확인한다.
+        if (!current.sameSceneOrder(candidate)) {
+            addSorted(roles, rules.get("SCENE"));
+        }
         if (candidate.cost() - current.cost() > 0) {
             addSorted(roles, rules.get("COST"));
         }
@@ -70,6 +74,7 @@ public final class ApproverRule {
         rules.put("LOCATION", names(Role.AD1, Role.SOUND));
         rules.put("EQUIPMENT", names(Role.DOP));
         rules.put("TIME", names(Role.AD1, Role.AD2));
+        rules.put("SCENE", names(Role.AD1, Role.AD2));
         rules.put("COST", names(Role.PRODUCER));
         return Collections.unmodifiableMap(rules);
     }

@@ -16,6 +16,7 @@ import com.shortcut.domain.Actor;
 import com.shortcut.domain.AiTask;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.dto.ResourceDtos.ResourceChange;
@@ -67,13 +68,13 @@ class EventServiceChangesTest {
     @Test
     void 변경_종류마다_저장하는_JSON과_중복_키가_같다() {
         List<ChangeItem> changes = List.of(
-                new ChangeItem("EQUIPMENT_UNAVAILABLE", 2L, null, null, null, null, null, null, null),
-                new ChangeItem("ACTOR_ABSENT", 1L, null, null, null, null, null, null, null),
-                new ChangeItem("ACTOR_WINDOW", 1L, LocalTime.of(9, 0), LocalTime.of(15, 0), null, null, null, null, null),
-                new ChangeItem("LOCATION_UNAVAILABLE", 2L, null, null, null, null, null, null, null),
-                new ChangeItem("RAIN_FORECAST", 2L, null, null, 13, 15, 7.5, null, null),
+                new ChangeItem("EQUIPMENT_UNAVAILABLE", 2L, null, null, null, null, null, null, null, null),
+                new ChangeItem("ACTOR_ABSENT", 1L, null, null, null, null, null, null, null, null),
+                new ChangeItem("ACTOR_WINDOW", 1L, LocalTime.of(9, 0), LocalTime.of(15, 0), null, null, null, null, null, null),
+                new ChangeItem("LOCATION_UNAVAILABLE", 2L, null, null, null, null, null, null, null, null),
+                new ChangeItem("RAIN_FORECAST", 2L, null, null, 13, 15, 7.5, null, null, null),
                 new ChangeItem("DISASTER_ALERT", null, LocalTime.of(13, 0), LocalTime.of(18, 0), null, null, null,
-                        " 서울 성동구 ", " 호우 경보 "));
+                        " 서울 성동구 ", " 호우 경보 ", null));
 
         events.create(PD, new EventRequest("OTHER", " 여러 변경 ", null, 1L, changes));
 
@@ -134,6 +135,6 @@ class EventServiceChangesTest {
                 Map.of(1L, new Actor(1, "배우 A", LocalTime.of(9, 0), LocalTime.of(18, 0), 30, "contract-a", false, null, null)),
                 Map.of(2L, seongsu),
                 Map.of(2L, new Equipment(2, "드론", true, true, 100_000)),
-                List.of(), List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), ForecastInfo.NONE, List.of(), List.of(), null);
     }
 }

@@ -36,6 +36,19 @@ class ApproverRuleTest {
     }
 
     @Test
+    void 씬_순서만_바뀌면_조감독_둘이_함께_승인한다() {
+        PlanSnapshot committed = new PlanSnapshot(2, List.of(1L, 5L), t("14:00"), t("16:00"), 450000,
+                List.of(new SceneSlot("S18", t("14:00"), t("15:30")), new SceneSlot("S19", t("15:30"), t("16:00"))));
+        PlanSnapshot swapped = new PlanSnapshot(2, List.of(1L, 5L), t("14:00"), t("16:00"), 450000,
+                List.of(new SceneSlot("S19", t("14:00"), t("14:30")), new SceneSlot("S18", t("14:30"), t("16:00"))));
+
+        assertThat(ApproverRule.requiredApprovers(committed, swapped)).containsExactly("DIRECTOR", "AD1", "AD2");
+        // 씬 순서를 남기기 전에 만든 기록과는 순서를 비교하지 않는다.
+        PlanSnapshot legacy = new PlanSnapshot(2, List.of(1L, 5L), t("14:00"), t("16:00"), 450000);
+        assertThat(ApproverRule.requiredApprovers(legacy, swapped)).containsExactly("DIRECTOR");
+    }
+
+    @Test
     void 성수_스튜디오안은_장소_시간_비용이_바뀌어_다섯_명이다() {
         PlanSnapshot seongsu = new PlanSnapshot(2, List.of(3L, 2L, 1L), t("14:00"), t("16:00"), 450000);
 

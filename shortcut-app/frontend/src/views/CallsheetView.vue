@@ -5,15 +5,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/ui/empty'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ForecastSource from '../components/ForecastSource.vue'
 import { api } from '../api.js'
+import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useToastStore } from '../stores/toast.js'
 import { useShootDayStore } from '../stores/shootDay.js'
-import { addMinutes, dateTime, dateWithWeekday, ver, won } from '../format.js'
+import { addMinutes, dateTime, dateWithWeekday, josa, ver, won } from '../format.js'
 
 const notifications = useNotificationStore()
 const shootDay = useShootDayStore()
@@ -131,6 +135,33 @@ const opsLines = computed(() => {
 })
 
 const isLatest = computed(() => String(board.value?.callsheet?.versionNo ?? '') === selectedVersion.value)
+
+// 지난 버전을 보고 있으면 제작 PD와 연출감독은 그 버전으로 되돌릴 수 있다. 오후 블록을 그 버전으로 복구해 새 버전으로 다시 배포한다.
+const auth = useAuthStore()
+const toast = useToastStore()
+const confirmingRestore = ref(false)
+const restoreReason = ref('')
+const restoring = ref(false)
+const canRestore = computed(() => auth.canSubmitChange && board.value && selectedVersion.value && !isLatest.value)
+
+async function restore() {
+  restoring.value = true
+  try {
+    const r = await api(`/callsheets/${board.value.shootDay.id}/${selectedVersion.value}/restore`, {
+      method: 'POST',
+      body: { reason: restoreReason.value }
+    })
+    confirmingRestore.value = false
+    restoreReason.value = ''
+    toast.info(`${josa(ver(r.restoredFrom), '으로')} 되돌려 ${josa(ver(r.versionNo), '으로')} 배포했습니다.`)
+    selectedVersion.value = ''
+    await load()
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    restoring.value = false
+  }
+}
 const sheetMeta = computed(() => versions.value.find((v) => String(v.versionNo) === selectedVersion.value))
 const blocks = computed(() => sheet.value?.blocks ?? board.value?.blocks ?? [])
 const shootDate = computed(() => sheet.value?.shootDate ?? board.value?.shootDay.date)
@@ -250,15 +281,27 @@ function print() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem v-for="v in versions" :key="v.versionNo" :value="String(v.versionNo)">
-              {{ ver(v.versionNo) }}{{ String(v.versionNo) === String(board?.callsheet?.versionNo) ? ' (최신)' : '' }}
+              {{ ver(v.versionNo) }}{{ v.restoredFrom ? ` (${ver(v.restoredFrom)} 되돌림)` : '' }}{{ String(v.versionNo) === String(board?.callsheet?.versionNo) ? ' (최신)' : '' }}
             </SelectItem>
           </SelectContent>
         </Select>
+        <Button v-if="canRestore && !confirmingRestore" variant="outline" @click="confirmingRestore = true">
+          이 버전으로 되돌리기
+        </Button>
         <Button :disabled="!board" @click="print">
           <Printer />
           인쇄
         </Button>
       </div>
+    </div>
+
+    <div v-if="canRestore && confirmingRestore" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3 print:hidden">
+      <span class="text-sm">
+        오후 블록을 {{ josa(ver(selectedVersion), '으로') }} 되돌려 새 버전으로 다시 배포합니다. 지금 데이터로 하드 제약을 어기면 되돌리지 않습니다.
+      </span>
+      <Input v-model="restoreReason" class="min-w-[220px] flex-1" placeholder="되돌리는 사유 (비워도 됩니다)" maxlength="200" />
+      <Button size="sm" :disabled="restoring" @click="restore">되돌리기</Button>
+      <Button size="sm" variant="ghost" :disabled="restoring" @click="confirmingRestore = false">취소</Button>
     </div>
 
     <Alert v-if="error" variant="destructive">
@@ -281,7 +324,7 @@ function print() {
         :to="`/proposals/${board.pendingProposal.id}`"
         class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-foreground no-underline hover:bg-accent print:hidden"
       >
-        <span>변경안 {{ ver(board.pendingProposal.versionNo) }}이 승인 중입니다. 확정되면 콜시트가 새 버전으로 바뀝니다.</span>
+        <span>변경안 {{ josa(ver(board.pendingProposal.versionNo), '이') }} 승인 중입니다. 확정되면 콜시트가 새 버전으로 바뀝니다.</span>
         <span class="text-primary">승인 현황 보기</span>
       </RouterLink>
 
@@ -329,6 +372,7 @@ function print() {
             <h2 class="sheet-label">날씨</h2>
             <p class="mt-2 text-sm font-medium">{{ weather.locationName }} 기준, 최대 시간당 강수량 {{ maxPrecip }}mm</p>
             <p v-if="weather.summary" class="text-sm text-muted-foreground">{{ weather.summary }}</p>
+            <ForecastSource :forecast="weather.forecast" class="mt-1" />
             <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(48px,1fr))] gap-1">
               <Badge
                 v-for="h in weather.hourly ?? []"
@@ -406,7 +450,11 @@ function print() {
         <section class="sheet-section">
           <div class="flex flex-wrap items-baseline justify-between gap-2">
             <h2 class="sheet-label">씬 스케줄</h2>
-            <span class="text-xs text-muted-foreground">총 {{ scenes.length }}씬, {{ totalMinutes }}분</span>
+            <div class="flex items-baseline gap-2">
+              <!-- 직전 버전과 오후 블록 씬 순서가 다르면 배우 콜타임이 바뀌었을 수 있어 표시한다 -->
+              <Badge v-if="sheet?.sceneOrderChanged" variant="info">씬 순서 변경</Badge>
+              <span class="text-xs text-muted-foreground">총 {{ scenes.length }}씬, {{ totalMinutes }}분</span>
+            </div>
           </div>
           <Table class="mt-2 min-w-[760px] print:min-w-0">
             <TableHeader>

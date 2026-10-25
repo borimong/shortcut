@@ -14,6 +14,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * @param alertKind 재난 문자 종류
  * @param from 배우 가용 시작 또는 재난 문자 시작(HH:mm)
  * @param to 배우 가용 끝 또는 재난 문자 끝(HH:mm)
+ * @param reasonKind 배우 다른 일정(ACTOR_BUSY)의 사유 종류. 개인 사정의 내용은 남기지 않는다
  * @param fromHour 비 시작 시각
  * @param toHour 비 끝 시각(포함)
  * @param mm 시간당 강수량
@@ -23,8 +24,8 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
  * @param memo 메모. 자원 패널에서만
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"kind", "targetId", "overrideId", "region", "alertKind", "from", "to", "fromHour", "toHour", "mm",
-        "summary", "status", "untilDate", "memo"})
+@JsonPropertyOrder({"kind", "targetId", "overrideId", "region", "alertKind", "from", "to", "reasonKind", "fromHour", "toHour",
+        "mm", "summary", "status", "untilDate", "memo"})
 public record AppliedChange(
         String kind,
         Long targetId,
@@ -33,6 +34,7 @@ public record AppliedChange(
         String alertKind,
         String from,
         String to,
+        String reasonKind,
         Integer fromHour,
         Integer toHour,
         Double mm,
@@ -44,25 +46,33 @@ public record AppliedChange(
     public static final String CLEAR = "CLEAR";
 
     static AppliedChange target(String kind, long targetId, String summary) {
-        return new AppliedChange(kind, targetId, null, null, null, null, null, null, null, null, summary, null, null, null);
+        return new AppliedChange(kind, targetId, null, null, null, null, null, null, null, null, null, summary, null, null,
+                null);
     }
 
     static AppliedChange window(String kind, long targetId, String from, String to, String summary) {
-        return new AppliedChange(kind, targetId, null, null, null, from, to, null, null, null, summary, null, null, null);
+        return new AppliedChange(kind, targetId, null, null, null, from, to, null, null, null, null, summary, null, null,
+                null);
+    }
+
+    static AppliedChange busy(long targetId, String from, String to, String reasonKind, String summary) {
+        return new AppliedChange("ACTOR_BUSY", targetId, null, null, null, from, to, reasonKind, null, null, null, summary,
+                null, null, null);
     }
 
     static AppliedChange rain(long targetId, int fromHour, int toHour, double mm, String summary) {
-        return new AppliedChange("RAIN_FORECAST", targetId, null, null, null, null, null, fromHour, toHour, mm, summary,
-                null, null, null);
+        return new AppliedChange("RAIN_FORECAST", targetId, null, null, null, null, null, null, fromHour, toHour, mm,
+                summary, null, null, null);
     }
 
     static AppliedChange alert(String region, String alertKind, String from, String to, String summary) {
-        return new AppliedChange("DISASTER_ALERT", null, null, region, alertKind, from, to, null, null, null, summary,
-                null, null, null);
+        return new AppliedChange("DISASTER_ALERT", null, null, region, alertKind, from, to, null, null, null, null,
+                summary, null, null, null);
     }
 
     static AppliedChange clear(long overrideId, String summary) {
-        return new AppliedChange(CLEAR, null, overrideId, null, null, null, null, null, null, null, summary, null, null, null);
+        return new AppliedChange(CLEAR, null, overrideId, null, null, null, null, null, null, null, null, summary, null,
+                null, null);
     }
 
     boolean isClear() {
@@ -70,22 +80,22 @@ public record AppliedChange(
     }
 
     AppliedChange withSummary(String value) {
-        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, fromHour, toHour, mm, value,
-                status, untilDate, memo);
+        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, reasonKind, fromHour, toHour, mm,
+                value, status, untilDate, memo);
     }
 
     AppliedChange withStatus(String value) {
-        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, fromHour, toHour, mm, summary,
-                value, untilDate, memo);
+        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, reasonKind, fromHour, toHour, mm,
+                summary, value, untilDate, memo);
     }
 
     AppliedChange withUntilDate(String value) {
-        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, fromHour, toHour, mm, summary,
-                status, value, memo);
+        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, reasonKind, fromHour, toHour, mm,
+                summary, status, value, memo);
     }
 
     AppliedChange withMemo(String value) {
-        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, fromHour, toHour, mm, summary,
-                status, untilDate, value);
+        return new AppliedChange(kind, targetId, overrideId, region, alertKind, from, to, reasonKind, fromHour, toHour, mm,
+                summary, status, untilDate, value);
     }
 }

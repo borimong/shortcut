@@ -30,6 +30,7 @@ from app.graph.schemas import (
 )
 from app.graph.state import HARD_CONSTRAINTS
 from app.harness.tools import ToolGateway
+from app.josa import josa
 from app.runtime import RunContext
 
 EVIDENCE_BY_CONSTRAINT = {
@@ -88,6 +89,14 @@ EVIDENCE_BY_CONSTRAINT = {
         "강수확률에 따른 야외 촬영 판단",
         "70퍼센트 이상이면 제외한다.",
         "SAFETY",
+    ),
+    "SCRIPT": (
+        "script-ep07-v1#13",
+        "script-ep07-v1",
+        "드라마 숏컷 7화 「봄, 봄」 대본 1고",
+        "S#12. 한강 공원 산책로 (낮, 실외)",
+        "강바람. 텀블러 두 개를 든 도현과 지우가 나란히 걷는다.",
+        "SCRIPT",
     ),
 }
 
@@ -173,6 +182,17 @@ HANGANG = _candidate(
 )
 
 
+def _with_script_warning(candidate):
+    """엔진이 야외 장면(S12)을 실내 장소에서 찍는 후보에 붙이는 소프트 경고와 같은 모양이다."""
+    warning = {
+        "code": "SCRIPT_EXT_INDOOR",
+        "constraint": "SCRIPT",
+        "message": f"S12는 대본상 야외 장면인데 {josa(candidate['location']['name'], '은')} 실내입니다. 연출 확인이 필요합니다.",
+        "ruleRef": "SCRIPT_SETTING",
+    }
+    return {**candidate, "warnings": [warning]}
+
+
 @dataclass
 class FakeBackendState:
     """가짜 business-mcp가 공유하는 업무 상태입니다."""
@@ -191,6 +211,12 @@ class FakeBackendState:
     top_k: int | None = None
     # 아워플레이스 검색 결과가 없는 상황
     no_alternatives: bool = False
+    # 엔진이 새 장소로는 풀 수 없다고 알려 준 원인(실행 가능한 후보가 없을 때)
+    location_blockers: list[str] = field(default_factory=list)
+    # 아워플레이스 검색 결과를 바꿔 넣는다
+    search_results: list[dict] | None = None
+    # 실내 후보마다 엔진의 대본 소프트 경고(야외 장면을 실내에서 찍음)를 붙인다
+    script_warnings: bool = False
     # 발령된 재난 문자. 비어 있으면 재난 문자가 없다는 조회 결과가 DISASTER 근거가 된다.
     disaster_alerts: list = field(default_factory=list)
     # 검색 결과 조항에 덮어쓸 값(chunk_id -> {"locations": [...], "doc_type": ...}). 고른 안의 장소와 맞는 조항만 세는지 시험한다.
@@ -275,7 +301,8 @@ class FakeMcpClient:
     def _evaluate_plans(self, args):
         self.backend.evaluate_calls.append(args)
         if self.backend.no_feasible:
-            return {"dataVersion": 1, "weights": args["weights"], "feasibleCount": 0, "candidates": [HANGANG]}
+            return {"dataVersion": 1, "weights": args["weights"], "feasibleCount": 0, "candidates": [HANGANG],
+                    "locationProofBlockers": self.backend.location_blockers}
         if self.backend.narrow_constraints:
             excluded = set()
             ranked = [SEONGSU, SEONGSU_MORNING, PAJU]
@@ -287,6 +314,8 @@ class FakeMcpClient:
         ranked = [c for c in ranked if c["hash"] not in (args.get("exclude_hashes") or [])]
         if self.backend.top_k:
             ranked = ranked[: self.backend.top_k]
+        if self.backend.script_warnings:
+            ranked = [_with_script_warning(c) if c["feasible"] and c["location"]["indoor"] else c for c in ranked]
         return {
             "dataVersion": 1,
             "weights": args["weights"],
@@ -333,13 +362,24 @@ class FakeMcpClient:
     def _search_locations(self, args):
         if self.backend.no_alternatives:
             return {"locations": []}
+        if self.backend.search_results is not None:
+            return {"locations": self.backend.search_results}
         return {"locations": [{"id": 1, "name": "일산 실내 스튜디오", "distanceKm": 25, "source": "OURPLACE_MOCK"}]}
 
     def _get_proposal(self, args):
         return {"id": args["proposal_id"], "proposed": {"location": {"name": "성수 스튜디오"}}}
 
     def _search_regulation(self, args):
-        return [self._located(_hit(c)) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] != "CONTRACT"]
+        return [self._located(_hit(c)) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] not in ("CONTRACT", "SCRIPT")]
+
+    def _search_script(self, args):
+        return [_hit("SCRIPT")]
+
+    def _get_actor_schedule(self, args):
+        return {"from": "2026-10-22", "to": "2026-11-04", "actors": []}
+
+    def _find_unplaceable_scenes(self, args):
+        return {"from": "2026-10-22", "to": "2027-01-21", "scenes": []}
 
     def _search_contract_clause(self, args):
         hits = [_hit(c) for c in ("CONTRACT", "SCHEDULE") if EVIDENCE_BY_CONSTRAINT[c][1] == args["contract_doc_id"]]
@@ -503,6 +543,8 @@ BUSINESS_TOOLS = [
     "get_availability",
     "get_weather",
     "get_disaster_alerts",
+    "get_actor_schedule",
+    "find_unplaceable_scenes",
     "search_locations",
     "register_alternative_locations",
     "evaluate_plans",
@@ -511,7 +553,7 @@ BUSINESS_TOOLS = [
     "submit_proposal",
     "commit_plan",
 ]
-RAG_TOOLS = ["search_regulation", "search_contract_clause", "index_document", "delete_document"]
+RAG_TOOLS = ["search_regulation", "search_contract_clause", "search_script", "index_document", "delete_document"]
 OPS_TOOLS = [
     "venue_check", "venue_hold", "venue_confirm", "venue_cancel",
     "rental_quote", "rental_book", "rental_cancel",
@@ -541,9 +583,23 @@ class FakeModel:
     """노드 프롬프트의 첫 줄을 보고 정해진 행동을 돌려주는 가짜 LLM입니다."""
 
     def __init__(
-        self, *, cite_evidence: bool = True, review_misses=None, explanation_extras=None, choose_hash=None, supervisor_skip=()
+        self,
+        *,
+        cite_evidence: bool = True,
+        review_misses=None,
+        explanation_extras=None,
+        drop_equipment: bool = False,
+        checklist_warn=None,
+        unresolved_extra=None,
+        choose_hash=None,
+        supervisor_skip=(),
     ):
         self.cite_evidence = cite_evidence
+        # 설명에 장비 묶음 가운데 첫 장비만 쓰는 모델을 흉내 낸다.
+        self.drop_equipment = drop_equipment
+        # 엔진 판정과 달리 WARN으로 적을 범주와 메모, 실제 변경과 맞지 않는 미확정 항목을 흉내 낸다.
+        self.checklist_warn = dict(checklist_warn or {})
+        self.unresolved_extra = list(unresolved_extra or [])
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
         # 자체 검토 회차마다 아니오로 답할 점검 질문 이름이다. 다 쓰면 마지막 값을 반복한다.
@@ -576,6 +632,7 @@ class FakeModel:
             return _tool_calls(
                 ("rag_search_regulation", {"query": "주 52시간"}),
                 ("rag_search_contract_clause", {"query": "야간 촬영", "contract_doc_id": "contract-actor-a-v3"}),
+                ("rag_search_script", {"query": "변경 대상 씬", "scene_codes": ["S12", "S13"]}),
             )
         if "근거 조회" in task:
             return _tool_calls(("rag_search_regulation", {"query": "강수확률"}), ("business_get_proposal", {"proposal_id": 10}))
@@ -616,20 +673,21 @@ class FakeModel:
             checklist = [
                 {
                     "constraint": c,
-                    "status": "PASS",
-                    "note": "준수",
+                    "status": "WARN" if c in self.checklist_warn else "PASS",
+                    "note": self.checklist_warn.get(c, "준수"),
                     "evidence_ids": [EVIDENCE_BY_CONSTRAINT[c][0]] if self.cite_evidence else [],
                 }
                 for c in HARD_CONSTRAINTS
             ]
-            chosen = re.search(r"## 선택한 후보\n장소 (.+?)\(", text).group(1)
+            chosen, gear = re.search(r"## 선택한 후보\n장소 (.+?)\(\d안\), 장비 (.+?)\(\d안\)", text).groups()
             extra = self.explanation_extras.pop(0) if self.explanation_extras else ""
+            gear = gear.split(", ")[0] if self.drop_equipment else gear
             rejection = re.search(r"## 직전 거절\n거절 사유: (.+?) /", text)
             answered = f"직전 거절 사유인 {rejection.group(1)} 문제를 보완했습니다. " if rejection else ""
             return PlanExplanation(
-                explanation=f"우천으로 {chosen}로 옮깁니다(13시 이후 비 80%). {answered}{extra}".strip(),
+                explanation=f"우천으로 {chosen}로 옮기고 {gear}를 씁니다(13시 이후 비 80%). {answered}{extra}".strip(),
                 checklist=checklist,
-                unresolved=["제작부: 예약 확정, 승인 후 1시간 안"],
+                unresolved=["제작부: 예약 확정, 승인 후 1시간 안", *self.unresolved_extra],
                 needs_more_info=False,
                 thought=THOUGHT,
             )

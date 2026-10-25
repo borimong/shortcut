@@ -40,6 +40,10 @@ class EventPublisher(Protocol):
     async def publish(self, event_type: str, payload: dict[str, Any]) -> None: ...
 
 
+class TaskCancelled(Exception):
+    """사람이 재계획을 중단해 backend가 진행 이벤트를 더 받지 않는 작업이다. 재시도하지 않고 조용히 끝낸다."""
+
+
 class BackendEventPublisher:
     """backend 내부 API로 진행 이벤트를 보내면 backend가 SSE로 화면에 중계합니다."""
 
@@ -55,11 +59,21 @@ class BackendEventPublisher:
                 response = await self._client.post(
                     f"/internal/ai/tasks/{self._task_id}/events", json={"type": event_type, "payload": payload}
                 )
+                if response.status_code == 409 and _error_code(response) == "TASK_CANCELLED":
+                    # 다음 노드로 가지 않도록 그래프 밖까지 올려 보낸다. 진행 표시 실패와 달리 삼키지 않는다.
+                    raise TaskCancelled(self._task_id)
                 response.raise_for_status()
                 return
             except httpx.HTTPError as error:
                 log_event("event_publish_failed", trace_id=self._trace_id, type=event_type, attempt=attempt, error=str(error))
                 await asyncio.sleep(0.5)
+
+
+def _error_code(response: httpx.Response) -> str | None:
+    try:
+        return response.json().get("code")
+    except ValueError:
+        return None
 
 
 def langsmith_enabled() -> bool:

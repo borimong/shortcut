@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shortcut.engine.SceneSlot;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,8 @@ public class JsonColumns {
     private static final TypeReference<List<Long>> LONG_LIST = new TypeReference<>() {
     };
     private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {
+    };
+    private static final TypeReference<List<SceneSlot>> SCENE_SLOTS = new TypeReference<>() {
     };
 
     private final ObjectMapper mapper;
@@ -50,6 +53,11 @@ public class JsonColumns {
 
     public List<String> strings(String json) {
         return read(json, STRING_LIST);
+    }
+
+    /** 씬 시각표다. 씬 순서를 남기기 전에 만든 행은 비어 있어 빈 목록으로 읽는다. */
+    public List<SceneSlot> sceneSlots(String json) {
+        return json == null ? List.of() : read(json, SCENE_SLOTS);
     }
 
     private <T> T read(String json, TypeReference<T> type) {

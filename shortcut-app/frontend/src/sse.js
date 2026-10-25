@@ -1,6 +1,6 @@
 import { useAuthStore } from './stores/auth.js'
 
-export const TERMINAL_EVENTS = ['DONE', 'FAILED', 'NEEDS_HUMAN', 'SUPERSEDED']
+export const TERMINAL_EVENTS = ['DONE', 'FAILED', 'NEEDS_HUMAN', 'SUPERSEDED', 'CANCELLED']
 
 // EventSource는 Authorization 헤더를 붙일 수 없어서 서버와 약속한 access_token 쿼리로 토큰을 보낸다.
 // after를 주면 그 이벤트 id 다음부터 받는다. 작업이 끝나 닫힌 스트림을 수정 요청 뒤에 이어 열 때 쓴다.

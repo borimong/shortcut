@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CircleAlert, Info } from '@lucide/vue'
+import { CircleAlert, Info, Plus, X } from '@lucide/vue'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -14,6 +14,7 @@ import { api } from '../api.js'
 import { useShootDayStore } from '../stores/shootDay.js'
 import { useToastStore } from '../stores/toast.js'
 import { EVENT_TYPES } from '../labels.js'
+import { dateTime } from '../format.js'
 
 const router = useRouter()
 const toast = useToastStore()
@@ -27,8 +28,29 @@ const error = ref(null)
 
 // 문장(상세 내용)은 Agent가 읽고, 아래 구조화된 값은 backend가 촬영 데이터에 바로 반영해 엔진이 판정에 쓴다.
 const options = ref(null)
+const weather = ref(null)
 const rain = ref({ locationId: null, fromHour: 13, toHour: 17, mm: 8 })
-const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00' })
+// 배우 일정 변경은 배우마다 한 줄이다. 여러 배우의 일정이 함께 바뀌면 줄을 더해 한 번에 접수한다(백엔드는 변경 10건까지 받는다).
+const MAX_ACTOR_ROWS = 10
+const actorRow = (actorId) => ({ actorId, mode: 'ABSENT', from: '09:00', to: '15:00', reasonKind: 'OTHER_PRODUCTION' })
+const actors = ref([actorRow(null)])
+
+function addActorRow() {
+  const used = new Set(actors.value.map((r) => r.actorId))
+  const next = options.value?.actors.find((a) => !used.has(a.id))?.id ?? options.value?.actors[0]?.id ?? null
+  actors.value.push(actorRow(next))
+}
+
+function removeActorRow(index) {
+  actors.value.splice(index, 1)
+}
+// 배우 다른 일정의 사유 종류다. 개인 사정은 적지 않고 종류만 고른다.
+const REASON_OPTIONS = [
+  ['OTHER_PRODUCTION', '타 작품'],
+  ['PROMOTION', '광고와 행사'],
+  ['PERSONAL', '개인 일정'],
+  ['TRAVEL', '이동 일정']
+]
 const cancelLocationId = ref(null)
 const brokenEquipment = ref([])
 const disaster = ref({ region: '', alertKind: '호우 경보', from: '13:00', to: '17:00' })
@@ -39,17 +61,53 @@ const selectClass =
   'h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 onMounted(async () => {
+  let shootDayId
   try {
-    const o = await api(`/events/options?shootDayId=${await shootDay.ensure()}`)
+    shootDayId = await shootDay.ensure()
+    const o = await api(`/events/options?shootDayId=${shootDayId}`)
     options.value = o
     rain.value.locationId = o.pmLocationId
     cancelLocationId.value = o.pmLocationId
-    actor.value.actorId = o.actors[0]?.id ?? null
+    actors.value[0].actorId = o.actors[0]?.id ?? null
     disaster.value.region = o.locations.find((l) => l.id === o.pmLocationId)?.region ?? o.regions[0] ?? ''
   } catch (e) {
     error.value = e
+    return
   }
+  try {
+    weather.value = await api(`/weather?shootDayId=${shootDayId}`)
+  } catch {
+    // 예보를 못 읽어도 직접 입력하면 되므로 기본값을 둔다.
+  }
+  fillRainFromForecast()
 })
+
+// 고른 장소의 실시간 예보다. 시드 예보를 쓰는 중이면 null이라 시연 기본값(13~17시 8mm)을 그대로 둔다.
+const rainForecast = computed(() => {
+  if (weather.value?.weatherSource !== 'LIVE') return null
+  return weather.value.locations.find((l) => l.locationId === rain.value.locationId) ?? null
+})
+const rainForecastMax = computed(() => {
+  const hours = (rainForecast.value?.hourly ?? []).filter((h) => h.hour >= rain.value.fromHour && h.hour <= rain.value.toHour)
+  return Math.max(0, ...hours.map((h) => h.precipMm))
+})
+
+// 실시간 예보를 쓰는 중이면 고른 장소의 예보로 우천 칸을 채운다. 비가 예보된 시간대가 있으면 그 시간대와 최대 강수량을,
+// 없으면 지금 시간대의 예보 강수량(대개 0mm)을 넣는다. 사람은 이 값을 현장에서 들은 비 소식으로 고쳐 넣는다.
+function fillRainFromForecast() {
+  const f = rainForecast.value
+  if (!f?.hourly.length) return
+  const rainy = f.hourly.filter((h) => h.precipMm >= weather.value.rainWarnMm)
+  if (rainy.length) {
+    rain.value.fromHour = rainy[0].hour
+    rain.value.toHour = rainy.at(-1).hour
+    rain.value.mm = Math.max(...rainy.map((h) => h.precipMm))
+    return
+  }
+  rain.value.mm = rainForecastMax.value
+}
+
+watch(() => rain.value.locationId, fillRainFromForecast)
 
 const nameOf = (list, id) => (options.value?.[list] ?? []).find((x) => x.id === id)?.name ?? ''
 
@@ -62,10 +120,13 @@ const changes = computed(() => {
         ? [{ kind: 'RAIN_FORECAST', targetId: rain.value.locationId, fromHour: rain.value.fromHour, toHour: rain.value.toHour, mm: Number(rain.value.mm) }]
         : []
     case 'ACTOR_SCHEDULE':
-      if (!actor.value.actorId) return []
-      return actor.value.mode === 'ABSENT'
-        ? [{ kind: 'ACTOR_ABSENT', targetId: actor.value.actorId }]
-        : [{ kind: 'ACTOR_WINDOW', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to }]
+      return actors.value
+        .filter((r) => r.actorId)
+        .map((r) => {
+          if (r.mode === 'ABSENT') return { kind: 'ACTOR_ABSENT', targetId: r.actorId }
+          if (r.mode === 'BUSY') return { kind: 'ACTOR_BUSY', targetId: r.actorId, from: r.from, to: r.to, reasonKind: r.reasonKind }
+          return { kind: 'ACTOR_WINDOW', targetId: r.actorId, from: r.from, to: r.to }
+        })
     case 'LOCATION_CANCEL':
       return cancelLocationId.value ? [{ kind: 'LOCATION_UNAVAILABLE', targetId: cancelLocationId.value }] : []
     case 'EQUIPMENT_FAILURE':
@@ -88,6 +149,8 @@ const summary = computed(() =>
         return `${nameOf('actors', c.targetId)} 오늘 촬영 불참`
       case 'ACTOR_WINDOW':
         return `${nameOf('actors', c.targetId)} 가용 시간 ${c.from}~${c.to}`
+      case 'ACTOR_BUSY':
+        return `${nameOf('actors', c.targetId)} ${c.from}~${c.to} 다른 일정(${REASON_OPTIONS.find(([k]) => k === c.reasonKind)?.[1] ?? ''})`
       case 'LOCATION_UNAVAILABLE':
         return `${nameOf('locations', c.targetId)} 사용 불가`
       case 'EQUIPMENT_UNAVAILABLE':
@@ -189,32 +252,59 @@ async function submit() {
                   <FieldLabel for="rain-mm">시간당 강수량 (mm)</FieldLabel>
                   <Input id="rain-mm" v-model="rain.mm" type="number" min="0" max="300" step="0.5" />
                 </Field>
+                <p v-if="rainForecast?.forecast.manual" class="text-xs text-muted-foreground sm:col-span-2 sm:self-end">
+                  이 장소는 이미 넣은 강수량(현장 입력)이 예보보다 우선합니다. 그 값을 반영하면 이 시간대 최대 시간당 {{ rainForecastMax }}mm입니다.
+                </p>
+                <p v-else-if="rainForecast?.hourly.length" class="text-xs text-muted-foreground sm:col-span-2 sm:self-end">
+                  실시간 예보({{ dateTime(rainForecast.forecast.updatedAt) }} 갱신)로는 이 시간대 최대 시간당 {{ rainForecastMax }}mm입니다.
+                  현장에서 들은 비 소식이 다르면 고쳐 넣으세요.
+                </p>
+                <p v-else-if="rainForecast" class="text-xs text-destructive sm:col-span-2 sm:self-end">
+                  이 장소는 실시간 예보를 아직 받지 못했습니다. 현장에서 들은 강수량을 넣어 주세요.
+                </p>
               </div>
 
-              <div v-else-if="type === 'ACTOR_SCHEDULE'" class="grid gap-3 sm:grid-cols-4">
-                <Field class="sm:col-span-2">
-                  <FieldLabel for="actor">배우</FieldLabel>
-                  <select id="actor" v-model="actor.actorId" :class="selectClass">
-                    <option v-for="a in options.actors" :key="a.id" :value="a.id">{{ a.name }} (현재 {{ a.availableFrom }}~{{ a.availableTo }})</option>
-                  </select>
-                </Field>
-                <Field class="sm:col-span-2">
-                  <FieldLabel for="actor-mode">변경</FieldLabel>
-                  <select id="actor-mode" v-model="actor.mode" :class="selectClass">
-                    <option value="ABSENT">오늘 불참</option>
-                    <option value="WINDOW">가용 시간 변경</option>
-                  </select>
-                </Field>
-                <template v-if="actor.mode === 'WINDOW'">
+              <div v-else-if="type === 'ACTOR_SCHEDULE'" class="flex flex-col gap-3">
+                <div v-for="(row, i) in actors" :key="i" class="grid gap-3 rounded-md border p-3 sm:grid-cols-4">
                   <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-from">가용 시작</FieldLabel>
-                    <Input id="actor-from" v-model="actor.from" type="time" />
+                    <FieldLabel :for="`actor-${i}`">배우</FieldLabel>
+                    <select :id="`actor-${i}`" v-model="row.actorId" :class="selectClass">
+                      <option v-for="a in options.actors" :key="a.id" :value="a.id">{{ a.name }} (현재 {{ a.availableFrom }}~{{ a.availableTo }})</option>
+                    </select>
                   </Field>
                   <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-to">가용 끝</FieldLabel>
-                    <Input id="actor-to" v-model="actor.to" type="time" />
+                    <div class="flex items-center justify-between">
+                      <FieldLabel :for="`actor-mode-${i}`">변경</FieldLabel>
+                      <Button v-if="actors.length > 1" type="button" variant="ghost" size="sm" :aria-label="`${i + 1}번째 배우 줄 삭제`" @click="removeActorRow(i)">
+                        <X data-icon="inline-start" />삭제
+                      </Button>
+                    </div>
+                    <select :id="`actor-mode-${i}`" v-model="row.mode" :class="selectClass">
+                      <option value="ABSENT">오늘 불참</option>
+                      <option value="WINDOW">가용 시간 변경</option>
+                      <option value="BUSY">다른 일정 추가(소속사 회신)</option>
+                    </select>
                   </Field>
-                </template>
+                  <template v-if="row.mode === 'WINDOW' || row.mode === 'BUSY'">
+                    <Field class="sm:col-span-2">
+                      <FieldLabel :for="`actor-from-${i}`">{{ row.mode === 'BUSY' ? '다른 일정 시작' : '가용 시작' }}</FieldLabel>
+                      <Input :id="`actor-from-${i}`" v-model="row.from" type="time" />
+                    </Field>
+                    <Field class="sm:col-span-2">
+                      <FieldLabel :for="`actor-to-${i}`">{{ row.mode === 'BUSY' ? '다른 일정 끝' : '가용 끝' }}</FieldLabel>
+                      <Input :id="`actor-to-${i}`" v-model="row.to" type="time" />
+                    </Field>
+                    <Field v-if="row.mode === 'BUSY'" class="sm:col-span-2">
+                      <FieldLabel :for="`actor-reason-${i}`">사유 종류</FieldLabel>
+                      <select :id="`actor-reason-${i}`" v-model="row.reasonKind" :class="selectClass">
+                        <option v-for="[value, label] in REASON_OPTIONS" :key="value" :value="value">{{ label }}</option>
+                      </select>
+                    </Field>
+                  </template>
+                </div>
+                <Button type="button" variant="outline" class="self-start" :disabled="actors.length >= MAX_ACTOR_ROWS" @click="addActorRow">
+                  <Plus data-icon="inline-start" />배우 추가
+                </Button>
               </div>
 
               <Field v-else-if="type === 'LOCATION_CANCEL'">

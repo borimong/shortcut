@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '../api.js'
@@ -23,7 +24,7 @@ const settings = ref(null)
 const rules = ref(null)
 const roleOptions = ref([])
 const members = ref([])
-const saving = ref({ settings: false, rules: false, rain: false })
+const saving = ref({ settings: false, rules: false, rain: false, weather: false })
 const confirmWithdraw = ref(null)
 
 // 변경안에서 무엇이 바뀌었을 때 그 역할의 승인을 받을지다. 항상은 모든 변경안에 적용된다.
@@ -32,6 +33,7 @@ const CHANGE_KINDS = [
   { value: 'LOCATION', label: '장소 변경', hint: '촬영지가 바뀔 때' },
   { value: 'EQUIPMENT', label: '장비 변경', hint: '장비 구성이 바뀔 때' },
   { value: 'TIME', label: '시간 변경', hint: '촬영 시간대가 바뀔 때' },
+  { value: 'SCENE', label: '씬 순서 변경', hint: '블록 안 씬 순서가 바뀔 때' },
   { value: 'COST', label: '추가 비용', hint: '비용이 늘어날 때' }
 ]
 
@@ -58,6 +60,7 @@ async function saveSettings() {
       rainBlockMm: Number(settings.value.rainBlockMm),
       rainWarnMm: Number(settings.value.rainWarnMm),
       rainAlertLeadHours: Number(settings.value.rainAlertLeadHours),
+      weatherSource: settings.value.weatherSource,
       mockVenueConflict: !!settings.value.mockVenueConflict,
       mockPermitDenied: !!settings.value.mockPermitDenied
     }
@@ -79,6 +82,20 @@ async function checkRain() {
     toast.error(e)
   } finally {
     saving.value.rain = false
+  }
+}
+
+async function refreshWeather() {
+  saving.value.weather = true
+  try {
+    const res = await api('/admin/weather/refresh', { method: 'POST' })
+    const failed = res.failed.length ? ` 받지 못한 곳(마지막 예보 사용): ${res.failed.join(', ')}` : ''
+    const bumped = res.dataVersionBumped ? ` 비 예보가 기준을 넘나들어 촬영일 ${res.dataVersionBumped}곳의 대기 변경안을 무효로 돌렸습니다.` : ''
+    toast.info(`날씨 예보를 갱신했습니다(촬영일별 장소 ${res.updated}건).${failed}${bumped}`)
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    saving.value.weather = false
   }
 }
 
@@ -170,6 +187,19 @@ const leftMembers = computed(() => members.value.filter((m) => !m.active))
               <Input id="rain-lead" v-model="settings.rainAlertLeadHours" type="number" min="0" max="48" required />
               <FieldDescription>비가 시작되는 촬영 시각보다 이만큼 먼저 전 스태프에게 "비로 촬영 불가" 알림을 보냅니다.</FieldDescription>
             </Field>
+            <Field>
+              <FieldLabel for="weather-source">날씨 예보</FieldLabel>
+              <Select v-model="settings.weatherSource">
+                <SelectTrigger id="weather-source" class="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LIVE">실시간 예보 (Open-Meteo, 1시간마다 갱신)</SelectItem>
+                  <SelectItem value="SEED">시연용 고정 예보 (1회차 한강 공원 13시부터 8mm)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription>실시간 예보는 장소 위경도로 받습니다. 시연 날 비가 오지 않으면 고정 예보로 바꿉니다. 변경 입력으로 넣은 강수량은 어느 쪽이든 예보보다 우선합니다.</FieldDescription>
+            </Field>
           </FieldGroup>
           <!-- 가상 외부 서비스가 일부러 실패하게 만들어 실행팀의 뒤 단계 중단, 재지시, 사람 보고를 시연한다 -->
           <FieldGroup class="mt-6 gap-3">
@@ -190,6 +220,9 @@ const leftMembers = computed(() => members.value.filter((m) => !m.active))
             </Field>
           </FieldGroup>
           <div class="mt-4 flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" :disabled="saving.weather" @click="refreshWeather">
+              <Spinner v-if="saving.weather" data-icon="inline-start" />지금 예보 갱신
+            </Button>
             <Button type="button" variant="outline" :disabled="saving.rain" @click="checkRain">
               <Spinner v-if="saving.rain" data-icon="inline-start" />지금 우천 알림 확인
             </Button>

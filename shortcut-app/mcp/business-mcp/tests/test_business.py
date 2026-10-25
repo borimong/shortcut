@@ -19,6 +19,7 @@ from business_mcp.server import BackendClient, build_server
 AGENT_TOOLS = {
     "get_entity_context", "find_impacted_entities", "link_entity",
     "get_plan_set", "get_availability", "get_weather", "get_disaster_alerts",
+    "get_actor_schedule", "find_unplaceable_scenes",
     "search_locations", "register_alternative_locations",
     "evaluate_plans", "validate_plan", "get_proposal", "submit_proposal", "commit_plan",
 }
@@ -123,6 +124,22 @@ def test_submit_proposal_maps_snake_case_to_camel_case():
     assert body["checklist"][0]["evidenceIds"] == ["law-labor-standards#2"]
     assert body["evidence"][0]["docId"] == "law-labor-standards"
     assert body["dataVersion"] == 4 and body["taskId"] == 3
+
+
+def test_validate_plan_sends_scene_order_only_when_given():
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"valid": True, "sceneOrderChanged": True})
+
+    server = make_server(handler)
+    candidate = {"location_id": 2, "equipment_ids": [5, 1], "start": "14:00", "end": "16:00"}
+    call(server, "validate_plan",
+         {"shoot_day_id": 2, "candidate": {**candidate, "scene_order": ["S19", "S18"]}, "data_version": 1})
+    call(server, "validate_plan", {"shoot_day_id": 2, "candidate": candidate, "data_version": 1})
+    assert bodies[0]["candidate"]["sceneOrder"] == ["S19", "S18"]
+    assert "sceneOrder" not in bodies[1]["candidate"]
 
 
 def test_paths_for_read_tools():
@@ -247,3 +264,39 @@ def test_register_alternative_locations_backend_contract():
     assert captured["path"] == "/internal/shoot-days/1/alternative-locations"
     assert captured["body"] == {"externalLocationIds": [1], "keywords": ["실내", "자연광"]}
     assert data(result)["registered"][0]["locationId"] == 101
+
+
+def test_actor_schedule_and_unplaceable_scene_paths():
+    paths = []
+
+    def handler(request):
+        paths.append((request.url.path, dict(request.url.params)))
+        return httpx.Response(200, json={"from": "2026-10-22", "to": "2026-10-28", "actors": []})
+
+    server = make_server(handler)
+    call(server, "get_actor_schedule", {"shoot_day_id": 2, "actor_ids": [1, 3], "from_date": "2026-10-22", "days": 7})
+    call(server, "get_actor_schedule", {"shoot_day_id": 1})
+    call(server, "find_unplaceable_scenes", {"shoot_day_id": 1})
+    assert paths[0] == ("/internal/shoot-days/2/actor-schedule", {"days": "7", "actorIds": "1,3", "from": "2026-10-22"})
+    assert paths[1] == ("/internal/shoot-days/1/actor-schedule", {"days": "14"})
+    assert paths[2][0] == "/internal/shoot-days/1/unplaceable-scenes"
+
+
+def test_actor_schedule_rejects_too_many_days_before_backend_call():
+    server = make_server(lambda request: pytest.fail("backend를 부르면 안 된다"))
+    with pytest.raises(ToolError):
+        call(server, "get_actor_schedule", {"shoot_day_id": 1, "days": 60})
+
+
+def test_require_setting_match_constraint_reaches_backend():
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"dataVersion": 1, "weights": {}, "feasibleCount": 0, "candidates": []})
+
+    server = make_server(handler)
+    call(server, "evaluate_plans", {"shoot_day_id": 1, "extra_constraints": [
+        {"type": "REQUIRE_SETTING_MATCH", "reason": "야외 장면은 야외에서", "source": "연출감독"}]})
+    assert bodies[0]["extraConstraints"] == [
+        {"type": "REQUIRE_SETTING_MATCH", "reason": "야외 장면은 야외에서", "source": "연출감독"}]

@@ -12,6 +12,8 @@ public final class ProposalStatus {
     /** 승인 대기 중 촬영 데이터가 바뀌어 무효가 된 변경안이다. */
     public static final String STALE = "STALE";
     public static final String COMMITTED = "COMMITTED";
+    /** 재계획을 중단하면서 함께 거둔 변경안이다(CancelService). */
+    public static final String WITHDRAWN = "WITHDRAWN";
     /** 다른 승인자의 거절이나 무효로 더 받을 필요가 없어진 승인이다. */
     public static final String CANCELLED = "CANCELLED";
 

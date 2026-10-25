@@ -1,6 +1,7 @@
 package com.shortcut.repository;
 
 import com.shortcut.domain.AppSettings;
+import com.shortcut.engine.ApproverRule;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -32,10 +33,13 @@ public class SettingsRepository {
     public void updateSettings(AppSettings settings, String updatedBy) {
         jdbc.sql("""
                         INSERT INTO app_settings (id, max_loops, rain_block_mm, rain_warn_mm, rain_alert_lead_hours,
-                                                  mock_venue_conflict, mock_permit_denied, updated_by, updated_at)
-                        VALUES (1, :maxLoops, :blockMm, :warnMm, :leadHours, :venueConflict, :permitDenied, :by, now())
+                                                  weather_source, mock_venue_conflict, mock_permit_denied,
+                                                  updated_by, updated_at)
+                        VALUES (1, :maxLoops, :blockMm, :warnMm, :leadHours, :weatherSource, :venueConflict, :permitDenied,
+                                :by, now())
                         ON CONFLICT (id) DO UPDATE SET max_loops = EXCLUDED.max_loops, rain_block_mm = EXCLUDED.rain_block_mm,
                             rain_warn_mm = EXCLUDED.rain_warn_mm, rain_alert_lead_hours = EXCLUDED.rain_alert_lead_hours,
+                            weather_source = EXCLUDED.weather_source,
                             mock_venue_conflict = EXCLUDED.mock_venue_conflict,
                             mock_permit_denied = EXCLUDED.mock_permit_denied,
                             updated_by = EXCLUDED.updated_by, updated_at = now()
@@ -44,6 +48,7 @@ public class SettingsRepository {
                 .param("blockMm", settings.rainBlockMm())
                 .param("warnMm", settings.rainWarnMm())
                 .param("leadHours", settings.rainAlertLeadHours())
+                .param("weatherSource", settings.weatherSource())
                 .param("venueConflict", settings.mockVenueConflict())
                 .param("permitDenied", settings.mockPermitDenied())
                 .param("by", updatedBy)
@@ -51,11 +56,11 @@ public class SettingsRepository {
     }
 
     /**
-     * 변경 종류별 필수 승인자 역할이다. 키 순서는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST로 고정한다.
+     * 변경 종류별 필수 승인자 역할이다. 키 순서는 ApproverRule.CHANGE_KINDS(ALWAYS, LOCATION, EQUIPMENT, TIME, SCENE, COST)다.
      */
     public Map<String, List<String>> approverRules() {
         Map<String, List<String>> rules = new LinkedHashMap<>();
-        for (String kind : List.of("ALWAYS", "LOCATION", "EQUIPMENT", "TIME", "COST")) {
+        for (String kind : ApproverRule.CHANGE_KINDS) {
             rules.put(kind, jdbc.sql("SELECT role FROM approver_rules WHERE change_kind = :kind ORDER BY role")
                     .param("kind", kind)
                     .query(String.class)
@@ -75,7 +80,7 @@ public class SettingsRepository {
 
     private static AppSettings map(ResultSet rs, int row) throws SQLException {
         return new AppSettings(rs.getInt("max_loops"), rs.getDouble("rain_block_mm"), rs.getDouble("rain_warn_mm"),
-                rs.getInt("rain_alert_lead_hours"), rs.getBoolean("mock_venue_conflict"),
+                rs.getInt("rain_alert_lead_hours"), rs.getString("weather_source"), rs.getBoolean("mock_venue_conflict"),
                 rs.getBoolean("mock_permit_denied"), rs.getString("updated_by"),
                 rs.getObject("updated_at", OffsetDateTime.class));
     }

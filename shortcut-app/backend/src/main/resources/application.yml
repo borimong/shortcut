@@ -14,6 +14,8 @@ spring:
   sql:
     init:
       mode: always
+      # 기본 시드 → 대본(대본 파일에서 만든 값) → 제작부 분해·씬 배정·배우 일정 순서다. 외래키가 이 순서를 따른다.
+      data-locations: classpath:data.sql,classpath:data-script.sql,classpath:data-schedule.sql
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}
@@ -29,6 +31,10 @@ shortcut:
   internal-token: ${INTERNAL_TOKEN:local-internal-token}
   worker:
     fail-first-attempt: ${WORKER_FAIL_FIRST_ATTEMPT:false}
+  weather:
+    open-meteo-url: ${OPEN_METEO_URL:https://api.open-meteo.com}
+    api-key: ${OPEN_METEO_API_KEY:}
+    fetch-enabled: ${WEATHER_FETCH_ENABLED:true}
 
 management:
   endpoints:

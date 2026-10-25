@@ -1,10 +1,16 @@
 package com.shortcut.dto;
 
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.SceneCharacter;
+import com.shortcut.domain.SceneRequirement;
 import com.shortcut.dto.BoardDtos.EquipmentView;
+import com.shortcut.dto.BoardDtos.ForecastView;
 import com.shortcut.dto.BoardDtos.HourlyView;
+import com.shortcut.dto.ScheduleDtos.BusyView;
+import com.shortcut.dto.ScheduleDtos.WindowView;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.Finding;
+import com.shortcut.engine.SceneSlot;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,14 +29,22 @@ public final class PlanDtos {
                                   List<ExtraConstraint> extraConstraints, List<String> excludeHashes) {
     }
 
+    /**
+     * locationProofBlockers는 실행 가능한 후보가 없을 때 새 장소(4안)로는 풀 수 없는 원인이다(배우 일정, 세트 고정 등).
+     * 비어 있지 않으면 대체 장소를 찾지 말고 사람에게 이 원인을 넘긴다. 잘라 낸 후보까지 모두 보고 정한다.
+     */
     public record EvaluateResponse(int dataVersion, Map<String, Double> weights, long feasibleCount,
-                                   List<CandidateView> candidates) {
+                                   List<CandidateView> candidates, List<String> locationProofBlockers) {
     }
 
+    /**
+     * sceneOrder는 이 후보로 찍을 오후 블록 씬 시각표다. 지금 순서로 배우 일정이나 해에 막히면 엔진이 순서를 바꾸고
+     * sceneOrderChanged가 true가 된다. 그 순서를 validate와 변경안에 그대로 넘긴다.
+     */
     public record CandidateView(String hash, CandidateLocation location, CandidateEquipment equipment,
                                 CandidateTime time, boolean feasible, List<Finding> violations, List<Finding> warnings,
                                 Map<String, Double> softScores, double totalScore, long cost, long extraCost,
-                                double distanceKm) {
+                                double distanceKm, List<SceneSlot> sceneOrder, boolean sceneOrderChanged) {
     }
 
     public record CandidateLocation(int optionNo, long id, String name, boolean indoor) {
@@ -54,22 +68,32 @@ public final class PlanDtos {
                                   List<ExtraConstraint> extraConstraints, @NotNull Integer dataVersion) {
     }
 
+    /** sceneOrder는 오후 블록 씬 코드 순서다. 비우면 엔진이 후보 평가 때와 같은 방법으로 고른다. */
     public record CandidateInput(@NotNull Long locationId, @NotNull List<Long> equipmentIds,
-                                 @NotNull LocalTime start, @NotNull LocalTime end) {
+                                 @NotNull LocalTime start, @NotNull LocalTime end, List<String> sceneOrder) {
     }
 
+    /** sceneOrder는 판정에 쓴 씬 시각표다. */
     public record ValidateResponse(boolean valid, boolean stale, int dataVersion, List<Finding> violations,
-                                   List<Finding> warnings) {
+                                   List<Finding> warnings, List<SceneSlot> sceneOrder, boolean sceneOrderChanged) {
     }
 
     public record PlanSetResponse(long shootDayId, int dataVersion, PlanBlock block, PlanCurrent current,
                                   List<PlanOptionView> options) {
     }
 
-    public record PlanBlock(String code, int durationMin, List<PlanScene> scenes, List<Long> actorIds) {
+    /** sunrise, sunset은 낮/밤 대본 규칙에 쓰는 그날의 일출과 일몰이다. */
+    public record PlanBlock(String code, int durationMin, List<PlanScene> scenes, List<Long> actorIds,
+                            LocalTime sunrise, LocalTime sunset) {
     }
 
-    public record PlanScene(String code, String title, int durationMin, List<Long> actorIds, boolean outdoorIntent) {
+    /**
+     * 씬과 대본 분해 값이다. outdoorIntent는 예전 이름이고 intExt가 EXT인지와 같다.
+     * characters의 actorId가 비어 있으면 캐스팅 전 배역이고, requirements의 level은 MUST(필수) 또는 WANT(선호)다.
+     */
+    public record PlanScene(String code, String title, int durationMin, List<Long> actorIds, boolean outdoorIntent,
+                            String heading, String intExt, String timeOfDay, String setting, boolean settingLocked,
+                            Long locationId, List<SceneCharacter> characters, List<SceneRequirement> requirements) {
     }
 
     public record PlanCurrent(PlanLocation location, List<EquipmentView> equipment, LocalTime start, LocalTime end,
@@ -88,9 +112,14 @@ public final class PlanDtos {
                                        List<Equipment> equipment, double crewWeeklyHoursUsed) {
     }
 
+    /**
+     * availableFrom~To는 계약 기본 시간(변경 입력의 가용 시간 반영)이다. 그날 실제로 쓰는 값은 off, windows, busy다.
+     * busy에는 개인 사정 대신 사유 종류만 담는다.
+     */
     public record ActorAvailability(long id, String name, LocalTime availableFrom, LocalTime availableTo,
                                     double weeklyHoursUsed, String contractDocId, boolean noNight,
-                                    Double maxDailyHours) {
+                                    Double maxDailyHours, boolean off, String offReason, List<WindowView> windows,
+                                    List<BusyView> busy) {
     }
 
     public record LocationAvailability(long id, String name, boolean indoor, String region, LocalTime openFrom,
@@ -98,10 +127,13 @@ public final class PlanDtos {
                                        boolean noFlyZone, String note, boolean available) {
     }
 
-    public record WeatherResponse(LocalDate date, List<LocationWeather> locations, double rainBlockMm, double rainWarnMm) {
+    /** weatherSource는 관리자 설정의 예보 선택(SEED 또는 LIVE)이다. 장소마다 실제로 쓴 예보는 forecast에 있다. */
+    public record WeatherResponse(LocalDate date, List<LocationWeather> locations, double rainBlockMm, double rainWarnMm,
+                                  String weatherSource) {
     }
 
-    public record LocationWeather(long locationId, String name, boolean indoor, List<HourlyView> hourly) {
+    public record LocationWeather(long locationId, String name, boolean indoor, List<HourlyView> hourly,
+                                  ForecastView forecast) {
     }
 
     public record ExternalLocationView(long id, String name, boolean indoor, String region, double distanceKm,

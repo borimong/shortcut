@@ -14,6 +14,7 @@ import com.shortcut.dto.ResourceDtos.ResourceChangeResult;
 import com.shortcut.security.JwtService;
 import com.shortcut.service.EventService;
 import com.shortcut.service.ResourceService;
+import com.shortcut.service.ScheduleService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -44,6 +45,9 @@ class ResourceControllerTest {
 
     @MockitoBean
     private EventService events;
+
+    @MockitoBean
+    private ScheduleService schedules;
 
     @Test
     void 토큰이_없으면_401이다() throws Exception {

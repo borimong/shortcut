@@ -177,6 +177,32 @@ def test_all_models_failing_raises_model_unavailable():
         run(call_with_recovery(failing, failing, sleep=no_sleep))
 
 
+def test_cancelled_task_stops_the_graph_instead_of_retrying_the_event():
+    import httpx
+    import pytest
+
+    from app.harness.observability import BackendEventPublisher, TaskCancelled
+
+    posted = []
+
+    def handler(request):
+        posted.append(request.url.path)
+        if len(posted) == 1:
+            return httpx.Response(200)
+        return httpx.Response(409, json={"code": "TASK_CANCELLED", "message": "중단한 작업입니다: 7"})
+
+    async def scenario():
+        async with httpx.AsyncClient(base_url="http://backend", transport=httpx.MockTransport(handler)) as client:
+            events = BackendEventPublisher(client, "7", "trace")
+            await events.publish("NODE", {"node": "detect_change"})
+            with pytest.raises(TaskCancelled):
+                await events.publish("NODE", {"node": "analyze_impact"})
+
+    asyncio.run(scenario())
+    # 중단 응답은 다시 보내지 않는다(진행 표시 실패는 두 번 시도한다).
+    assert posted == ["/internal/ai/tasks/7/events", "/internal/ai/tasks/7/events"]
+
+
 def test_tool_specs_load_once_when_parallel_agents_ask_at_the_same_time():
     """실행팀 Agent가 Send로 동시에 처음 도구 목록을 읽어도 빈 목록을 보지 않아야 한다."""
     import asyncio as _asyncio

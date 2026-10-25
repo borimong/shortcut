@@ -20,7 +20,7 @@ public record ExtraConstraint(
 
     public static final Set<String> TYPES = Set.of(
             "EXCLUDE_LOCATION", "EXCLUDE_LOCATION_TIME", "EXCLUDE_EQUIPMENT",
-            "MAX_EXTRA_COST", "REQUIRE_INDOOR", "LATEST_END", "EXCLUDE_TIME");
+            "MAX_EXTRA_COST", "REQUIRE_INDOOR", "LATEST_END", "EXCLUDE_TIME", "REQUIRE_SETTING_MATCH");
 
     void validate() {
         if (type == null || !TYPES.contains(type)) {

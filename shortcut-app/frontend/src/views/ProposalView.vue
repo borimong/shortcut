@@ -16,6 +16,7 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyMedia } from '@/components/ui/empty'
 import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
@@ -132,6 +133,18 @@ function sameIds(a, b) {
   return ids(a) === ids(b)
 }
 
+// 오후 블록 씬 시각표를 한 줄로 쓴다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다.
+const sceneLine = (scenes) => (scenes ?? []).map((s) => `${s.code} ${s.start}~${s.end}`).join(' → ')
+
+// 안 번호 4는 1/2/3안 밖의 대체 장소, 5는 1/2/3안에 없던 세트 고정 씬의 세트 장소,
+// 0은 배우 일정에 맞춰 엔진이 만든 시간대(제작사가 검토하지 않은 시간)다.
+function sourceLabel(source) {
+  if (source === 4) return '4안 (대체 장소)'
+  if (source === 5) return '세트 장소 (1/2/3안 밖)'
+  if (source === 0) return '조정 시간 (1/2/3안 밖)'
+  return `${source}안`
+}
+
 const diffRows = computed(() => {
   const p = proposal.value
   if (!p) return []
@@ -139,6 +152,10 @@ const diffRows = computed(() => {
   const n = p.proposed ?? {}
   const src = n.source ?? {}
   const km = p.distanceDeltaKm ?? 0
+  // 배우 일정 때문에 엔진이 블록 안 씬 순서를 바꾼 안이면 순서 줄을 시간대 바로 아래에 둔다.
+  const sceneRow = n.scenes?.length
+    ? [{ label: '씬 순서', from: sceneLine(o.scenes) || '기록 없음', to: sceneLine(n.scenes), changed: !!p.sceneOrderChanged }]
+    : []
   return [
     {
       label: '장소',
@@ -155,6 +172,7 @@ const diffRows = computed(() => {
       source: src.time,
       changed: o.start !== n.start || o.end !== n.end
     },
+    ...sceneRow,
     { label: '비용', from: won(o.cost), to: `${won(n.cost)} (${signedWon(p.extraCost ?? 0)})`, changed: (p.extraCost ?? 0) !== 0 },
     { label: '이동거리', from: '현재 장소 기준', to: `${km > 0 ? '+' : ''}${km}km`, changed: km !== 0 }
   ]
@@ -210,7 +228,7 @@ const scoreRows = computed(() => {
   }))
 })
 
-// 승인 요청에 실린 안의 회차 점수를 항목별로 보여 준다. 5회 도달로 넘어온 경우 가장 높았던 회차다.
+// 승인 요청에 실린 안의 회차 점수를 항목별로 보여 준다. 5회 도달이나 점수 정체로 넘어온 경우 가장 높았던 회차다.
 const review = computed(() => {
   const r = proposal.value?.review
   if (!r?.history?.length) return null
@@ -267,6 +285,26 @@ const myPending = computed(() => {
 function openEvidence(id) {
   const found = (proposal.value?.evidence ?? []).find((e) => e.id === id || e.docId === id)
   evidence.value = found ?? { id, title: id, text: '이 근거의 원문을 변경안에서 찾지 못했습니다.' }
+}
+
+// 확정 전 변경안은 제작 PD나 연출감독이 철회할 수 있다. 재계획 작업을 멈추고 남은 승인 요청을 취소한다.
+const confirmingWithdraw = ref(false)
+const withdrawReason = ref('')
+const withdrawing = ref(false)
+const canWithdraw = computed(() => auth.canSubmitChange && ['PENDING', 'APPROVED'].includes(proposal.value?.status))
+
+async function withdraw() {
+  withdrawing.value = true
+  try {
+    await api(`/ai/tasks/${proposal.value.taskId}/cancel`, { method: 'POST', body: { reason: withdrawReason.value } })
+    confirmingWithdraw.value = false
+    toast.info('변경안을 철회하고 재계획을 멈췄습니다.')
+    await load()
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    withdrawing.value = false
+  }
 }
 
 async function decide(decision) {
@@ -327,7 +365,17 @@ onBeforeUnmount(() => {
           <Button as-child variant="outline" size="sm">
             <RouterLink :to="`/tasks/${proposal.taskId}`">Agent 진행 보기</RouterLink>
           </Button>
+          <Button v-if="canWithdraw && !confirmingWithdraw" variant="outline" size="sm" @click="confirmingWithdraw = true">
+            변경안 철회
+          </Button>
         </div>
+      </div>
+
+      <div v-if="canWithdraw && confirmingWithdraw" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+        <span class="text-sm">이 변경안을 철회하고 재계획을 멈춥니다. 남은 승인 요청은 취소됩니다.</span>
+        <Input v-model="withdrawReason" class="min-w-[220px] flex-1" placeholder="철회 사유 (비워도 됩니다)" maxlength="200" />
+        <Button size="sm" variant="destructive" :disabled="withdrawing" @click="withdraw">철회</Button>
+        <Button size="sm" variant="ghost" :disabled="withdrawing" @click="confirmingWithdraw = false">취소</Button>
       </div>
 
       <Alert v-if="proposal.status === 'REJECTED'" class="flex flex-wrap items-center justify-between gap-3 border-primary/50">
@@ -382,6 +430,7 @@ onBeforeUnmount(() => {
       <Card>
         <CardHeader>
           <CardTitle>원본 대비 변경</CardTitle>
+          <CardAction v-if="proposal.sceneOrderChanged"><Badge variant="info">씬 순서 변경</Badge></CardAction>
         </CardHeader>
         <CardContent class="flex flex-col gap-4">
           <div v-if="strips" class="flex flex-col gap-1.5">
@@ -441,7 +490,7 @@ onBeforeUnmount(() => {
                   <TableCell class="text-muted-foreground">{{ r.from }}</TableCell>
                   <TableCell :class="r.changed ? 'font-semibold' : ''">{{ r.to }}</TableCell>
                   <TableCell>
-                    <Badge v-if="r.source" variant="info">{{ r.source === 4 ? '4안 (대체 장소)' : `${r.source}안` }}</Badge>
+                    <Badge v-if="r.source != null" :variant="r.source === 0 ? 'warning' : 'info'">{{ sourceLabel(r.source) }}</Badge>
                     <span v-else class="text-muted-foreground">계산값</span>
                   </TableCell>
                 </TableRow>
@@ -462,7 +511,7 @@ onBeforeUnmount(() => {
             <span class="text-3xl font-bold tracking-tight">{{ review.score }}</span>
             <span class="text-muted-foreground">/ 100</span>
             <Badge :variant="review.passed ? 'success' : 'warning'" class="ml-1">
-              {{ review.passed ? `${review.rounds}회차 통과` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
+              {{ review.passed ? `${review.rounds}회차 통과` : review.stalled ? `점수가 그대로라 ${review.rounds}회차에서 멈춤, ${review.chosenRound}회차 안으로 요청` : `${review.rounds}회 도달, ${review.chosenRound}회차 안으로 요청` }}
             </Badge>
           </div>
           <ul class="flex flex-col gap-3">

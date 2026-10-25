@@ -6,6 +6,7 @@ import AgentBoard from '../components/AgentBoard.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import ThoughtLog from '../components/ThoughtLog.vue'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
@@ -15,12 +16,14 @@ import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '../api.js'
 import { TERMINAL_EVENTS, openStream } from '../sse.js'
+import { useAuthStore } from '../stores/auth.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, won, ver } from '../format.js'
 import { AGENTS, ARTIFACT_LABELS, METRIC_LABELS, NODE_LABELS, NODE_ORDER, ROLE_TITLES, TOOL_LABELS } from '../labels.js'
 
 const route = useRoute()
 const toast = useToastStore()
+const auth = useAuthStore()
 
 const KIND_LABELS = { REPLAN: '재계획', ASK: '근거 질문' }
 
@@ -36,6 +39,27 @@ const tokenText = ref('')
 const approval = ref(null)
 const result = ref(null)
 const connection = ref('')
+// 재계획 중단 확인 줄이다. 사유는 비워도 된다. 승인을 기다리던 변경안은 함께 철회된다.
+const confirmingCancel = ref(false)
+const cancelReason = ref('')
+const cancelling = ref(false)
+const canCancel = computed(
+  () => task.value?.kind === 'REPLAN' && auth.canSubmitChange && ['QUEUED', 'RUNNING', 'WAITING_APPROVAL'].includes(status.value)
+)
+
+async function cancelTask() {
+  cancelling.value = true
+  try {
+    await api(`/ai/tasks/${route.params.id}/cancel`, { method: 'POST', body: { reason: cancelReason.value } })
+    confirmingCancel.value = false
+    toast.info('재계획을 중단했습니다.')
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    cancelling.value = false
+  }
+}
+
 // Agent 카드 상태와 생각 기록이다. 수정 요청 뒤 스트림을 이어 열려고 마지막으로 받은 이벤트 id를 기억한다.
 const agents = reactive({})
 const thoughts = ref([])
@@ -175,6 +199,14 @@ const handlers = {
     log.value.push({ kind: 'mark', tone: 'warning', text: '사람 확인 필요' })
     status.value = 'NEEDS_HUMAN'
     settleAgents()
+  },
+  // 제작 PD나 연출감독이 재계획을 중단했다. 승인을 기다리던 변경안이 있었으면 함께 철회됐다.
+  CANCELLED(p) {
+    result.value = { type: 'CANCELLED', ...p }
+    approval.value = null
+    log.value.push({ kind: 'mark', tone: 'warning', text: '재계획 중단' })
+    status.value = 'CANCELLED'
+    for (const n of Object.values(nodes)) if (n.status === 'running') n.status = 'failed'
   },
   // 승인을 기다리는 사이 촬영 데이터가 바뀌어 backend가 이 작업을 닫았다.
   SUPERSEDED(p) {
@@ -352,7 +384,17 @@ function describeViolation(v) {
       <div class="flex flex-wrap items-center gap-2">
         <Badge v-if="loop" variant="info">루프 {{ loop }}</Badge>
         <StatusBadge v-if="status" :status="status" />
+        <Button v-if="canCancel && !confirmingCancel" size="sm" variant="outline" @click="confirmingCancel = true">
+          재계획 중단
+        </Button>
       </div>
+    </div>
+
+    <div v-if="canCancel && confirmingCancel" class="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+      <span class="text-sm">재계획을 멈추고, 승인을 기다리는 변경안이 있으면 철회합니다.</span>
+      <Input v-model="cancelReason" class="min-w-[220px] flex-1" placeholder="중단 사유 (비워도 됩니다)" maxlength="200" />
+      <Button size="sm" variant="destructive" :disabled="cancelling" @click="cancelTask">중단</Button>
+      <Button size="sm" variant="ghost" :disabled="cancelling" @click="confirmingCancel = false">취소</Button>
     </div>
 
     <div v-if="!settled" class="flex flex-col gap-5" aria-busy="true" aria-label="진행 기록을 불러오는 중">
@@ -398,7 +440,7 @@ function describeViolation(v) {
         v-if="result"
         :class="{
           'ring-destructive/40': result.type === 'FAILED',
-          'ring-warning/60': result.type === 'NEEDS_HUMAN' || result.type === 'SUPERSEDED'
+          'ring-warning/60': result.type === 'NEEDS_HUMAN' || result.type === 'SUPERSEDED' || result.type === 'CANCELLED'
         }"
       >
         <template v-if="result.type === 'DONE'">
@@ -450,6 +492,19 @@ function describeViolation(v) {
             <p class="break-words">{{ result.error }}</p>
             <Button v-if="result.traceUrl" as-child variant="link" class="h-auto px-0">
               <a :href="result.traceUrl" target="_blank" rel="noopener">추적 기록 보기<ExternalLink data-icon="inline-end" /></a>
+            </Button>
+          </CardContent>
+        </template>
+
+        <template v-else-if="result.type === 'CANCELLED'">
+          <CardHeader>
+            <CardTitle>재계획 중단</CardTitle>
+            <CardDescription>{{ result.by }}님이 이 재계획을 멈췄습니다. 변경 입력으로 넣은 촬영 데이터는 그대로 남습니다.</CardDescription>
+          </CardHeader>
+          <CardContent class="flex flex-col items-start gap-3">
+            <p v-if="result.reason" class="break-words">사유: {{ result.reason }}</p>
+            <Button v-if="result.proposalId" as-child size="sm" variant="outline">
+              <RouterLink :to="`/proposals/${result.proposalId}`">철회한 변경안 보기</RouterLink>
             </Button>
           </CardContent>
         </template>

@@ -29,6 +29,7 @@ HINTS: dict[str, str] = {
     "INVALID_CONSTRAINT": "제약 종류에 필요한 값(location_id, equipment_id, from_time/to_time, time, amount)을 채우세요.",
     "INVALID_WEIGHTS": "가중치는 0 이상이고 합이 0보다 커야 합니다. 키: location, equipment, weather, budget, time, distance.",
     "INVALID_TIME": "시작 시각이 종료 시각보다 빨라야 합니다(HH:mm).",
+    "INVALID_SCENE_ORDER": "scene_order에는 오후 블록 씬 코드를 한 번씩 모두 넣거나, 비워서 서버가 고르게 하세요.",
     "VALIDATION_FAILED": "인자 값을 고쳐 다시 부르세요.",
     "BAD_REQUEST": "인자 형식을 고쳐 다시 부르세요.",
     "FORBIDDEN": "권한이 없는 작업입니다. 사용자에게 알리세요.",

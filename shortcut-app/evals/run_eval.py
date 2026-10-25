@@ -22,7 +22,7 @@ BASE_URL = os.getenv("SHORTCUT_URL", "http://localhost:18080")
 INTERNAL_TOKEN = os.getenv("INTERNAL_TOKEN", "change-me-internal-token")
 PASSWORD = "shortcut1234"
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
-HARD = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER")
+HARD = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER", "SCRIPT")
 ROLE_USERS = {"PRODUCER": "pd", "DIRECTOR": "director", "AD1": "ad1", "AD2": "ad2", "DOP": "dop", "SOUND": "sound"}
 # 승인 대기까지 LLM 호출이 여러 번 이어지고, 확정 뒤에는 실행팀(3단계, Agent 최대 6개)이 더 돌아서 넉넉히 기다린다.
 WAIT_SECONDS = 360
@@ -32,6 +32,10 @@ WAIT_SECONDS = 360
 class Scenario:
     name: str
     event: dict[str, Any]
+    # 변경을 넣고 확정을 검증할 촬영일. 시드 1회차는 우천 시연, 2회차는 배우 일정 충돌 시연이다.
+    shoot_day_id: int = 1
+    # 최종 안의 오후 블록 씬 순서(코드). 엔진이 배우 일정 때문에 순서를 바꾸는 시나리오에서 본다.
+    expect_scene_order: list[str] | None = None
     # 루프마다 내릴 결정. ("REJECT", 역할, 사유, 문제 요소 목록) 또는 ("APPROVE",)
     decisions: list[tuple] = field(default_factory=lambda: [("APPROVE",)])
     disaster_alerts: list[dict[str, Any]] = field(default_factory=list)
@@ -78,6 +82,15 @@ SCENARIOS = [
             ("APPROVE",),
         ],
         expect_location_source=4,
+    ),
+    Scenario(
+        "actor_busy_reorder",
+        # 시드 2회차는 배우 C의 10:30~14:30 타 작품 일정이 콜시트 확정 뒤 들어와 S18(14:00 시작)과 겹친다.
+        # 구조화 변경 없이 재계획하면 장소(성수)와 시간을 그대로 두고 S19를 먼저 찍는 안이 나와야 한다.
+        {"type": "ACTOR_SCHEDULE", "detail": "배우 C 10:30~14:30 타 작품 일정이 2회차 오후 S18과 겹침"},
+        shoot_day_id=2,
+        expect_location_id=2,
+        expect_scene_order=["S19", "S18"],
     ),
     Scenario(
         "exec_venue_conflict",
@@ -165,10 +178,13 @@ def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
 
 def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
     api.call("POST", "/internal/test/reset")
+    if scenario.shoot_day_id != 1:
+        # 1회차 초기화는 날짜와 배우 일정만 다시 맞추므로 다른 촬영일의 확정 상태는 따로 되돌린다.
+        api.call("POST", "/internal/test/reset", params={"shootDayId": scenario.shoot_day_id})
     for alert in scenario.disaster_alerts:
         api.call("POST", "/internal/test/disaster-alerts", json=alert)
     started = time.monotonic()
-    created = api.call("POST", "/api/events", "pd", json={"shootDayId": 1, **scenario.event})
+    created = api.call("POST", "/api/events", "pd", json={"shootDayId": scenario.shoot_day_id, **scenario.event})
     task_id = created["taskId"]
     proposals = []
     for decision in scenario.decisions:
@@ -212,15 +228,17 @@ def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
             "POST",
             "/internal/plans/validate",
             json={
-                "shootDayId": 1,
+                "shootDayId": scenario.shoot_day_id,
                 "candidate": {
                     "locationId": proposed["location"]["id"],
                     "equipmentIds": [e["id"] for e in proposed["equipment"]],
                     "start": proposed["start"],
                     "end": proposed["end"],
+                    # 확정한 씬 순서 그대로 다시 검사한다. 비우면 엔진이 순서를 다시 골라 위반을 가릴 수 있다.
+                    "sceneOrder": [sc["code"] for sc in proposed.get("scenes") or []],
                 },
                 # 확정 뒤에는 데이터 버전이 올라가므로 위반 여부만 보려고 최신 버전으로 묻는다.
-                "dataVersion": proposal_data_version(api),
+                "dataVersion": proposal_data_version(api, scenario.shoot_day_id),
             },
         )
         hard_violation_passed = bool(check["violations"])
@@ -229,10 +247,12 @@ def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
     exec_done = [r["agent"] for r in exec_reports if r["status"] == "DONE"]
     location_id = last["proposed"]["location"]["id"] if last else None
     location_source = (last["proposed"].get("source") or {}).get("location") if last else None
+    scene_order = [sc["code"] for sc in last["proposed"].get("scenes") or []] if last else None
     ok = (
         final["status"] == scenario.expect_status
         and scenario.expect_location_id in (None, location_id)
         and scenario.expect_location_source in (None, location_source)
+        and scenario.expect_scene_order in (None, scene_order)
         and (scenario.expect_exec_status is None or execution.get("status") == scenario.expect_exec_status)
         and not set(scenario.forbid_exec_agents) & {r["agent"] for r in exec_reports}
     )
@@ -242,6 +262,7 @@ def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
         "status": final["status"],
         "stopCondition": terminal.get("stopCondition"),
         "finalLocation": last["proposed"]["location"]["name"] if last else None,
+        "sceneOrder": " → ".join(scene_order) if scene_order else None,
         "proposals": len(proposals),
         "loops": metrics.get("loops"),
         "toolCalls": metrics.get("toolCalls"),
@@ -266,8 +287,8 @@ def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
     }
 
 
-def proposal_data_version(api: Api) -> int:
-    return api.call("GET", "/internal/shoot-days/1/plan-set")["dataVersion"]
+def proposal_data_version(api: Api, shoot_day_id: int) -> int:
+    return api.call("GET", f"/internal/shoot-days/{shoot_day_id}/plan-set")["dataVersion"]
 
 
 COLUMNS = [
@@ -275,6 +296,7 @@ COLUMNS = [
     "ok",
     "status",
     "finalLocation",
+    "sceneOrder",
     "loops",
     "toolCalls",
     "llmCalls",

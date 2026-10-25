@@ -48,20 +48,37 @@ public class CallsheetRepository {
     }
 
     public Callsheet insert(long shootDayId, int versionNo, long proposalId, PlanSnapshot pm) {
+        return insert(shootDayId, versionNo, proposalId, pm, null, null, null);
+    }
+
+    /** 앞 버전(restoredFrom)으로 되돌려 새 버전을 만든다. 변경안 없이 사람이 직접 만든 버전이다. */
+    public Callsheet insertRestored(long shootDayId, int versionNo, PlanSnapshot pm, int restoredFrom, String note,
+                                    String createdBy) {
+        return insert(shootDayId, versionNo, null, pm, restoredFrom, note, createdBy);
+    }
+
+    private Callsheet insert(long shootDayId, int versionNo, Long proposalId, PlanSnapshot pm, Integer restoredFrom,
+                             String note, String createdBy) {
         long id = jdbc.sql("""
                         INSERT INTO callsheet_versions
-                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost)
-                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost)
+                            (shoot_day_id, version_no, proposal_id, pm_location_id, pm_equipment_ids, pm_start, pm_end, pm_cost,
+                             restored_from, note, created_by, scenes)
+                        VALUES (:id, :versionNo, :proposalId, :location, CAST(:equipment AS jsonb), :start, :end, :cost,
+                                :restoredFrom, :note, :createdBy, CAST(:scenes AS jsonb))
                         RETURNING id
                         """)
                 .param("id", shootDayId)
                 .param("versionNo", versionNo)
                 .param("proposalId", proposalId)
+                .param("restoredFrom", restoredFrom)
+                .param("note", note)
+                .param("createdBy", createdBy)
                 .param("location", pm.locationId())
                 .param("equipment", json.write(pm.equipmentIds()))
                 .param("start", pm.start())
                 .param("end", pm.end())
                 .param("cost", pm.cost())
+                .param("scenes", json.write(pm.scenes()))
                 .query(Long.class)
                 .single();
         return jdbc.sql(select() + " WHERE id = :id").param("id", id).query(this::map).single();
@@ -90,6 +107,19 @@ public class CallsheetRepository {
                 .param("start", start)
                 .param("end", end)
                 .update();
+    }
+
+    /**
+     * 배포할 콜시트 버전을 트랜잭션이 끝날 때까지 지우지 못하게 잡는다. 이미 지워졌으면 false다.
+     * 확인과 기록 사이에 초기화가 버전을 지우면 기록이 외래키에 걸리므로 그냥 읽지 않고 잡는다.
+     * 배포 중에 초기화가 돌면 버전 삭제가 이 잠금을 기다렸다가 배포 기록까지 CASCADE로 지운다.
+     */
+    public boolean lockForDistribution(long callsheetVersionId) {
+        return jdbc.sql("SELECT id FROM callsheet_versions WHERE id = :id FOR KEY SHARE")
+                .param("id", callsheetVersionId)
+                .query(Long.class)
+                .optional()
+                .isPresent();
     }
 
     /**
@@ -123,13 +153,14 @@ public class CallsheetRepository {
     }
 
     private static String select() {
-        return "SELECT *, pm_equipment_ids::text AS equipment_json FROM callsheet_versions";
+        return "SELECT *, pm_equipment_ids::text AS equipment_json, scenes::text AS scenes_json FROM callsheet_versions";
     }
 
     private Callsheet map(ResultSet rs, int row) throws SQLException {
         PlanSnapshot pm = new PlanSnapshot(rs.getLong("pm_location_id"), json.longs(rs.getString("equipment_json")),
-                time(rs, "pm_start"), time(rs, "pm_end"), rs.getLong("pm_cost"));
+                time(rs, "pm_start"), time(rs, "pm_end"), rs.getLong("pm_cost"), json.sceneSlots(rs.getString("scenes_json")));
         return new Callsheet(rs.getLong("id"), rs.getLong("shoot_day_id"), rs.getInt("version_no"),
-                rs.getObject("proposal_id", Long.class), pm, rs.getObject("created_at", OffsetDateTime.class));
+                rs.getObject("proposal_id", Long.class), pm, rs.getObject("created_at", OffsetDateTime.class),
+                rs.getObject("restored_from", Integer.class), rs.getString("note"), rs.getString("created_by"));
     }
 }

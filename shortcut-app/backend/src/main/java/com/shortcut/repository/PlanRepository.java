@@ -9,6 +9,8 @@ import com.shortcut.domain.ExternalLocation;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.PlanOption;
 import com.shortcut.domain.Scene;
+import com.shortcut.domain.SceneCharacter;
+import com.shortcut.domain.SceneRequirement;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.domain.WeatherHour;
 import com.shortcut.engine.PlanSnapshot;
@@ -16,8 +18,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -49,7 +57,7 @@ public class PlanRepository {
                 .query((rs, n) -> new ShootDay(rs.getLong("id"), rs.getLong("project_id"), rs.getString("project_name"),
                         rs.getObject("shoot_date", LocalDate.class), time(rs, "call_time"), rs.getInt("data_version"),
                         rs.getString("notice"), rs.getString("crew_calls_json"), rs.getLong("block_budget_cap"),
-                        rs.getDouble("crew_weekly_hours_used")))
+                        rs.getDouble("crew_weekly_hours_used"), time(rs, "sunrise"), time(rs, "sunset")))
                 .optional();
     }
 
@@ -121,11 +129,73 @@ public class PlanRepository {
                 .update();
     }
 
+    /**
+     * 블록 씬 순서를 바꾼다. 다른 블록 씬과의 앞뒤가 그대로이도록 이 블록이 쓰던 sort 값을 작은 것부터 새 순서에 다시 나눠 준다.
+     */
+    public void updateSceneOrder(long shootDayId, String blockCode, List<String> codes) {
+        List<Integer> sorts = jdbc.sql("SELECT sort FROM scenes WHERE shoot_day_id = :id AND block_code = :block ORDER BY sort")
+                .param("id", shootDayId)
+                .param("block", blockCode)
+                .query(Integer.class)
+                .list();
+        for (int i = 0; i < codes.size() && i < sorts.size(); i++) {
+            jdbc.sql("UPDATE scenes SET sort = :sort WHERE shoot_day_id = :id AND block_code = :block AND code = :code")
+                    .param("sort", sorts.get(i))
+                    .param("id", shootDayId)
+                    .param("block", blockCode)
+                    .param("code", codes.get(i))
+                    .update();
+        }
+    }
+
+    /**
+     * 촬영일에 배정된 씬과 그 대본 분해 값(실내/실외, 낮/밤, 세트 고정, 등장 배역과 캐스팅, 요구)이다.
+     * 출연 배우는 등장 배역(scene_characters)의 캐스팅에서 읽는다.
+     */
     public List<Scene> findScenes(long shootDayId) {
-        return jdbc.sql("SELECT *, actor_ids::text AS actor_json FROM scenes WHERE shoot_day_id = :id ORDER BY sort")
+        Map<String, List<SceneCharacter>> characters = new HashMap<>();
+        jdbc.sql("""
+                        SELECT sc.scene_code, c.id, c.name, c.actor_id
+                        FROM scenes s
+                        JOIN scene_characters sc ON sc.project_id = s.project_id AND sc.scene_code = s.code
+                        JOIN characters c ON c.id = sc.character_id
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY sc.scene_code, c.id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> characters.computeIfAbsent(rs.getString("scene_code"), k -> new ArrayList<>())
+                        .add(new SceneCharacter(rs.getLong("id"), rs.getString("name"), rs.getObject("actor_id", Long.class))));
+        Map<String, List<SceneRequirement>> requirements = new HashMap<>();
+        jdbc.sql("""
+                        SELECT r.* FROM scenes s
+                        JOIN scene_requirements r ON r.project_id = s.project_id AND r.scene_code = s.code
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY r.scene_code, r.id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> requirements.computeIfAbsent(rs.getString("scene_code"), k -> new ArrayList<>())
+                        .add(new SceneRequirement(rs.getString("kind"), rs.getObject("equipment_id", Long.class),
+                                rs.getString("label"), rs.getInt("qty"), rs.getString("level"))));
+        // 외래키를 검증하기 전에 남은 씬이 있어도 읽히도록 대본 씬은 LEFT JOIN하고 없으면 실내 낮 장면으로 본다.
+        return jdbc.sql("""
+                        SELECT s.code, s.block_code, s.title, s.duration_min, s.location_id,
+                               COALESCE(ss.heading, s.code || ' ' || s.title) AS heading,
+                               COALESCE(ss.int_ext, 'INT') AS int_ext,
+                               COALESCE(ss.time_of_day, 'DAY') AS time_of_day,
+                               COALESCE(ss.setting, s.title) AS setting,
+                               COALESCE(ss.setting_locked, false) AS setting_locked
+                        FROM scenes s
+                        LEFT JOIN script_scenes ss ON ss.project_id = s.project_id AND ss.code = s.code
+                        WHERE s.shoot_day_id = :id
+                        ORDER BY s.sort
+                        """)
                 .param("id", shootDayId)
                 .query((rs, n) -> new Scene(rs.getString("code"), rs.getString("block_code"), rs.getString("title"),
-                        rs.getInt("duration_min"), rs.getBoolean("outdoor_intent"), json.longs(rs.getString("actor_json"))))
+                        rs.getInt("duration_min"), rs.getString("heading"), rs.getString("int_ext"),
+                        rs.getString("time_of_day"), rs.getString("setting"), rs.getBoolean("setting_locked"),
+                        rs.getObject("location_id", Long.class),
+                        List.copyOf(characters.getOrDefault(rs.getString("code"), List.of())),
+                        List.copyOf(requirements.getOrDefault(rs.getString("code"), List.of()))))
                 .list();
     }
 
@@ -168,11 +238,34 @@ public class PlanRepository {
                 .list();
     }
 
-    public List<WeatherHour> findWeather(long shootDayId) {
-        return jdbc.sql("SELECT * FROM weather_forecasts WHERE shoot_day_id = :id ORDER BY location_id, hour")
+    /**
+     * source(LIVE 또는 SEED) 예보를 읽는다. 두 출처를 섞지 않는다.
+     * 실시간 예보를 아직 받지 못한 장소는 시드의 시연용 비를 대신 쓰지 않고 예보 없음으로 두며, 화면이 그렇게 알린다.
+     */
+    public List<WeatherHour> findWeather(long shootDayId, String source) {
+        return jdbc.sql("""
+                        SELECT location_id, hour, precip_mm FROM weather_forecasts
+                        WHERE shoot_day_id = :id AND source = :source
+                        ORDER BY location_id, hour
+                        """)
                 .param("id", shootDayId)
+                .param("source", source)
                 .query((rs, n) -> new WeatherHour(rs.getLong("location_id"), rs.getInt("hour"), rs.getDouble("precip_mm")))
                 .list();
+    }
+
+    /** 장소별로 날씨 API 예보를 마지막으로 받은 시각이다. */
+    public Map<Long, OffsetDateTime> findLiveForecastTimes(long shootDayId) {
+        Map<Long, OffsetDateTime> times = new LinkedHashMap<>();
+        jdbc.sql("""
+                        SELECT location_id, max(fetched_at) AS fetched_at FROM weather_forecasts
+                        WHERE shoot_day_id = :id AND source = 'LIVE' AND fetched_at IS NOT NULL
+                        GROUP BY location_id ORDER BY location_id
+                        """)
+                .param("id", shootDayId)
+                .query((RowCallbackHandler) rs -> times.put(rs.getLong("location_id"),
+                        rs.getObject("fetched_at", OffsetDateTime.class)));
+        return times;
     }
 
     /** 그 날짜에 발령된 재난 문자다. 다른 날 문자가 이 촬영일 판정에 섞이지 않게 촬영일 날짜로 거른다. */
@@ -218,10 +311,13 @@ public class PlanRepository {
                                     List<String> keywords) {
         jdbc.sql("""
                         INSERT INTO locations (id, name, address, indoor, region, open_from, open_to, permit_from, permit_to,
-                                               cost, no_fly_zone, fit, distance_km, note)
+                                               cost, no_fly_zone, fit, distance_km, note, latitude, longitude)
                         VALUES (:id, :name, :region, :indoor, :region, :openFrom, :openTo, :permitFrom, :permitTo,
-                                :cost, false, :fit, :distance, '아워플레이스 대체 장소, 예약은 담당자 확정 필요')
-                        ON CONFLICT (id) DO UPDATE SET fit = EXCLUDED.fit
+                                :cost, false, :fit, :distance, '아워플레이스 대체 장소, 예약은 담당자 확정 필요',
+                                (SELECT latitude FROM external_locations WHERE id = :externalId),
+                                (SELECT longitude FROM external_locations WHERE id = :externalId))
+                        ON CONFLICT (id) DO UPDATE SET fit = EXCLUDED.fit, latitude = EXCLUDED.latitude,
+                            longitude = EXCLUDED.longitude
                         """)
                 .param("id", locationId)
                 .param("name", external.name())
@@ -235,13 +331,15 @@ public class PlanRepository {
                 .param("cost", external.cost())
                 .param("fit", fit)
                 .param("distance", external.distanceKm())
+                .param("externalId", external.id())
                 .update();
-        // 대체 장소는 지점별 예보가 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
+        // 시드 예보에는 대체 장소 지점이 없으므로 같은 날 야외 장소 가운데 가장 많은 강수량을 그대로 써서 보수적으로 판정한다.
+        // 실시간 예보는 위에서 복사한 좌표로 WeatherForecastService가 따로 받는다.
         jdbc.sql("""
-                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm)
-                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_mm)
+                        INSERT INTO weather_forecasts (shoot_day_id, location_id, hour, precip_mm, source)
+                        SELECT w.shoot_day_id, :locationId, w.hour, max(w.precip_mm), 'SEED'
                         FROM weather_forecasts w JOIN locations l ON l.id = w.location_id
-                        WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base
+                        WHERE w.shoot_day_id = :shootDayId AND NOT l.indoor AND l.id < :base AND w.source = 'SEED'
                         GROUP BY w.shoot_day_id, w.hour
                         ON CONFLICT DO NOTHING
                         """)

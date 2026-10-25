@@ -13,6 +13,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { api } from '../api.js'
 import { useResourceStore } from '../stores/resources.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, dateWithWeekday } from '../format.js'
@@ -32,6 +33,42 @@ const PRESSED =
   'flex-1 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground'
 
 const tab = ref('all')
+// 배우 일정 탭은 열 때 한 번 읽는다. 앞으로 14일 일정과 아직 촬영일을 못 잡는 대본 씬이다.
+const schedule = ref(null)
+const placeability = ref(null)
+const scheduleError = ref(null)
+const REASON_LABELS = { OTHER_PRODUCTION: '타 작품', PROMOTION: '광고와 행사', PERSONAL: '개인 일정', TRAVEL: '이동 일정' }
+const unplaceable = computed(() => (placeability.value?.scenes ?? []).filter((s) => !s.placeable))
+
+watch(tab, async (value) => {
+  if (value !== 'schedule' || !board.value) return
+  scheduleError.value = null
+  try {
+    const id = board.value.shootDayId
+    const [s, p] = await Promise.all([
+      api(`/resources/actor-schedule?shootDayId=${id}&days=14`),
+      api(`/resources/placeability?shootDayId=${id}`)
+    ])
+    schedule.value = s
+    placeability.value = p
+  } catch (e) {
+    scheduleError.value = e
+  }
+})
+
+// 그날 일정을 한 줄씩 돌려준다. 계약 기본 시간과 같은 가능 시간은 적지 않는다. 다른 날과 달라진 것만 보이게 하려는 것이다.
+function dayLines(day, actor) {
+  const parts = []
+  if (day.off) parts.push(`종일 불가(${REASON_LABELS[day.offReason] ?? '변경 입력'}${day.offMemo ? `, ${day.offMemo}` : ''})`)
+  for (const b of day.busy ?? []) {
+    parts.push(`${hhmm(b.from)}~${hhmm(b.to)} ${REASON_LABELS[b.reasonKind] ?? '다른 일정'}${b.memo ? `(${b.memo})` : ''}`)
+  }
+  const windows = (day.windows ?? []).map((w) => `${hhmm(w.from)}~${hhmm(w.to)}`)
+  const contract = `${hhmm(actor.contractFrom)}~${hhmm(actor.contractTo)}`
+  if (!day.off && windows.length && !(windows.length === 1 && windows[0] === contract)) parts.push(`가능 ${windows.join(', ')}`)
+  for (const s of day.shoots ?? []) parts.push(`촬영 ${s.blockCode === 'AM' ? '오전' : '오후'} ${hhmm(s.start)}~${hhmm(s.end)} ${s.scenes}`)
+  return parts
+}
 const editing = ref(null)
 const form = reactive({ status: 'OK', scope: 'day', untilDate: '', memo: '', from: '', to: '' })
 // 저장 전에 모아 둔 변경이다. 키는 "종류:id", 값은 고친 상태와 원래 항목이다.
@@ -208,6 +245,7 @@ async function save() {
             <TabsList class="w-full">
               <TabsTrigger value="all">전체</TabsTrigger>
               <TabsTrigger v-for="g in GROUPS" :key="g.key" :value="g.key">{{ g.label }}</TabsTrigger>
+              <TabsTrigger value="schedule">배우 일정</TabsTrigger>
             </TabsList>
           </Tabs>
           <p v-if="!board.canEdit" class="mt-3 text-sm text-muted-foreground">상태 변경은 제작 PD와 연출감독만 할 수 있습니다.</p>
@@ -303,6 +341,42 @@ async function save() {
                 </div>
               </li>
             </ul>
+          </section>
+
+          <section v-if="tab === 'schedule'" class="mt-3 flex flex-col gap-5">
+            <p v-if="scheduleError" class="text-sm text-destructive">{{ scheduleError.message }}</p>
+            <p v-else-if="!schedule" class="text-sm text-muted-foreground">배우 일정을 불러오는 중입니다.</p>
+            <template v-else>
+              <p class="text-xs text-muted-foreground">
+                {{ schedule.from }} ~ {{ schedule.to }}. 일정이 없는 날은 계약 기본 시간에 촬영할 수 있습니다.
+              </p>
+              <div v-for="a in schedule.actors" :key="a.id">
+                <h3 class="mb-1 text-sm font-medium">
+                  {{ a.name }}
+                  <span class="text-xs font-normal text-muted-foreground">
+                    기본 {{ hhmm(a.contractFrom) }}~{{ hhmm(a.contractTo) }}{{ a.noNight ? ', 야간 불가' : '' }}
+                  </span>
+                </h3>
+                <ul v-if="a.days.length" class="flex flex-col gap-1 text-sm">
+                  <li v-for="d in a.days" :key="d.date" class="flex gap-3">
+                    <span class="mono w-12 shrink-0 text-muted-foreground">{{ d.date.slice(5).replace('-', '.') }}</span>
+                    <span class="flex min-w-0 flex-col">
+                      <span v-for="(line, i) in dayLines(d, a)" :key="i">{{ line }}</span>
+                    </span>
+                  </li>
+                </ul>
+                <p v-else class="text-sm text-muted-foreground">이 기간에 다른 일정이 없습니다.</p>
+              </div>
+              <div v-if="unplaceable.length">
+                <h3 class="mb-1 text-sm font-medium">아직 촬영일을 잡을 수 없는 씬</h3>
+                <ul class="flex flex-col gap-1 text-sm">
+                  <li v-for="sc in unplaceable" :key="sc.code">
+                    <span class="font-medium">{{ sc.heading }}</span>
+                    <span class="block text-muted-foreground">{{ sc.reason }}</span>
+                  </li>
+                </ul>
+              </div>
+            </template>
           </section>
         </div>
 

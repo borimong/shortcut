@@ -19,8 +19,11 @@ QA_TOOLS = [
     "business_get_entity_context",
     "business_get_weather",
     "business_get_disaster_alerts",
+    "business_get_actor_schedule",
+    "business_find_unplaceable_scenes",
     "rag_search_regulation",
     "rag_search_contract_clause",
+    "rag_search_script",
 ]
 
 

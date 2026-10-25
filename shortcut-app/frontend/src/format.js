@@ -31,6 +31,37 @@ export function ver(v) {
   return String(v).startsWith('v') ? String(v) : `v${v}`
 }
 
+// 앞말 받침에 맞는 조사를 붙인다. 백엔드 Josa와 같은 규칙이다. 한글은 받침, 숫자와 영문은 읽는 소리(v1 일, v2 이, L 엘)로 가른다.
+// pair는 받침 있을 때 쓰는 쪽으로 준다: '은', '이', '을', '과', '으로'.
+const JOSA = { 은: '는', 이: '가', 을: '를', 과: '와', 으로: '로' }
+
+function ending(word) {
+  const text = String(word).trim().replace(/\([^()]*\)$/, '').trim()
+  const last = text.at(-1) ?? ''
+  const code = last.charCodeAt(0)
+  if (code >= 0xac00 && code <= 0xd7a3) {
+    const jong = (code - 0xac00) % 28
+    return jong === 0 ? 'none' : jong === 8 ? 'rieul' : 'other'
+  }
+  if (/[0-9]/.test(last)) {
+    const digits = text.match(/[0-9,]+$/)[0].replaceAll(',', '')
+    if (/^0+$/.test(digits)) return 'other'
+    if (digits.endsWith('0')) return 'other'
+    return '178'.includes(last) ? 'rieul' : '36'.includes(last) ? 'other' : 'none'
+  }
+  if (/[a-z]/i.test(last)) {
+    if (/(km|mm|cm|kg|mg|ml)$/i.test(text)) return 'none'
+    return 'LR'.includes(last.toUpperCase()) ? 'rieul' : 'MN'.includes(last.toUpperCase()) ? 'other' : 'none'
+  }
+  return 'none'
+}
+
+export function josa(word, pair) {
+  const e = ending(word)
+  const batchim = pair === '으로' ? e === 'other' : e !== 'none'
+  return `${word}${batchim ? pair : JOSA[pair]}`
+}
+
 export function addMinutes(hhmm, minutes) {
   const [h, m] = hhmm.split(':').map(Number)
   const total = h * 60 + m + minutes

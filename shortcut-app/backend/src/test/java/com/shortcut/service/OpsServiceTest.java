@@ -14,6 +14,7 @@ import com.shortcut.common.ApiException;
 import com.shortcut.domain.AppSettings;
 import com.shortcut.domain.Block;
 import com.shortcut.domain.Equipment;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.dto.OpsDtos.LedgerEntryRequest;
@@ -260,8 +261,8 @@ class OpsServiceTest {
         Map<Long, Equipment> equipment = Map.of(
                 1L, new Equipment(1, "카메라 패키지 A", true, false, 0),
                 4L, new Equipment(4, "추가 조명 패키지", true, false, 250_000));
-        AppSettings settings = new AppSettings(5, 5.0, 1.0, 3, venueConflict, permitDenied, null, null);
+        AppSettings settings = new AppSettings(5, 5.0, 1.0, 3, AppSettings.LIVE, venueConflict, permitDenied, null, null);
         return new PlanData(day, blocks, List.of(), Map.of(), Map.of(1L, hangang, 2L, seongsu, 4L, mokdong), equipment,
-                List.of(), List.of(), List.of(), List.of(), settings);
+                List.of(), List.of(), ForecastInfo.NONE, List.of(), List.of(), settings);
     }
 }

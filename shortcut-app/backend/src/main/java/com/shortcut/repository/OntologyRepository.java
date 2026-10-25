@@ -68,6 +68,7 @@ public class OntologyRepository {
                             UNION ALL SELECT 'CONTRACT:' || contract_doc_id, NULL FROM actors
                             UNION ALL SELECT 'LOCATION:' || id, NULL FROM locations
                             UNION ALL SELECT 'EQUIPMENT:' || id, NULL FROM equipment
+                            UNION ALL SELECT 'CHARACTER:' || id, NULL FROM characters
                         )
                         SELECT n.node_id FROM ontology_nodes n
                         WHERE split_part(n.node_id, ':', 1) <> n.type
@@ -77,6 +78,19 @@ public class OntologyRepository {
                                                  AND (b.shoot_day_id IS NULL
                                                       OR CAST(b.shoot_day_id AS text) = n.props ->> 'shootDayId')))
                         ORDER BY n.node_id
+                        """)
+                .query(String.class)
+                .list();
+    }
+
+    /**
+     * 씬 배정은 있는데 씬 노드(SCENE:씬 코드)가 없는 노드 ID를 돌려준다.
+     */
+    public List<String> findScenesWithoutNode() {
+        return jdbc.sql("""
+                        SELECT DISTINCT 'SCENE:' || s.code AS node_id FROM scenes s
+                        WHERE NOT EXISTS (SELECT 1 FROM ontology_nodes n WHERE n.node_id = 'SCENE:' || s.code)
+                        ORDER BY node_id
                         """)
                 .query(String.class)
                 .list();

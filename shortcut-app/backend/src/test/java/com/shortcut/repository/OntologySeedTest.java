@@ -4,32 +4,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 
 /**
- * data.sql의 온톨로지 시드를 같은 파일의 업무 시드와 DB 없이 맞춰 본다.
+ * data.sql의 온톨로지 시드를 업무 시드(data.sql, 대본 시드, 씬 배정 시드)와 DB 없이 맞춰 본다.
  * 규칙은 기동 때 도는 OntologyRepository.findOrphanNodeIds와 같다. 노드 ID는 TYPE:업무 키이고,
  * 촬영일에 딸린 노드는 props의 shootDayId가 업무 행의 촬영일과 같아야 한다.
  */
 class OntologySeedTest {
 
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final String SEED = read("data.sql");
+    // 서버가 시드를 넣는 순서(application.yml의 data-locations)와 같게 이어 붙인다. 씬 배정은 data-schedule.sql에 있다.
+    private static final String SEED = SeedRows.read("data.sql", "data-script.sql", "data-schedule.sql");
 
     @Test
-    void 시드_노드는_모두_업무_시드_행을_가리킨다() throws IOException {
+    void 시드_노드는_모두_업무_시드_행을_가리킨다() throws Exception {
         Map<String, Long> business = businessKeys();
         for (Map<String, String> node : rows("ontology_nodes")) {
             String id = node.get("node_id");
@@ -62,11 +56,27 @@ class OntologySeedTest {
                 .map(e -> e.get("src") + " → " + e.get("dst"))
                 .collect(Collectors.toSet());
         List<Map<String, String>> options = rows("plan_options");
-        assertThat(options).extracting(o -> o.get("shoot_day_id")).contains("1", "2");
+        assertThat(options).extracting(o -> o.get("shoot_day_id")).contains("1", "2", "3");
         for (Map<String, String> option : options) {
             String day = option.get("shoot_day_id");
             assertThat(candidates).contains("BLOCK:" + day + "-" + option.get("block_code") + " → PLAN:" + day + "-"
                     + option.get("option_no"));
+        }
+    }
+
+    @Test
+    void 배정된_씬은_모두_노드가_있고_블록이_포함한다() {
+        Set<String> nodes = rows("ontology_nodes").stream().map(n -> n.get("node_id")).collect(Collectors.toSet());
+        Set<String> contains = rows("ontology_edges").stream()
+                .filter(e -> e.get("relation").equals("포함"))
+                .map(e -> e.get("src") + " → " + e.get("dst"))
+                .collect(Collectors.toSet());
+        List<Map<String, String>> scenes = rows("scenes");
+        assertThat(scenes).extracting(s -> s.get("block_code")).contains("AM", "PM");
+        for (Map<String, String> scene : scenes) {
+            String id = "SCENE:" + scene.get("code");
+            assertThat(nodes).as("씬 노드").contains(id);
+            assertThat(contains).contains("BLOCK:" + scene.get("shoot_day_id") + "-" + scene.get("block_code") + " → " + id);
         }
     }
 
@@ -91,84 +101,11 @@ class OntologySeedTest {
         });
         rows("locations").forEach(l -> keys.put("LOCATION:" + l.get("id"), null));
         rows("equipment").forEach(e -> keys.put("EQUIPMENT:" + e.get("id"), null));
+        rows("characters").forEach(c -> keys.put("CHARACTER:" + c.get("id"), null));
         return keys;
     }
 
-    /**
-     * INSERT INTO table (열, ...) VALUES (...), (...) 형식의 시드 행을 열 이름 → 값으로 읽는다. 따옴표 값은 벗긴다.
-     */
     private static List<Map<String, String>> rows(String table) {
-        List<Map<String, String>> rows = new ArrayList<>();
-        Matcher insert = Pattern.compile("INSERT INTO " + table + " \\(([^)]*)\\)\\s*VALUES").matcher(SEED);
-        while (insert.find()) {
-            String[] columns = insert.group(1).split(",");
-            for (List<String> tuple : tuples(insert.end())) {
-                Map<String, String> row = new HashMap<>();
-                for (int i = 0; i < columns.length; i++) {
-                    row.put(columns[i].strip(), tuple.get(i));
-                }
-                rows.add(row);
-            }
-        }
-        return rows;
-    }
-
-    /**
-     * VALUES 뒤의 괄호 묶음을 값 목록으로 나눈다. 따옴표 안의 쉼표와 괄호는 값의 일부이고, 주석은 건너뛴다.
-     * 괄호 밖에서 쉼표와 공백이 아닌 글자(ON CONFLICT, 세미콜론)가 나오면 VALUES가 끝난 것이다.
-     */
-    private static List<List<String>> tuples(int from) {
-        List<List<String>> tuples = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        StringBuilder value = new StringBuilder();
-        boolean quoted = false;
-        int depth = 0;
-        for (int i = from; i < SEED.length(); i++) {
-            char c = SEED.charAt(i);
-            if (c == '\'') {
-                quoted = !quoted;
-                value.append(c);
-            } else if (quoted) {
-                value.append(c);
-            } else if (c == '-' && SEED.startsWith("--", i)) {
-                int lineEnd = SEED.indexOf('\n', i);
-                i = lineEnd < 0 ? SEED.length() : lineEnd;
-            } else if (c == '(') {
-                if (depth++ > 0) {
-                    value.append(c);
-                }
-            } else if (c == ')') {
-                if (--depth > 0) {
-                    value.append(c);
-                } else {
-                    values.add(literal(value));
-                    tuples.add(values);
-                    values = new ArrayList<>();
-                }
-            } else if (depth == 1 && c == ',') {
-                values.add(literal(value));
-            } else if (depth > 0) {
-                value.append(c);
-            } else if (c != ',' && !Character.isWhitespace(c)) {
-                break;
-            }
-        }
-        return tuples;
-    }
-
-    private static String literal(StringBuilder raw) {
-        String value = raw.toString().strip();
-        raw.setLength(0);
-        return value.startsWith("'") && value.endsWith("'")
-                ? value.substring(1, value.length() - 1).replace("''", "'")
-                : value;
-    }
-
-    private static String read(String path) {
-        try {
-            return new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        return SeedRows.rows(SEED, table);
     }
 }

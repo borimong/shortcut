@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { CircleAlert } from '@lucide/vue'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -9,21 +10,34 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia } from '@/components/u
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import ForecastSource from '../components/ForecastSource.vue'
 import StatusBadge from '../components/StatusBadge.vue'
 import { api } from '../api.js'
 import { useNotificationStore } from '../stores/notifications.js'
+import { useAuthStore } from '../stores/auth.js'
 import { useShootDayStore } from '../stores/shootDay.js'
+import { useToastStore } from '../stores/toast.js'
 import { addMinutes, dateTime, dateWithWeekday, ver } from '../format.js'
 
 const notifications = useNotificationStore()
 const shootDay = useShootDayStore()
+const auth = useAuthStore()
+const toast = useToastStore()
+const router = useRouter()
 
 const board = ref(null)
 const history = ref([])
+// 오후 블록 현재 확정안을 최신 배우 일정과 대본 요구로 다시 검사한 결과다. 확정 뒤 들어온 일정 충돌을 먼저 보인다.
+const planCheck = ref(null)
 const error = ref(null)
 const loading = ref(true)
 
 const BLOCK_LABELS = { AM: '오전', PM: '오후' }
+// 대본의 실내/실외와 낮/밤이다. 씬 제목 옆에 짧게 붙인다.
+const SETTING_LABELS = { INT: '실내', EXT: '야외' }
+const TIME_LABELS = { DAY: '낮', NIGHT: '밤' }
+const sceneSetting = (s) =>
+  s.intExt ? `${SETTING_LABELS[s.intExt] ?? s.intExt}, ${TIME_LABELS[s.timeOfDay] ?? s.timeOfDay}` : ''
 
 // 씬 진행과 현재 촬영지는 시계 기준이라 30초마다 다시 계산한다.
 const now = ref(new Date())
@@ -52,6 +66,8 @@ async function load() {
     shootDay.setFromBoard(b)
     board.value = b
     history.value = (await api(`/history?shootDayId=${b.shootDay.id}`)) ?? []
+    // 점검은 촬영판 보조 정보라 실패해도 촬영판은 그대로 보인다.
+    planCheck.value = await api(`/resources/plan-check?shootDayId=${b.shootDay.id}`).catch(() => null)
   } catch (e) {
     error.value = e
   } finally {
@@ -61,11 +77,11 @@ async function load() {
 
 onMounted(load)
 
-// 확정과 배포, 변경 공지가 오면 촬영판 내용이 바뀌었을 수 있어 다시 읽는다.
+// 확정과 배포, 변경 공지, 우천 알림이 오면 촬영판 내용(날씨 포함)이 바뀌었을 수 있어 다시 읽는다.
 watch(
   () => notifications.lastNotification,
   (n) => {
-    if (n && (n.kind === 'CALLSHEET' || n.kind === 'CHANGE_NOTICE')) load()
+    if (n && (n.kind === 'CALLSHEET' || n.kind === 'CHANGE_NOTICE' || n.kind === 'WEATHER')) load()
   }
 )
 
@@ -143,6 +159,29 @@ const TONE_VARIANT = { 'tone-bad': 'destructive', 'tone-stale': 'warning', 'tone
 function isInternal(link) {
   return typeof link === 'string' && link.startsWith('/')
 }
+
+// 점검에서 걸린 확정안을 구조화 변경 없이 그대로 재계획에 넘긴다. 엔진이 최신 일정으로 다시 평가하고,
+// 씬 순서만 바꿔 풀리면 장소를 그대로 둔 안이 나온다.
+const replanning = ref(false)
+async function requestReplan() {
+  const violations = planCheck.value?.violations ?? []
+  if (!violations.length || replanning.value) return
+  replanning.value = true
+  try {
+    const actor = violations.some((f) => f.code.startsWith('ACTOR_'))
+    const detail = `촬영판 점검: ${violations.map((f) => f.message).join(' ')}`.slice(0, 500)
+    const res = await api('/events', {
+      method: 'POST',
+      body: { shootDayId: board.value.shootDay.id, type: actor ? 'ACTOR_SCHEDULE' : 'OTHER', detail, changes: [] }
+    })
+    if (res.duplicate) toast.info('같은 재계획이 이미 접수되어 있어 기존 진행 화면으로 이동합니다.')
+    router.push(`/tasks/${res.taskId}`)
+  } catch (e) {
+    toast.error(e)
+  } finally {
+    replanning.value = false
+  }
+}
 </script>
 
 <template>
@@ -174,6 +213,27 @@ function isInternal(link) {
     </Card>
 
     <template v-if="board">
+      <Alert v-if="planCheck?.violations?.length" variant="destructive">
+        <CircleAlert />
+        <AlertTitle>오후 확정안 점검: 지금 그대로는 찍을 수 없습니다</AlertTitle>
+        <AlertDescription>
+          <ul class="list-disc pl-5">
+            <li v-for="(f, i) in planCheck.violations" :key="i">{{ f.message }}</li>
+          </ul>
+          <Button v-if="auth.canSubmitChange" size="sm" class="mt-2" :disabled="replanning" @click="requestReplan">
+            <Spinner v-if="replanning" />재계획 요청
+          </Button>
+        </AlertDescription>
+      </Alert>
+      <Alert v-else-if="planCheck?.warnings?.length" class="border-transparent bg-muted">
+        <AlertTitle>오후 확정안 점검: 확인할 점</AlertTitle>
+        <AlertDescription class="text-foreground">
+          <ul class="list-disc pl-5">
+            <li v-for="(f, i) in planCheck.warnings" :key="i">{{ f.message }}</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+
       <RouterLink
         v-if="board.pendingProposal"
         :to="`/proposals/${board.pendingProposal.id}`"
@@ -227,6 +287,7 @@ function isInternal(link) {
             <span v-if="currentWeather?.indoor" class="text-muted-foreground">(실내)</span>
           </h2>
           <p class="text-xs text-muted-foreground">시간당 강수량(mm), 촬영 불가 기준 {{ rainRule.blockMm }}mm</p>
+          <ForecastSource :forecast="currentWeather?.forecast" />
           <p v-if="currentWeather?.summary" class="mt-1 text-sm text-muted-foreground">{{ currentWeather.summary }}</p>
           <div class="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(54px,1fr))] gap-1.5">
             <Badge
@@ -337,8 +398,11 @@ function isInternal(link) {
                     </Badge>
                     <Badge v-else-if="s.state === 'done'" variant="secondary" class="ml-1.5">완료</Badge>
                   </TableCell>
-                  <TableCell>{{ s.title }}</TableCell>
-                  <TableCell>{{ (s.actors ?? []).join(', ') }}</TableCell>
+                  <TableCell>
+                    {{ s.title }}
+                    <Badge v-if="sceneSetting(s)" variant="outline" class="ml-1.5 font-normal">{{ sceneSetting(s) }}</Badge>
+                  </TableCell>
+                  <TableCell>{{ (s.characters?.length ? s.characters : s.actors ?? []).join(', ') }}</TableCell>
                 </TableRow>
               </template>
             </TableBody>

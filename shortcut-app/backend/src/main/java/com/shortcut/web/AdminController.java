@@ -7,8 +7,10 @@ import com.shortcut.dto.AdminDtos.MemberView;
 import com.shortcut.dto.AdminDtos.RainCheckResult;
 import com.shortcut.dto.AdminDtos.SettingsRequest;
 import com.shortcut.dto.AdminDtos.SettingsView;
+import com.shortcut.dto.AdminDtos.WeatherRefreshResult;
 import com.shortcut.service.AdminService;
 import com.shortcut.service.RainAlertService;
+import com.shortcut.service.WeatherForecastService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
@@ -33,10 +35,12 @@ public class AdminController {
 
     private final AdminService admin;
     private final RainAlertService rainAlerts;
+    private final WeatherForecastService forecasts;
 
-    public AdminController(AdminService admin, RainAlertService rainAlerts) {
+    public AdminController(AdminService admin, RainAlertService rainAlerts, WeatherForecastService forecasts) {
         this.admin = admin;
         this.rainAlerts = rainAlerts;
+        this.forecasts = forecasts;
     }
 
     @GetMapping("/settings")
@@ -81,5 +85,12 @@ public class AdminController {
     public RainCheckResult checkRain(@AuthenticationPrincipal Jwt jwt) {
         admin.requireAdmin(jwt.getSubject());
         return rainAlerts.checkNow();
+    }
+
+    /** 다음 정기 갱신(1시간 간격)을 기다리지 않고 지금 날씨 API 예보를 받는다. */
+    @PostMapping("/weather/refresh")
+    public WeatherRefreshResult refreshWeather(@AuthenticationPrincipal Jwt jwt) {
+        admin.requireAdmin(jwt.getSubject());
+        return forecasts.refreshNow();
     }
 }

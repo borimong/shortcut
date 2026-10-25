@@ -6,7 +6,7 @@ from typing import Any, TypedDict
 
 # 하드 제약 범주다. 노션 설계의 5개(계약서, 스케줄, 규제/법, 예산, 촬영 금지 구역)에
 # 천재지변(재난 문자)과 시간당 강수량 기준 날씨를 더했다.
-HARD_CONSTRAINTS = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER")
+HARD_CONSTRAINTS = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER", "SCRIPT")
 
 DEFAULT_WEIGHTS = {"location": 0.25, "equipment": 0.15, "weather": 0.20, "budget": 0.15, "time": 0.10, "distance": 0.15}
 
@@ -74,6 +74,8 @@ class ReplanState(TypedDict, total=False):
     widen_search: bool
     # 4안 구성을 이미 시도했는지와 등록한 대체 장소
     alternatives_tried: bool
+    # 실행 가능한 후보가 없을 때 엔진이 알려 준, 새 장소로는 풀 수 없는 원인(배우 일정, 세트 고정 등)이다.
+    location_blockers: list[str]
     # 자체 검토. 이번 루프의 회차, 회차별 점수와 피드백, 가장 점수가 높았던 안, 다음 회차에 반영할 피드백
     review_round: int
     review_history: list[dict[str, Any]]

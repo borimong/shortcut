@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/internal/test")
 public class InternalTestController {
 
-    // 시연 데이터는 촬영일 1 하나뿐이라 되돌릴 대상을 고정한다.
+    // 재난 알림을 넣는 곳과 초기화의 기본값은 시연 촬영일(1회차)이다.
     private static final long SEED_SHOOT_DAY = 1L;
 
     private final TestSupportService testSupport;
@@ -42,9 +43,10 @@ public class InternalTestController {
         testSupport.clearAlerts();
     }
 
+    /** 이 촬영일이 속한 작품의 모든 촬영일을 시드 상태로 되돌린다. 비우면 시연 촬영일(1회차)의 작품이다. */
     @PostMapping("/reset")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void reset() {
-        testSupport.reset(SEED_SHOOT_DAY);
+    public void reset(@RequestParam(required = false) Long shootDayId) {
+        testSupport.reset(shootDayId == null ? SEED_SHOOT_DAY : shootDayId);
     }
 }

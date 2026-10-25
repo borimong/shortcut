@@ -14,6 +14,7 @@ import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.EvaluationResult;
 import com.shortcut.engine.ExtraConstraint;
 import com.shortcut.engine.PlanEngine;
+import com.shortcut.engine.PlanInput;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
@@ -39,29 +40,36 @@ public class PlanService {
 
     public EvaluateResponse evaluate(EvaluateRequest request) {
         PlanData data = planData.load(request.shootDayId());
-        EvaluationResult result = engine.evaluate(data.toInput(), request.weights(), request.extraConstraints());
+        PlanInput input = data.toInput();
+        EvaluationResult result = engine.evaluate(input, request.weights(), request.extraConstraints());
         Set<String> excluded = request.excludeHashes() == null ? Set.of() : Set.copyOf(request.excludeHashes());
         List<CandidateResult> remaining = result.candidates().stream()
                 .filter(candidate -> !excluded.contains(candidate.hash()))
                 .toList();
         long feasibleCount = remaining.stream().filter(CandidateResult::feasible).count();
-        List<CandidateView> top = remaining.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
-        return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top);
+        // 되는 후보가 없으면 Agent가 사람에게 넘길 가장 가까운 후보를 고를 수 있게, 점수 순 대신 가까운 후보 순으로 넘긴다.
+        List<CandidateResult> ordered = feasibleCount == 0 ? PlanEngine.closestFirst(remaining) : remaining;
+        List<CandidateView> top = ordered.stream().limit(TOP_CANDIDATES).map(PlanService::view).toList();
+        return new EvaluateResponse(data.shootDay().dataVersion(), result.weights(), feasibleCount, top,
+                PlanEngine.locationProofBlockers(input, remaining));
     }
 
     public ValidateResponse validate(ValidateRequest request) {
         PlanData data = planData.load(request.shootDayId());
         CheckResult check = check(data, request.candidate().locationId(), request.candidate().equipmentIds(),
-                request.candidate().start(), request.candidate().end(), request.extraConstraints());
+                request.candidate().start(), request.candidate().end(), request.extraConstraints(),
+                request.candidate().sceneOrder());
         int current = data.shootDay().dataVersion();
         boolean stale = request.dataVersion() != current;
         // 데이터가 바뀐 뒤의 판정은 근거가 낡았으므로 위반이 없어도 유효하지 않다고 본다.
-        return new ValidateResponse(check.feasible() && !stale, stale, current, check.violations(), check.warnings());
+        return new ValidateResponse(check.feasible() && !stale, stale, current, check.violations(), check.warnings(),
+                check.sceneOrder(), check.sceneOrderChanged());
     }
 
-    public CheckResult check(PlanData data, long locationId, List<Long> equipmentIds,
-                             LocalTime start, LocalTime end, List<ExtraConstraint> extras) {
-        return engine.check(data.toInput(), locationId, equipmentIds, start, end, extras);
+    /** sceneOrder(씬 코드)를 비우면 엔진이 막히지 않는 씬 순서를 고른다. */
+    public CheckResult check(PlanData data, long locationId, List<Long> equipmentIds, LocalTime start, LocalTime end,
+                             List<ExtraConstraint> extras, List<String> sceneOrder) {
+        return engine.check(data.toInput(), locationId, equipmentIds, start, end, extras, sceneOrder);
     }
 
     private static CandidateView view(CandidateResult c) {
@@ -71,6 +79,6 @@ public class PlanService {
                 new CandidateEquipment(c.equipmentOptionNo(), items),
                 new CandidateTime(c.timeOptionNo(), c.start(), c.end()),
                 c.feasible(), c.violations(), c.warnings(), c.softScores(), c.totalScore(), c.cost(), c.extraCost(),
-                c.distanceKm());
+                c.distanceKm(), c.sceneOrder(), c.sceneOrderChanged());
     }
 }

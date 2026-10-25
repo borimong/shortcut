@@ -40,7 +40,8 @@ DataVersion = Annotated[int, Field(ge=1, description="evaluate_plans 결과의 d
 
 
 class ExtraConstraint(BaseModel):
-    """승인자 거절 사유나 감독 지시에서 만든 추가 제약. 다음 평가부터 하드 제약으로 검사된다."""
+    """승인자 거절 사유나 감독 지시에서 만든 추가 제약. 다음 평가부터 하드 제약으로 검사된다.
+    REQUIRE_SETTING_MATCH는 대본의 실내/실외와 장소가 어긋나는 후보(예: 야외 장면을 실내 스튜디오에서)를 뺀다."""
 
     type: Literal[
         "EXCLUDE_LOCATION",
@@ -50,6 +51,7 @@ class ExtraConstraint(BaseModel):
         "REQUIRE_INDOOR",
         "LATEST_END",
         "EXCLUDE_TIME",
+        "REQUIRE_SETTING_MATCH",
     ]
     location_id: int | None = Field(default=None, description="EXCLUDE_LOCATION, EXCLUDE_LOCATION_TIME")
     equipment_id: int | None = Field(default=None, description="EXCLUDE_EQUIPMENT")
@@ -86,6 +88,11 @@ class Candidate(BaseModel):
     source: dict[str, int] | None = Field(
         default=None, description="요소별 출처 안 번호. 예: {location: 2, equipment: 1, time: 2}"
     )
+    scene_order: list[str] | None = Field(
+        default=None,
+        description="오후 블록 씬 코드 순서. evaluate_plans 후보 sceneOrder의 code를 그대로 넣는다. 예: [S19, S18]. "
+        "비우면 서버가 평가 때와 같은 방법으로 고른다",
+    )
 
     def to_backend(self) -> dict[str, Any]:
         body: dict[str, Any] = {
@@ -96,6 +103,8 @@ class Candidate(BaseModel):
         }
         if self.source:
             body["source"] = self.source
+        if self.scene_order:
+            body["sceneOrder"] = self.scene_order
         return body
 
 
@@ -179,17 +188,50 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_plan_set(shoot_day_id: ShootDayId) -> dict:
-        """변경 대상 블록의 씬과 배우, 현재 확정안, 제작사가 미리 만든 1/2/3안(장소, 장비, 시간대)을 돌려준다."""
+        """변경 대상 블록의 씬과 배우, 현재 확정안, 제작사가 미리 만든 1/2/3안(장소, 장비, 시간대)을 돌려준다.
+        씬마다 대본 분해 값이 있다: intExt(INT 실내, EXT 실외), timeOfDay(DAY, NIGHT), settingLocked(지정 세트에서만 촬영),
+        characters(배역과 캐스팅된 배우 id), requirements(장비·소품·보조출연, level MUST 필수, WANT 선호).
+        블록의 sunrise, sunset은 낮/밤 장면 판정에 쓰는 그날 일출과 일몰이다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/plan-set")
 
     @mcp.tool(annotations=READ_ONLY)
     async def get_availability(shoot_day_id: ShootDayId) -> dict:
-        """배우 가용 시간과 주간 누적 근로시간, 계약서 문서 ID, 장소 이용·허가 시간, 장비 가용 여부를 돌려준다."""
+        """배우 가용 시간과 주간 누적 근로시간, 계약서 문서 ID, 장소 이용·허가 시간, 장비 가용 여부를 돌려준다.
+        배우의 그날 실제 일정은 off(종일 불가), windows(가능 시간대), busy(다른 일정과 사유 종류)다.
+        availableFrom~availableTo는 계약 기본 시간이고, 날짜별 일정과 변경 입력이 있으면 windows가 그보다 우선한다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/availability")
 
     @mcp.tool(annotations=READ_ONLY)
+    async def get_actor_schedule(
+        shoot_day_id: ShootDayId,
+        actor_ids: Annotated[list[int] | None, Field(description="볼 배우 id. 비우면 모든 배우")] = None,
+        from_date: Annotated[
+            str | None, Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="시작 날짜 YYYY-MM-DD. 비우면 이 촬영일 날짜")
+        ] = None,
+        days: Annotated[int, Field(ge=1, le=31, description="볼 날 수, 기본 14")] = 14,
+    ) -> dict:
+        """배우들의 날짜별 일정을 돌려준다. 날마다 off(종일 불가), windows(가능 시간대), busy(다른 작품, 광고나 행사,
+        개인 일정, 이동 같은 사유 종류), shoots(우리 촬영에 배정된 블록과 씬)가 있다. 일정이 없는 날은 빠지고,
+        그런 날은 계약 기본 시간(contractFrom~contractTo)에 촬영할 수 있다. 다른 날로 씬을 옮기거나 배우 일정을 물을 때 쓴다.
+        개인 사정은 옮기지 않으려고 사유 종류만 준다."""
+        params: dict[str, Any] = {"days": days}
+        if actor_ids:
+            params["actorIds"] = ",".join(str(i) for i in actor_ids)
+        if from_date:
+            params["from"] = from_date
+        return await call("GET", f"/internal/shoot-days/{shoot_day_id}/actor-schedule", params=params)
+
+    @mcp.tool(annotations=READ_ONLY)
+    async def find_unplaceable_scenes(shoot_day_id: ShootDayId) -> dict:
+        """아직 촬영 배정하지 않은 대본 씬마다 배우 날짜별 일정 안에서 찍을 수 있는 첫 날(firstDate)이나,
+        어느 날에도 못 찍는 이유(reason)를 돌려준다. 예: 계약상 낮에만 되는 배우가 나오는 밤 야외 장면."""
+        return await call("GET", f"/internal/shoot-days/{shoot_day_id}/unplaceable-scenes")
+
+    @mcp.tool(annotations=READ_ONLY)
     async def get_weather(shoot_day_id: ShootDayId) -> dict:
-        """촬영일의 장소별 시간당 강수량(mm)과 촬영 불가 기준(rainBlockMm)을 돌려준다. 실내 장소인지도 함께 표시한다."""
+        """촬영일의 장소별 시간당 강수량(mm)과 촬영 불가 기준(rainBlockMm)을 돌려준다. 실내 장소인지도 함께 표시한다.
+        장소마다 forecast에 예보 출처(LIVE 날씨 API, SEED 시연용 고정, NONE 실시간 예보를 아직 못 받아 강수량 없음)와
+        갱신 시각(updatedAt)이 있다. manual이 true면 사람이 변경 입력으로 넣은 강수량이 예보보다 우선 반영된 것이다."""
         return await call("GET", f"/internal/shoot-days/{shoot_day_id}/weather")
 
     @mcp.tool(annotations=READ_ONLY)
@@ -243,7 +285,9 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
     ) -> dict:
         """1/2/3안의 장소, 장비, 시간대를 요소 단위로 조합한 27개 후보를 업무 규칙 엔진으로 평가한다.
         하드 제약 위반 목록, 항목별 점수, 종합 점수, 비용, dataVersion을 돌려주며 실행 가능한 후보가 앞에 온다.
-        예산 한도 같은 하드 제약은 가중치와 상관없이 유지된다."""
+        예산 한도 같은 하드 제약은 가중치와 상관없이 유지된다.
+        후보마다 sceneOrder(씬별 시작·끝 시각)가 있다. 배우 일정이나 해 때문에 지금 순서로 막히면 엔진이 블록 안
+        씬 순서를 바꾸고 sceneOrderChanged=true로 표시한다. 이 순서를 validate_plan, submit_proposal에 그대로 넘긴다."""
         body: dict[str, Any] = {"shootDayId": shoot_day_id}
         if weights:
             body["weights"] = weights
@@ -261,7 +305,8 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         extra_constraints: list[ExtraConstraint] | None = None,
     ) -> dict:
         """후보안 하나를 최신 데이터로 다시 검사한다. 데이터 버전이 바뀌었으면 stale=true를 돌려준다.
-        submit_proposal 직전에 부른다."""
+        submit_proposal 직전에 부른다. candidate.scene_order를 주면 그 씬 순서 그대로 검사하고, 판정에 쓴 씬 시각표를
+        sceneOrder로 돌려준다."""
         body = {
             "shootDayId": shoot_day_id,
             "candidate": candidate.to_backend(),
@@ -295,7 +340,8 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         review: Annotated[dict | None, Field(description="승인 요청 전 자체 검토 점수와 회차별 이력")] = None,
     ) -> dict:
         """최적안 1개를 변경안으로 등록하고 필수 승인자에게 승인 요청을 보낸다. 업무 데이터를 바꾸는 도구다.
-        backend가 저장 직전에 한 번 더 검증하므로 위반이 있으면 PLAN_INVALID로 거부된다."""
+        backend가 저장 직전에 한 번 더 검증하므로 위반이 있으면 PLAN_INVALID로 거부된다.
+        씬 순서가 바뀐 후보는 candidate.scene_order에 그 순서를 넣는다. 씬 순서가 바뀌면 조감독 승인이 붙는다."""
         body = {
             "taskId": task_id,
             "eventId": event_id,

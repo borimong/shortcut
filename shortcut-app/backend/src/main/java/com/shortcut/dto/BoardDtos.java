@@ -1,6 +1,7 @@
 package com.shortcut.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -38,10 +39,23 @@ public final class BoardDtos {
     public record EquipmentView(long id, String name, boolean available) {
     }
 
-    public record SceneView(String code, String title, int durationMin, List<String> actors) {
+    /** characters는 "배역(배우)" 모양이다. intExt, timeOfDay는 대본의 실내/실외와 낮/밤이다. */
+    public record SceneView(String code, String title, int durationMin, List<String> actors, String heading,
+                            String intExt, String timeOfDay, List<String> characters) {
     }
 
-    public record WeatherView(String locationName, List<HourlyView> hourly, String summary) {
+    public record WeatherView(String locationName, List<HourlyView> hourly, String summary, ForecastView forecast) {
+    }
+
+    /**
+     * 예보 출처와 갱신 시각이다.
+     *
+     * @param source LIVE(날씨 API 예보), SEED(시연용 시드 예보), NONE(실시간 예보를 쓰는데 이 장소 예보를 아직 못 받음)
+     * @param updatedAt 날씨 API 예보를 마지막으로 받은 시각. LIVE일 때만 있다
+     * @param stale 마지막 갱신이 오래되어 최근 갱신이 실패한 것으로 보이는지. 이때도 마지막으로 받은 값을 쓴다
+     * @param manual 변경 입력으로 이 장소의 강수량을 덮어썼는지. 덮어쓴 시간대는 예보보다 입력값이 우선한다
+     */
+    public record ForecastView(String source, OffsetDateTime updatedAt, boolean stale, boolean manual) {
     }
 
     /** 시각별 시간당 강수량(mm)이다. */
@@ -50,7 +64,7 @@ public final class BoardDtos {
 
     /** 블록마다 그 블록 촬영지의 날씨다. 화면은 지금 시각에 촬영 중인 블록의 날씨를 고른다. */
     public record BlockWeatherView(String blockCode, long locationId, String locationName, boolean indoor,
-                                   List<HourlyView> hourly, String summary) {
+                                   List<HourlyView> hourly, String summary, ForecastView forecast) {
     }
 
     /** 관리자 설정의 강수 기준이다. 화면 강조 색과 엔진 판정이 같은 값을 쓴다. */
@@ -63,11 +77,22 @@ public final class BoardDtos {
     public record PendingProposalView(long id, String versionNo, String status) {
     }
 
-    public record CallsheetSummary(int versionNo, OffsetDateTime createdAt, Long proposalId) {
+    /** restoredFrom은 앞 버전으로 되돌려 만든 버전일 때 그 버전 번호다. note는 되돌린 사유다. */
+    public record CallsheetSummary(int versionNo, OffsetDateTime createdAt, Long proposalId, Integer restoredFrom,
+                                   String note) {
     }
 
+    public record RestoreRequest(@Size(max = 200) String reason) {
+    }
+
+    /** reservationStatus는 되돌린 장소의 예약 상태(HELD 가예약 있음, MANUAL_PENDING 제작부가 직접 잡아야 함)다. */
+    public record RestoreResult(int versionNo, int restoredFrom, String reservationStatus) {
+    }
+
+    /** sceneOrderChanged는 바로 앞 버전과 오후 블록 씬 순서가 다른지다. */
     public record CallsheetContent(long shootDayId, int versionNo, Long proposalId, OffsetDateTime createdAt,
-                                   LocalDate shootDate, LocalTime callTime, List<BlockView> blocks) {
+                                   LocalDate shootDate, LocalTime callTime, List<BlockView> blocks,
+                                   boolean sceneOrderChanged) {
     }
 
     public record HistoryItem(OffsetDateTime at, String kind, String text, String link) {

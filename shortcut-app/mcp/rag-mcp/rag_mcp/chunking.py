@@ -18,7 +18,7 @@ class Document:
 
     doc_id: str
     title: str
-    doc_type: str  # LAW, PERMIT, NO_FLY, SAFETY, POLICY, CONTRACT
+    doc_type: str  # LAW, PERMIT, NO_FLY, SAFETY, POLICY, CONTRACT, SCRIPT
     version: str
     text: str
     # 특정 장소에만 적용되는 문서면 장소 이름 키워드(예: 한강). 비어 있으면 어디에나 적용된다.

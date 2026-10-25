@@ -57,12 +57,13 @@ public class AdminService {
         if (request.rainWarnMm() > request.rainBlockMm()) {
             throw ApiException.badRequest("INVALID_RAIN_RULE", "경고 강수량은 촬영 불가 강수량보다 클 수 없습니다.");
         }
-        // 실패 시연 스위치는 화면이 보내지 않으면 지금 값을 그대로 둔다.
+        // 예보 선택과 실패 시연 스위치는 화면이 보내지 않으면 지금 값을 그대로 둔다.
         AppSettings current = settings.settings();
+        String weatherSource = request.weatherSource() != null ? request.weatherSource() : current.weatherSource();
         boolean venueConflict = request.mockVenueConflict() != null ? request.mockVenueConflict() : current.mockVenueConflict();
         boolean permitDenied = request.mockPermitDenied() != null ? request.mockPermitDenied() : current.mockPermitDenied();
         settings.updateSettings(new AppSettings(request.maxLoops(), request.rainBlockMm(), request.rainWarnMm(),
-                request.rainAlertLeadHours(), venueConflict, permitDenied, null, null), username);
+                request.rainAlertLeadHours(), weatherSource, venueConflict, permitDenied, null, null), username);
         return SettingsView.of(settings.settings());
     }
 

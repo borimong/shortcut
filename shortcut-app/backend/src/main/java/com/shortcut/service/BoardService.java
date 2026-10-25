@@ -1,6 +1,7 @@
 package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
+import com.shortcut.common.Josa;
 import com.shortcut.common.JsonColumns;
 import com.shortcut.domain.Actor;
 import com.shortcut.domain.Approval;
@@ -10,6 +11,7 @@ import com.shortcut.domain.Location;
 import com.shortcut.domain.Proposal;
 import com.shortcut.domain.ProposalStatus;
 import com.shortcut.domain.Role;
+import com.shortcut.domain.Scene;
 import com.shortcut.dto.BoardDtos.BlockView;
 import com.shortcut.dto.BoardDtos.BlockWeatherView;
 import com.shortcut.dto.BoardDtos.BoardResponse;
@@ -27,6 +29,7 @@ import com.shortcut.dto.BoardDtos.ShootDayView;
 import com.shortcut.dto.BoardDtos.WeatherView;
 import com.shortcut.engine.PlanEngine;
 import com.shortcut.engine.PlanSnapshot;
+import com.shortcut.engine.SceneSlot;
 import com.shortcut.repository.CallsheetRepository;
 import com.shortcut.repository.PlanRepository;
 import com.shortcut.repository.PlanRepository.DayOrder;
@@ -98,7 +101,8 @@ public class BoardService {
                 blockViews(data, current),
                 json.tree(data.shootDay().crewCallsJson()),
                 new WeatherView(pmLocation.name(), ShootDayQueryService.hourly(data, pmLocation.id()),
-                        weatherSummary(data, pmLocation, current.start(), current.end())),
+                        weatherSummary(data, pmLocation, current.start(), current.end()),
+                        ShootDayQueryService.forecast(data, pmLocation.id(), OffsetDateTime.now())),
                 contacts,
                 pending,
                 blockWeather(data, current),
@@ -109,7 +113,7 @@ public class BoardService {
     public List<CallsheetSummary> callsheets(long shootDayId) {
         planData.load(shootDayId);
         return callsheets.findAll(shootDayId).stream()
-                .map(c -> new CallsheetSummary(c.versionNo(), c.createdAt(), c.proposalId()))
+                .map(c -> new CallsheetSummary(c.versionNo(), c.createdAt(), c.proposalId(), c.restoredFrom(), c.note()))
                 .toList();
     }
 
@@ -118,8 +122,14 @@ public class BoardService {
         PlanData data = planData.load(shootDayId);
         Callsheet c = callsheets.find(shootDayId, versionNo)
                 .orElseThrow(() -> ApiException.notFound("CALLSHEET_NOT_FOUND", "콜시트 버전이 없습니다: v" + versionNo));
+        // 거절된 변경안 번호는 콜시트에서 건너뛰므로 바로 앞 버전은 번호가 더 작은 것 가운데 가장 큰 것이다.
+        boolean reordered = callsheets.findAll(shootDayId).stream()
+                .filter(prev -> prev.versionNo() < c.versionNo())
+                .findFirst()
+                .map(prev -> !prev.pm().sameSceneOrder(c.pm()))
+                .orElse(false);
         return new CallsheetContent(shootDayId, c.versionNo(), c.proposalId(), c.createdAt(),
-                data.shootDay().shootDate(), data.shootDay().callTime(), blockViews(data, c.pm()));
+                data.shootDay().shootDate(), data.shootDay().callTime(), blockViews(data, c.pm()), reordered);
     }
 
     /**
@@ -162,6 +172,9 @@ public class BoardService {
         for (Callsheet c : callsheets.findAll(shootDayId)) {
             if (c.proposalId() != null) {
                 items.add(new HistoryItem(c.createdAt(), ProposalStatus.COMMITTED, "확정 콜시트 v" + c.versionNo(), "/"));
+            } else if (c.restoredFrom() != null) {
+                items.add(new HistoryItem(c.createdAt(), "RESTORED", Josa.euroRo("콜시트 v" + c.restoredFrom()) + " 되돌려 v"
+                        + c.versionNo() + " 배포" + (c.note() == null ? "" : " (" + c.note() + ")"), "/callsheet"));
             }
         }
         callsheets.findDistributions(shootDayId).forEach(d -> items.add(new HistoryItem(d.at(), "DISTRIBUTED",
@@ -170,15 +183,30 @@ public class BoardService {
         return items;
     }
 
+    /**
+     * 오후 블록 씬을 콜시트 스냅숏 순서로 놓는다. 씬 순서를 바꾼 확정 뒤에도 옛 콜시트 버전은 그때 순서로 보인다.
+     * 스냅숏이 없는 옛 기록이면 지금 순서 그대로다.
+     */
+    private static List<Scene> inSnapshotOrder(List<Scene> scenes, PlanSnapshot pm) {
+        List<String> order = SceneSlot.codes(pm.scenes());
+        return scenes.stream()
+                .sorted(Comparator.comparingInt(s -> order.contains(s.code()) ? order.indexOf(s.code()) : order.size()))
+                .toList();
+    }
+
     private static List<BlockView> blockViews(PlanData data, PlanSnapshot pm) {
         return data.blocks().stream().map(block -> {
             boolean changing = PlanData.CHANGING_BLOCK.equals(block.code());
             long locationId = changing ? pm.locationId() : block.locationId();
             List<Long> equipmentIds = changing ? pm.equipmentIds() : block.equipmentIds();
             Location l = data.locations().get(locationId);
-            List<SceneView> scenes = data.scenesOf(block.code()).stream()
+            List<SceneView> scenes = (changing ? inSnapshotOrder(data.scenesOf(block.code()), pm) : data.scenesOf(block.code()))
+                    .stream()
                     .map(s -> new SceneView(s.code(), s.title(), s.durationMin(),
-                            s.actorIds().stream().map(id -> data.actors().get(id).name()).toList()))
+                            s.actorIds().stream().map(id -> data.actors().get(id).name()).toList(),
+                            s.heading(), s.intExt(), s.timeOfDay(),
+                            s.characters().stream().map(c -> c.name() + (c.actorId() == null ? "(캐스팅 전)"
+                                    : "(" + data.actors().get(c.actorId()).name() + ")")).toList()))
                     .toList();
             return new BlockView(block.code(), changing ? pm.start() : block.start(), changing ? pm.end() : block.end(),
                     new LocationView(l.id(), l.name(), l.address(), l.indoor(), l.region()),
@@ -194,18 +222,21 @@ public class BoardService {
             var start = changing ? current.start() : block.start();
             var end = changing ? current.end() : block.end();
             return new BlockWeatherView(block.code(), l.id(), l.name(), l.indoor(), ShootDayQueryService.hourly(data, l.id()),
-                    weatherSummary(data, l, start, end));
+                    weatherSummary(data, l, start, end), ShootDayQueryService.forecast(data, l.id(), OffsetDateTime.now()));
         }).toList();
     }
 
     private static String weatherSummary(PlanData data, Location location, java.time.LocalTime start,
                                          java.time.LocalTime end) {
         if (location.indoor()) {
-            return location.name() + "은(는) 실내라 강수 영향이 없습니다.";
+            return Josa.eunNeun(location.name()) + " 실내라 강수 영향이 없습니다.";
         }
         double blockMm = data.settings().rainBlockMm();
         double warnMm = data.settings().rainWarnMm();
         Map<Integer, Double> hourly = data.hourly(location.id());
+        if (hourly.isEmpty()) {
+            return location.name() + " 예보가 아직 없어 강수 영향을 판단하지 못했습니다.";
+        }
         int lastHour = (end.toSecondOfDay() / 60 - 1) / 60;
         double max = 0;
         Integer firstRainy = null;

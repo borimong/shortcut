@@ -47,6 +47,10 @@ services:
       DB_USER: shortcut
       DB_PASSWORD: shortcut
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET을 .env에 넣으세요}
+      # 날씨 API(Open-Meteo) 실시간 예보. 무료 API는 키가 없고, 상용 주소를 쓸 때만 키를 .env에 넣는다.
+      OPEN_METEO_URL: ${OPEN_METEO_URL:-https://api.open-meteo.com}
+      OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+      WEATHER_FETCH_ENABLED: ${WEATHER_FETCH_ENABLED:-true}
     ports:
       - "${BACKEND_HOST_PORT:-18080}:8080"
     depends_on:

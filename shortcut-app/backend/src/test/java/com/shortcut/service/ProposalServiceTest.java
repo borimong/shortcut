@@ -16,6 +16,7 @@ import com.shortcut.common.ApiException;
 import com.shortcut.domain.AiTask;
 import com.shortcut.domain.Approval;
 import com.shortcut.domain.Callsheet;
+import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.Proposal;
 import com.shortcut.domain.ShootDay;
@@ -231,7 +232,7 @@ class ProposalServiceTest {
     private void givenApprovedForCommit() {
         given(proposals.findForUpdate(PROPOSAL_ID)).willReturn(Optional.of(proposal("APPROVED", DATA_VERSION)));
         given(plans.lockDataVersion(1L)).willReturn(Optional.of(DATA_VERSION));
-        given(callsheets.insert(1L, 4, PROPOSAL_ID, PROPOSED)).willReturn(new Callsheet(31L, 1L, 4, PROPOSAL_ID, PROPOSED, null));
+        given(callsheets.insert(1L, 4, PROPOSAL_ID, PROPOSED)).willReturn(new Callsheet(31L, 1L, 4, PROPOSAL_ID, PROPOSED, null, null, null, null));
         given(task.traceId()).willReturn("trace-1");
     }
 
@@ -274,6 +275,6 @@ class ProposalServiceTest {
         Location seongsu = new Location(2, "성수 스튜디오", "서울 성동구", true, "서울 성동구", LocalTime.of(9, 0),
                 LocalTime.of(22, 0), null, null, 450_000, false, 0.8, 14, null, true);
         return new PlanData(shootDay(DATA_VERSION), List.of(), List.of(), Map.of(), Map.of(2L, seongsu), Map.of(),
-                List.of(), List.of(), List.of(), List.of(), null);
+                List.of(), List.of(), ForecastInfo.NONE, List.of(), List.of(), null);
     }
 }

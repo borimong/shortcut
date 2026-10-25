@@ -87,9 +87,9 @@ CREATE TABLE IF NOT EXISTS scenes (
     block_code     varchar(10) NOT NULL,
     title          varchar(80) NOT NULL,
     duration_min   integer     NOT NULL,
-    outdoor_intent boolean     NOT NULL,
+    -- 세트 고정 씬(script_scenes.setting_locked)을 꼭 찍어야 하는 세트 장소다. 엔진은 고정 씬에만 이 장소를 강제한다.
+    -- 고정이 아닌 씬은 블록 장소(blocks.location_id)에서 찍고, 이 값은 촬영 예정지 표시에만 쓴다.
     location_id    bigint REFERENCES locations (id),
-    actor_ids      jsonb       NOT NULL DEFAULT '[]',
     sort           integer     NOT NULL,
     PRIMARY KEY (shoot_day_id, code)
 );
@@ -326,6 +326,17 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS active boolean NOT NULL DEFAULT true;
 -- 강수확률 대신 시간당 강수량(mm)으로 판정한다. 읽는 곳이 없던 확률 열(precip_prob)은 아래 정리 구역에서 지운다.
 ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS precip_mm numeric(5, 1) NOT NULL DEFAULT 0;
 
+-- 시드 고정 예보(SEED)와 날씨 API로 받은 예보(LIVE)를 같은 표에 따로 둔다. 어느 쪽을 읽을지는 app_settings.weather_source가 정한다.
+-- fetched_at은 LIVE 행을 마지막으로 받은 시각이다. 기본키에 source를 넣는 일은 아래 정리 구역에서 한다.
+ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS source varchar(10) NOT NULL DEFAULT 'SEED';
+ALTER TABLE weather_forecasts ADD COLUMN IF NOT EXISTS fetched_at timestamptz;
+
+-- 날씨 API(Open-Meteo)에 넘길 장소 위경도다. 4안 장소는 등록할 때 카탈로그(external_locations) 좌표를 복사한다.
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS latitude numeric(8, 5);
+ALTER TABLE locations ADD COLUMN IF NOT EXISTS longitude numeric(8, 5);
+ALTER TABLE external_locations ADD COLUMN IF NOT EXISTS latitude numeric(8, 5);
+ALTER TABLE external_locations ADD COLUMN IF NOT EXISTS longitude numeric(8, 5);
+
 -- 관리자가 바꾸는 운영 설정이다. 행은 하나만 둔다.
 CREATE TABLE IF NOT EXISTS app_settings (
     id                    integer      PRIMARY KEY CHECK (id = 1),
@@ -336,8 +347,12 @@ CREATE TABLE IF NOT EXISTS app_settings (
     updated_by            varchar(40),
     updated_at            timestamptz  NOT NULL DEFAULT now()
 );
+-- LIVE는 날씨 API 예보, SEED는 시연 시나리오용 시드 예보다. 실제 서비스처럼 기본은 LIVE이고,
+-- 시연 날 비가 오지 않으면 관리자가 SEED로 바꿔 1회차 한강 공원 8mm 시나리오를 돌린다.
+ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS weather_source varchar(10) NOT NULL DEFAULT 'LIVE';
+ALTER TABLE app_settings ALTER COLUMN weather_source SET DEFAULT 'LIVE';
 
--- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, COST 중 하나다.
+-- 변경 내용별 필수 승인자다. change_kind는 ALWAYS, LOCATION, EQUIPMENT, TIME, SCENE(씬 순서), COST 중 하나다.
 CREATE TABLE IF NOT EXISTS approver_rules (
     change_kind varchar(20) NOT NULL,
     role        varchar(30) NOT NULL,
@@ -497,6 +512,17 @@ BEGIN
     END IF;
 END';
 
+-- 예보 기본키에 출처(source)를 넣어 같은 장소와 시각의 SEED 행과 LIVE 행이 함께 있을 수 있게 한다.
+DO '
+BEGIN
+    IF (SELECT array_length(conkey, 1) FROM pg_constraint
+        WHERE conrelid = ''weather_forecasts''::regclass AND contype = ''p'') = 3 THEN
+        ALTER TABLE weather_forecasts DROP CONSTRAINT weather_forecasts_pkey;
+        ALTER TABLE weather_forecasts ADD CONSTRAINT weather_forecasts_pkey
+            PRIMARY KEY (shoot_day_id, location_id, hour, source);
+    END IF;
+END';
+
 -- 재난 문자는 발령된 날에만 적용한다. 날짜 칸이 없던 기존 행은 오늘 날짜로 채우고, 이후로는 넣을 때 날짜를 꼭 받는다.
 ALTER TABLE disaster_alerts ADD COLUMN IF NOT EXISTS alert_date date NOT NULL DEFAULT CURRENT_DATE;
 ALTER TABLE disaster_alerts ALTER COLUMN alert_date DROP DEFAULT;
@@ -576,3 +602,157 @@ CREATE INDEX IF NOT EXISTS change_events_shoot_day_idx ON change_events (shoot_d
 CREATE INDEX IF NOT EXISTS shoot_day_overrides_shoot_day_idx ON shoot_day_overrides (shoot_day_id);
 
 ALTER TABLE weather_forecasts DROP COLUMN IF EXISTS precip_prob;
+
+-- ===== 대본과 배우 일정 =====
+-- 대본 씬 분해다. 촬영 배정(scenes)과 달리 촬영일과 상관없이 대본에 한 번만 있다.
+-- 머리말부터 시놉시스까지는 대본 파일에서 만든 값(data-script.sql)이고, 세트 고정과 예상 분은 제작부가 정한다(data-schedule.sql).
+CREATE TABLE IF NOT EXISTS script_scenes (
+    project_id     bigint       NOT NULL REFERENCES projects (id),
+    code           varchar(10)  NOT NULL,
+    heading        varchar(120) NOT NULL,
+    int_ext        varchar(3)   NOT NULL CHECK (int_ext IN ('INT', 'EXT')),
+    time_of_day    varchar(5)   NOT NULL CHECK (time_of_day IN ('DAY', 'NIGHT')),
+    setting        varchar(60)  NOT NULL,
+    synopsis       text,
+    -- rag.documents.doc_id다. 다른 서비스가 가진 스키마라 외래키는 걸지 않는다.
+    script_doc_id  varchar(60)  NOT NULL,
+    -- 세트가 scenes.location_id에만 있어 다른 장소에서는 찍을 수 없는 씬이다.
+    setting_locked boolean      NOT NULL DEFAULT false,
+    -- 아직 배정하지 않은 씬의 예상 촬영 분이다. 배정 가능성 검사에 쓴다.
+    est_minutes    integer,
+    PRIMARY KEY (project_id, code)
+);
+
+-- 배역이다. actor_id가 비어 있으면 아직 캐스팅 전이다. 대본은 배역만 알고 캐스팅은 제작부가 정한다.
+CREATE TABLE IF NOT EXISTS characters (
+    id         bigint PRIMARY KEY,
+    project_id bigint      NOT NULL REFERENCES projects (id),
+    name       varchar(40) NOT NULL,
+    kind       varchar(10) NOT NULL CHECK (kind IN ('LEAD', 'SUPPORT')),
+    actor_id   bigint REFERENCES actors (id)
+);
+
+CREATE TABLE IF NOT EXISTS scene_characters (
+    project_id   bigint      NOT NULL,
+    scene_code   varchar(10) NOT NULL,
+    character_id bigint      NOT NULL REFERENCES characters (id),
+    PRIMARY KEY (project_id, scene_code, character_id),
+    FOREIGN KEY (project_id, scene_code) REFERENCES script_scenes (project_id, code)
+);
+
+-- 대본 줄(지문과 대사)이다. 대사 화자가 그 씬의 등장 배역인지 맞춰 보고, RAG 대본 문서와 같은 파일에서 만든다.
+CREATE TABLE IF NOT EXISTS script_lines (
+    project_id   bigint      NOT NULL,
+    scene_code   varchar(10) NOT NULL,
+    line_no      integer     NOT NULL,
+    kind         varchar(10) NOT NULL CHECK (kind IN ('ACTION', 'DIALOGUE')),
+    character_id bigint REFERENCES characters (id),
+    text         text        NOT NULL,
+    PRIMARY KEY (project_id, scene_code, line_no),
+    FOREIGN KEY (project_id, scene_code) REFERENCES script_scenes (project_id, code),
+    CHECK ((kind = 'DIALOGUE') = (character_id IS NOT NULL))
+);
+
+-- 씬이 요구하는 장비, 소품, 의상, 보조출연, 특수 요구다. 엔진은 EQUIPMENT만 판정하고 나머지는 촬영판과 설명에 쓴다.
+CREATE TABLE IF NOT EXISTS scene_requirements (
+    id           bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    project_id   bigint      NOT NULL,
+    scene_code   varchar(10) NOT NULL,
+    kind         varchar(10) NOT NULL CHECK (kind IN ('EQUIPMENT', 'PROP', 'COSTUME', 'EXTRAS', 'SPECIAL')),
+    equipment_id bigint REFERENCES equipment (id),
+    label        varchar(60) NOT NULL,
+    qty          integer     NOT NULL DEFAULT 1,
+    level        varchar(4)  NOT NULL CHECK (level IN ('MUST', 'WANT')),
+    FOREIGN KEY (project_id, scene_code) REFERENCES script_scenes (project_id, code),
+    CHECK ((kind = 'EQUIPMENT') = (equipment_id IS NOT NULL)),
+    UNIQUE (project_id, scene_code, kind, label)
+);
+
+-- 촬영 배정이 대본 씬을 가리키게 한다. 이미 있는 DB는 이 문장이 시드보다 먼저 돌아 대본 씬이 비어 있으므로
+-- 외래키가 한 번 검증되지 않은 채로 걸리고 다음 기동에서 검증된다(ensure_constraint).
+-- 출연 배우와 야외 의도는 배역(scene_characters)과 대본 씬(int_ext)에서 읽으므로 예전 두 열은 지운다.
+ALTER TABLE scenes DROP COLUMN IF EXISTS actor_ids;
+ALTER TABLE scenes DROP COLUMN IF EXISTS outdoor_intent;
+ALTER TABLE scenes ADD COLUMN IF NOT EXISTS project_id bigint;
+UPDATE scenes s SET project_id = d.project_id FROM shoot_days d WHERE s.project_id IS NULL AND d.id = s.shoot_day_id;
+ALTER TABLE scenes ALTER COLUMN project_id SET NOT NULL;
+SELECT ensure_constraint('scenes', 'scenes_project_id_code_fkey',
+                         'FOREIGN KEY (project_id, code) REFERENCES script_scenes (project_id, code)');
+
+-- 배우의 날짜별 기본 일정이다. 변경 입력(shoot_day_overrides의 ACTOR_WINDOW, ACTOR_BUSY)은 이 위에 얹는다.
+-- WINDOW가 있는 날은 그 창들이 가능 시간이고, 없는 날은 actors.available_from~to(계약 기본 시간)다. BUSY는 그 시간을 빼고 OFF는 종일 불가다.
+-- 개인 사정은 reason_kind만 Agent에 넘기고 memo는 사람 화면에만 보인다. SEED 줄은 초기화 때 지우고 다시 만든다.
+CREATE TABLE IF NOT EXISTS actor_availability (
+    id          bigint GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    actor_id    bigint      NOT NULL REFERENCES actors (id),
+    on_date     date        NOT NULL,
+    kind        varchar(10) NOT NULL CHECK (kind IN ('WINDOW', 'BUSY', 'OFF')),
+    start_time  time,
+    end_time    time,
+    reason_kind varchar(20) CHECK (reason_kind IN ('OTHER_PRODUCTION', 'PROMOTION', 'PERSONAL', 'TRAVEL')),
+    memo        text,
+    source      varchar(10) NOT NULL DEFAULT 'MANAGER' CHECK (source IN ('SEED', 'MANAGER', 'MANUAL')),
+    CHECK ((kind = 'OFF') = (start_time IS NULL AND end_time IS NULL)),
+    CHECK (start_time IS NULL OR start_time < end_time),
+    UNIQUE NULLS NOT DISTINCT (actor_id, on_date, kind, start_time)
+);
+CREATE INDEX IF NOT EXISTS actor_availability_date_idx ON actor_availability (on_date, actor_id);
+
+-- 낮/밤 장면 판정에 쓰는 일출과 일몰이다. 비어 있으면 낮/밤 규칙을 건너뛴다.
+ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunrise time;
+ALTER TABLE shoot_days ADD COLUMN IF NOT EXISTS sunset time;
+
+-- ===== 씬 순서 =====
+-- 오후 블록 씬 시각표 [{code, start, end}]다. 배우 일정 때문에 엔진이 블록 안 씬 순서를 바꾼 안을 승인받고 확정한다.
+-- 변경안은 확정 전 순서(orig_scene_order)와 바꿀 순서(scene_order)를 함께 남긴다. 씬 순서를 남기기 전에 만든 변경안은 비어 있다.
+ALTER TABLE proposals ADD COLUMN IF NOT EXISTS orig_scene_order jsonb;
+ALTER TABLE proposals ADD COLUMN IF NOT EXISTS scene_order jsonb;
+-- 콜시트 버전의 오후 블록 씬 스냅숏이다. 씬은 조회할 때 scenes에서 채우므로, 순서가 바뀐 뒤에도 옛 버전이 옛 순서로 보이게 남긴다.
+-- 비어 있는 옛 버전은 씬 배정 시드(data-schedule.sql) 뒤에 그때 순서로 한 번 채운다.
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS scenes jsonb;
+
+-- ===== 콜시트 되돌리기와 재계획 중단 =====
+-- 확정한 콜시트를 앞 버전의 오후 블록으로 되돌리면 새 버전으로 다시 배포한다. 그 버전이 어느 버전으로 되돌린 것인지,
+-- 누가 왜 되돌렸는지 남긴다. 변경안으로 확정한 버전은 restored_from이 비어 있다.
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS restored_from integer;
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS note text;
+ALTER TABLE callsheet_versions ADD COLUMN IF NOT EXISTS created_by varchar(40);
+
+-- ===== 블록 참조와 상태값 제약 =====
+-- 씬과 1/2/3안은 블록을 (촬영일, 블록 코드)로 가리킨다. blocks에 이 두 칸의 유일 제약이 있어 외래키로 건다.
+SELECT ensure_constraint('scenes', 'scenes_block_fkey',
+                         'FOREIGN KEY (shoot_day_id, block_code) REFERENCES blocks (shoot_day_id, code)');
+SELECT ensure_constraint('plan_options', 'plan_options_block_fkey',
+                         'FOREIGN KEY (shoot_day_id, block_code) REFERENCES blocks (shoot_day_id, code)');
+
+-- 상태값은 코드가 쓰는 값만 받는다. 새 상태를 쓰려면 여기 목록부터 늘린다.
+-- 작업: 접수, 실행, 승인 대기, 완료, 실패, 사람에게 보고, 새 변경에 밀림, 사람이 중단
+SELECT ensure_constraint('ai_tasks', 'ai_tasks_status_check',
+    'CHECK (status IN (''QUEUED'', ''RUNNING'', ''WAITING_APPROVAL'', ''DONE'', ''FAILED'', ''NEEDS_HUMAN'', ''SUPERSEDED'', ''CANCELLED''))');
+-- 변경안: 승인 대기, 전원 승인, 거절, 데이터가 바뀌어 무효, 확정, 중단으로 철회
+SELECT ensure_constraint('proposals', 'proposals_status_check',
+    'CHECK (status IN (''PENDING'', ''APPROVED'', ''REJECTED'', ''STALE'', ''COMMITTED'', ''WITHDRAWN''))');
+SELECT ensure_constraint('approvals', 'approvals_status_check',
+    'CHECK (status IN (''PENDING'', ''APPROVED'', ''REJECTED'', ''CANCELLED''))');
+SELECT ensure_constraint('outbox', 'outbox_status_check', 'CHECK (status IN (''NEW'', ''SENT''))');
+-- 작업 로그: 성공, 재시도, DLQ, 건너뜀(배포할 콜시트 버전이 초기화로 지워진 작업). 건너뜀을 더하면서 제약 이름을 바꿨다.
+-- ensure_constraint는 이름이 있으면 그대로 두므로, 예전 이름의 제약을 지우고 새 이름으로 건다.
+ALTER TABLE job_logs DROP CONSTRAINT IF EXISTS job_logs_status_check;
+SELECT ensure_constraint('job_logs', 'job_logs_status_check_v2',
+    'CHECK (status IN (''SUCCESS'', ''RETRY'', ''DLQ'', ''SKIPPED''))');
+SELECT ensure_constraint('distribution_logs', 'distribution_logs_status_check', 'CHECK (status IN (''SENT''))');
+-- 예약: 가예약, 실행팀이 확정한 예약, 실행팀이 취소한 예약, 대체 장소를 직접 잡아 확인을 기다리는 예약.
+-- 실행팀의 확정과 취소를 더하면서 제약 이름을 바꿨다. 예전 이름의 제약은 지우고 새 이름으로 건다.
+ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_status_check;
+SELECT ensure_constraint('reservations', 'reservations_status_check_v2',
+    'CHECK (status IN (''HELD'', ''CONFIRMED'', ''CANCELLED'', ''MANUAL_PENDING''))');
+
+-- DB 도구에서도 씬 장소의 뜻이 보이게 칸 설명을 단다.
+COMMENT ON COLUMN scenes.location_id IS '세트 고정 씬(script_scenes.setting_locked)의 세트 장소. 엔진은 고정 씬에만 강제하고, 고정이 아닌 씬은 블록 장소(blocks.location_id)에서 찍는다.';
+
+-- ===== 대본 씬 촬영 장소 =====
+-- 제작부가 로케이션 헌팅으로 정한 씬별 촬영 장소다. 아직 촬영일에 배정하지 않은 씬도 어디서 찍을지 알아야
+-- 다른 날 씬을 당겨 찍는 후보를 만들 수 있다. 세트 고정 씬은 이 장소에서만 찍으므로 scenes.location_id와 같아야 하고,
+-- 고정이 아닌 씬은 블록이 대체 장소로 옮겨 가면 거기서 찍으므로 지금 블록 장소와 다를 수 있다.
+ALTER TABLE script_scenes ADD COLUMN IF NOT EXISTS location_id bigint REFERENCES locations (id);
+COMMENT ON COLUMN script_scenes.location_id IS '제작부가 정한 이 씬의 촬영 장소. 세트 고정 씬은 scenes.location_id와 같고, 고정이 아닌 씬은 블록이 옮겨 가면 그 장소에서 찍는다.';

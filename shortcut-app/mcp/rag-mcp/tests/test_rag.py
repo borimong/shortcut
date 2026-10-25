@@ -15,7 +15,7 @@ from rag_mcp.server import build_server
 from rag_mcp.store import MemoryStore
 
 # shortcut-app/agent가 부르는 도구 (접두어 rag_ 제외)
-AGENT_TOOLS = {"search_regulation", "search_contract_clause", "index_document", "delete_document"}
+AGENT_TOOLS = {"search_regulation", "search_contract_clause", "search_script", "index_document", "delete_document"}
 
 
 class FailingEmbedder(HashEmbedder):
@@ -89,7 +89,7 @@ def test_regulation_search_never_returns_contracts(indexed_server):
     server, _ = indexed_server
     hits = data(tool_call(server, "search_regulation", {"query": "야간 촬영 22시 이후", "k": 8}))
     assert hits
-    assert all(hit["doc_type"] != "CONTRACT" for hit in hits)
+    assert all(hit["doc_type"] not in ("CONTRACT", "SCRIPT") for hit in hits)
     assert {"chunk_id", "doc_id", "title", "heading", "text", "score"} <= set(hits[0])
 
 
@@ -162,6 +162,23 @@ def test_delete_is_destructive_and_reports_missing(indexed_server):
     assert "[DOCUMENT_NOT_FOUND]" in str(error.value)
 
 
+def test_script_is_split_by_scene_heading():
+    document = parse_markdown((CORPUS_DIR / "script-ep07-v1.md").read_text(encoding="utf-8"))
+    headings = [c.heading for c in split_into_chunks(document)]
+    assert document.doc_type == "SCRIPT"
+    assert "S#12. 한강 공원 산책로 (낮, 실외)" in headings
+    assert "S#21. 합정 루프탑 (밤, 실외)" in headings
+
+
+def test_script_search_returns_requested_scenes_in_order(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_script", {"query": "밤 장면", "scene_codes": ["S21", "S12"]}))
+    assert [hit["heading"] for hit in hits] == ["S#21. 합정 루프탑 (밤, 실외)", "S#12. 한강 공원 산책로 (낮, 실외)"]
+    assert all(hit["doc_type"] == "SCRIPT" for hit in hits)
+    free = data(tool_call(server, "search_script", {"query": "한강 산책", "k": 3}))
+    assert len(free) == 3 and {hit["doc_type"] for hit in free} == {"SCRIPT"}
+
+
 def test_place_scope_is_carried_from_front_matter_to_search_results(indexed_server):
     server, _ = indexed_server
     notice = split_into_chunks(parse_markdown((CORPUS_DIR / "no-fly-zone-notice.md").read_text(encoding="utf-8")))
@@ -171,7 +188,9 @@ def test_place_scope_is_carried_from_front_matter_to_search_results(indexed_serv
     assert by_heading["비행 승인 원칙"] == ()
 
     hits = data(tool_call(server, "search_regulation", {"query": "한강 촬영 허가 시간", "k": 8, "doc_types": ["PERMIT"]}))
-    assert hits and all(hit["locations"] == ["한강"] for hit in hits)
+    # 허가서는 장소마다 하나씩 있고, 조각마다 자기 허가서 머리말의 장소가 붙는다.
+    scope = {"permit-hangang-filming": ["한강"], "permit-hapjeong-rooftop": ["합정"]}
+    assert hits and all(hit["locations"] == scope[hit["doc_id"]] for hit in hits)
 
 
 def test_indexer_reindexes_when_place_scope_changes(indexed_server, tmp_path):

@@ -100,6 +100,70 @@ final class SeedPlan {
                 blockMm, warnMm);
     }
 
+    /**
+     * 대본 분해와 배우 날짜별 일정을 더한 입력이다. 1회차 오후 씬 S12(배우 A, B, 90분), S13(배우 A, 30분)은 낮 야외 장면이고
+     * 카메라 패키지(1)가 필수, 드론(2)과 반사판(3)이 선호다. 오전 블록은 07:00~11:30에 배우 B, C가 나온다.
+     */
+    static PlanInput withScript(PlanInput base, List<ScenePlan> scenes, Map<Long, ActorDay> actorDays,
+                                List<BlockSlot> otherBlocks, LocalTime sunset) {
+        return new PlanInput(base.callTime(), base.morningEnd(), base.budgetCap(), base.crewWeeklyHoursUsed(),
+                base.current(), base.blockActorIds(), base.actorOtherBlockMinutes(), base.actors(), base.locations(),
+                base.equipment(), base.options(), base.precipByLocation(), base.alerts(), base.alternativeLocationIds(),
+                base.rainBlockMm(), base.rainWarnMm(), scenes, actorDays, otherBlocks, t("06:50"), sunset);
+    }
+
+    static PlanInput withScript(PlanInput base) {
+        return withScript(base, seedScenes(), Map.of(), seedMorning(), t("17:40"));
+    }
+
+    static List<ScenePlan> seedScenes() {
+        return List.of(
+                new ScenePlan("S12", 90, true, false, false, null, List.of(), List.of(1L), List.of(2L, 3L), List.of(1L, 2L)),
+                new ScenePlan("S13", 30, true, false, false, null, List.of(), List.of(1L), List.of(), List.of(1L)));
+    }
+
+    /**
+     * 시드 2회차 오후 블록이다. 확정안은 성수 스튜디오 14:00~16:00에 S18(배우 B, C, 90분) 다음 S19(배우 B, 30분)이고,
+     * 두 씬은 작업실 세트가 성수에만 있어 다른 장소에서 찍을 수 없다. 오전 블록(08:00~10:00)에는 배우 B, C가 나오고
+     * 비는 오지 않는다. 배우 C는 콜시트 확정 뒤 10:30~14:30 타 작품 일정이 들어왔다(data-schedule.sql [시연]).
+     *
+     * @param sceneActors 씬마다 출연 배우를 넣을지. 빼면 1단계 엔진처럼 배우가 블록 내내 현장에 있다고 본다
+     */
+    static PlanInput day2(boolean sceneActors) {
+        PlanInput day1 = input(List.of());
+        List<PlanOption> options = List.of(
+                new PlanOption(1, 2, List.of(1L, 5L), 1.00, t("14:00"), t("16:00")),
+                new PlanOption(2, 3, List.of(1L, 5L), 0.80, t("13:00"), t("15:00")),
+                new PlanOption(3, 1, List.of(1L, 3L), 0.60, t("13:00"), t("15:00")));
+        Map<Long, Map<Integer, Double>> dry = new HashMap<>();
+        for (long locationId = 1; locationId <= 4; locationId++) {
+            Map<Integer, Double> hourly = new HashMap<>();
+            for (int hour = 6; hour <= 18; hour++) {
+                hourly.put(hour, 0.0);
+            }
+            dry.put(locationId, hourly);
+        }
+        List<ScenePlan> scenes = List.of(
+                new ScenePlan("S18", 90, false, false, true, 2L, List.of(), List.of(1L), List.of(5L),
+                        sceneActors ? List.of(2L, 3L) : List.of()),
+                new ScenePlan("S19", 30, false, false, true, 2L, List.of(), List.of(1L), List.of(),
+                        sceneActors ? List.of(2L) : List.of()));
+        Map<Long, ActorDay> days = Map.of(
+                1L, new ActorDay(1, false, null, List.of(new ActorDay.Window(t("09:00"), t("16:00"))),
+                        List.of(new ActorDay.Busy(t("06:00"), t("13:30"), "PROMOTION"))),
+                3L, new ActorDay(3, false, null, List.of(new ActorDay.Window(t("06:30"), t("20:00"))),
+                        List.of(new ActorDay.Busy(t("10:30"), t("14:30"), "OTHER_PRODUCTION"))));
+        PlanSnapshot current = new PlanSnapshot(2, List.of(1L, 5L), t("14:00"), t("16:00"), 450000);
+        return new PlanInput(t("07:30"), t("10:00"), 1_000_000, 40, current, List.of(2L, 3L),
+                Map.of(2L, 120, 3L, 120), day1.actors(), day1.locations(), day1.equipment(), options, dry, List.of(),
+                List.of(), PlanEngine.DEFAULT_RAIN_BLOCK_MM, PlanEngine.DEFAULT_RAIN_WARN_MM, scenes, days,
+                List.of(new BlockSlot("AM", t("08:00"), t("10:00"), List.of(2L, 3L))), t("06:50"), t("17:40"));
+    }
+
+    static List<BlockSlot> seedMorning() {
+        return List.of(new BlockSlot("AM", t("07:00"), t("11:30"), List.of(2L, 3L)));
+    }
+
     static LocalTime t(String value) {
         return LocalTime.parse(value);
     }

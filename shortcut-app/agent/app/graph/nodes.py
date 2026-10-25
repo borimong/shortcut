@@ -6,6 +6,7 @@ import dataclasses
 import difflib
 import json
 import re
+from collections.abc import Collection
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -35,6 +36,7 @@ from app.graph.state import DEFAULT_WEIGHTS, HARD_CONSTRAINTS
 from app.harness.context import Section, fit_sections, summarize_loops
 from app.harness.instructions import render
 from app.harness.limits import EXEC_NEEDS_HUMAN, NO_FEASIBLE_PLAN, STOP_MESSAGES, new_counter, stop_condition
+from app.josa import josa
 from app.runtime import RunContext
 
 # LLM이 고를 수 있는 도구 목록이다. 데이터를 바꾸는 도구는 넣지 않는다.
@@ -42,16 +44,17 @@ IMPACT_TOOLS = [
     "business_find_impacted_entities",
     "business_get_entity_context",
     "business_get_availability",
+    "business_get_actor_schedule",
     "business_get_weather",
     "business_get_disaster_alerts",
 ]
-CONSTRAINT_TOOLS = ["rag_search_regulation", "rag_search_contract_clause"]
+CONSTRAINT_TOOLS = ["rag_search_regulation", "rag_search_contract_clause", "rag_search_script"]
 
 MEMORY_NAMESPACE = ("shortcut", "rejections")
 ISSUE_LABELS = {"LOCATION": "장소", "TIME": "시간대", "EQUIPMENT": "장비", "COST": "비용", "OTHER": "기타"}
 # 문제 요소마다 만들 수 있는 제약 유형이다. 고르지 않은 요소를 건드리는 제약은 버린다.
 ISSUE_CONSTRAINT_TYPES = {
-    "LOCATION": {"EXCLUDE_LOCATION", "EXCLUDE_LOCATION_TIME", "REQUIRE_INDOOR"},
+    "LOCATION": {"EXCLUDE_LOCATION", "EXCLUDE_LOCATION_TIME", "REQUIRE_INDOOR", "REQUIRE_SETTING_MATCH"},
     "TIME": {"EXCLUDE_TIME", "LATEST_END"},
     "EQUIPMENT": {"EXCLUDE_EQUIPMENT"},
     "COST": {"MAX_EXTRA_COST"},
@@ -84,6 +87,8 @@ EVIDENCE_TYPES = {
     "NO_FLY_ZONE": {"NO_FLY", "PERMIT", "LAW"},
     "DISASTER": {"SAFETY", "PERMIT", "DATA"},
     "WEATHER": {"SAFETY", "PERMIT"},
+    # 대본 범주의 근거는 대본 씬 원문(search_script 결과)뿐이다.
+    "SCRIPT": {"SCRIPT"},
 }
 # 빈 범주를 다시 고를 때 후보로 보여 줄 대표 문서 종류다. 근거 자격(EVIDENCE_TYPES)보다 좁다.
 # 자격 전체를 보여 주면 모델이 빈칸으로 두지 않고 비행금지 범주에 근로기준법을, 기상 범주에 허가 시간을
@@ -96,6 +101,7 @@ RECHECK_TYPES = {
     "NO_FLY_ZONE": {"NO_FLY"},
     "DISASTER": {"SAFETY", "DATA"},
     "WEATHER": {"SAFETY"},
+    "SCRIPT": {"SCRIPT"},
 }
 # 문서 첫 제목 앞의 머리글 조각이다. 문서 소개일 뿐 조항이 아니므로 근거로 세지 않는다.
 INTRO_HEADING = "개요"
@@ -111,22 +117,53 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+# 1/2/3안 시간대가 배우 일정으로 모두 막혀 엔진이 배우 가능 시간에 맞춰 만든 시간대의 안 번호다(PlanEngine.ADJUSTED_TIME_OPTION_NO).
+ADJUSTED_TIME_OPTION_NO = 0
+
+
+# 세트 고정 씬의 세트 장소가 1/2/3안 장소에 없어 엔진이 후보로 더한 장소의 안 번호다(PlanEngine.SET_LOCATION_OPTION_NO).
+SET_LOCATION_OPTION_NO = 5
+
+
+def _time_source(option_no: int) -> str:
+    return "조정 시간, 1/2/3안 밖" if option_no == ADJUSTED_TIME_OPTION_NO else f"{option_no}안"
+
+
+def _location_source(option_no: int) -> str:
+    return "세트 장소, 1/2/3안 밖" if option_no == SET_LOCATION_OPTION_NO else f"{option_no}안"
+
+
 def describe(candidate: dict[str, Any]) -> str:
-    """후보안을 사람이 읽는 한 줄로 바꿉니다."""
+    """후보안을 사람이 읽는 한 줄로 바꿉니다. 엔진이 씬 순서를 바꾼 후보는 새 씬 시각표를 붙입니다."""
     names = ", ".join(item["name"] for item in candidate["equipment"]["items"])
-    return (
-        f"장소 {candidate['location']['name']}({candidate['location']['optionNo']}안), "
+    text = (
+        f"장소 {candidate['location']['name']}({_location_source(candidate['location']['optionNo'])}), "
         f"장비 {names}({candidate['equipment']['optionNo']}안), "
-        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({candidate['time']['optionNo']}안), "
+        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({_time_source(candidate['time']['optionNo'])}), "
         f"종합 점수 {candidate['totalScore']}"
     )
+    if candidate.get("sceneOrderChanged"):
+        text += f", 씬 순서 변경 {scene_order_text(candidate)}"
+    return text
+
+
+def scene_order_text(candidate: dict[str, Any]) -> str:
+    """씬 시각표를 "S19 14:00~14:30 → S18 14:30~16:00" 모양으로 씁니다."""
+    return " → ".join(f"{s['code']} {s['start']}~{s['end']}" for s in candidate.get("sceneOrder") or [])
 
 
 def explanation_problems(
-    text: str, choice: dict[str, Any], candidates: list[dict[str, Any]], current: dict[str, Any]
+    text: str,
+    choice: dict[str, Any],
+    candidates: list[dict[str, Any]],
+    current: dict[str, Any],
+    *,
+    require_equipment: bool = True,
 ) -> list[str]:
     """설명에 선택한 장소가 빠졌거나 선택하지 않은 장소나 장비 이름이 들어갔는지 봅니다.
-    원래 확정안의 이름은 무엇이 바뀌었는지 설명하는 데 필요하므로 허용합니다."""
+    원래 확정안의 이름은 무엇이 바뀌었는지 설명하는 데 필요하므로 허용합니다.
+    require_equipment를 끄면 장비 묶음이 빠진 것은 보지 않습니다. 자체 검토의 사실 대조는 틀린 값만 보고,
+    빠진 장비는 compose_plan이 이미 채워 둔다."""
     locations = {c["location"]["id"]: c["location"]["name"] for c in candidates}
     equipment = {item["id"]: item["name"] for c in candidates for item in c["equipment"]["items"]}
     current_location = current.get("location") or {}
@@ -146,11 +183,106 @@ def explanation_problems(
     foreign = [name for name in sorted({*locations.values(), *equipment.values()} - allowed) if name in rest]
     if foreign:
         problems.append(f"설명에 선택하지 않은 장소나 장비가 있습니다: {', '.join(foreign)}")
+    # 장비 묶음 일부만 적으면 승인자가 빠진 장비를 안 가져가는 안으로 읽는다.
+    left_out = missing_equipment(text, choice) if require_equipment else []
+    if left_out:
+        problems.append(f"설명에 제안 장비가 빠졌습니다: {', '.join(left_out)}")
+    # 씬 순서가 바뀌면 배우 콜타임이 달라지므로 승인자가 새 순서를 설명에서 바로 볼 수 있어야 한다.
+    codes = [s["code"] for s in choice.get("sceneOrder") or []]
+    if choice.get("sceneOrderChanged") and not all(code in text for code in codes):
+        problems.append(f"설명에 바뀐 씬 순서가 없습니다: {' → '.join(codes)}")
+    # 순서는 그대로이고 시각만 옮긴 안을 "씬 순서를 바꿨다"고 쓰면 승인자가 콜시트 순서를 잘못 고친다.
+    if not choice.get("sceneOrderChanged") and SCENE_ORDER_CLAIM.search(text):
+        problems.append("설명에 바뀌지 않은 씬 순서를 바뀌었다고 썼습니다")
     return problems
 
 
+# 대본 소프트 경고마다 승인 뒤 확인할 사람, 이미 적혀 있는지 볼 낱말, 넣을 미확정 항목이다.
+# 엔진이 실행 가능하다고 본 후보라 위반은 아니고 사람 확인만 남는다.
+SCRIPT_FOLLOW_UPS = {
+    "SCRIPT_EXT_INDOOR": ("연출감독", "연출", "연출감독, 야외 장면을 실내에서 찍는 연출 확인, 승인 시"),
+    "SCRIPT_INT_OUTDOOR": ("연출감독", "연출", "연출감독, 실내 장면을 야외에서 찍는 연출 확인, 승인 시"),
+    "SCRIPT_EQUIPMENT_WANTED": ("촬영감독", "장비", "촬영감독, 대본상 있으면 좋은 장비 없이 찍는 방법 확인, 승인 시"),
+}
+SCENE_ORDER_FOLLOW_UP = "조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"
+SHOOT_TIME_FOLLOW_UP = "조감독, 바뀐 촬영 시각으로 배우 콜타임 다시 공지, 승인 즉시"
+# "씬 순서를 바꿔", "바뀐 씬 순서"처럼 순서가 바뀌었다고 쓴 말이다. "씬 순서는 그대로"는 걸리지 않는다.
+SCENE_ORDER_CLAIM = re.compile(r"(바꾼|바뀐|바꿔|바뀌어|변경된|변경한) 씬 순서|씬 순서(를|가)? ?(바꾸|바꿨|바꿉|바꿔|바뀌|바뀝|바뀐|변경)")
+
+
+def engine_warnings(candidate: dict[str, Any]) -> dict[str, list[str]]:
+    """엔진 소프트 경고 문장을 하드 제약 범주별로 묶습니다."""
+    warned: dict[str, list[str]] = {}
+    for warning in candidate.get("warnings") or []:
+        warned.setdefault(warning.get("constraint"), []).append(warning["message"])
+    return warned
+
+
+def missing_equipment(text: str, candidate: dict[str, Any]) -> list[str]:
+    """설명에 나오지 않은 제안 장비 이름입니다."""
+    return [item["name"] for item in candidate["equipment"]["items"] if item["name"] not in text]
+
+
+def missing_cost_and_distance(text: str, candidate: dict[str, Any]) -> str:
+    """설명에 이동 거리나 추가 비용 숫자가 빠졌으면 엔진 값으로 채울 한 문장을 만듭니다. 둘 다 있으면 빈 문자열입니다.
+    검토에서 같은 지적이 되풀이되지 않도록 모델에게 맡기지 않고 코드가 붙입니다.
+    "14.0km"와 "14km", "150,000원"과 "15만 원"처럼 표기가 달라도 같은 값이면 이미 있다고 봅니다."""
+    km = f"{float(candidate['distanceKm']):g}"
+    extra = int(candidate["extraCost"])
+    amount = abs(extra)
+    has_distance = any(
+        abs(float(n) - float(candidate["distanceKm"])) < 0.05 for n in re.findall(r"(\d+(?:\.\d+)?)\s*km", text)
+    )
+    won = [int(n.replace(",", "")) for n in re.findall(r"(\d[\d,]*)\s*원", text)]
+    man = [round(float(n) * 10000) for n in re.findall(r"(\d+(?:\.\d+)?)\s*만\s*원?", text)]
+    has_cost = "추가 비용" in text if extra == 0 else amount in won + man
+    if extra > 0:
+        cost = f"현재 확정안보다 {extra:,}원이 더 듭니다"
+    elif extra < 0:
+        cost = f"현재 확정안보다 {amount:,}원이 줄어듭니다"
+    else:
+        cost = "현재 확정안 대비 추가 비용은 없습니다"
+    distance = f"목동 기준 이동 거리는 {km}km"
+    if not has_distance and not has_cost:
+        return f"{distance}이고, {cost}."
+    if not has_distance:
+        return f"{distance}입니다."
+    if not has_cost:
+        return f"{cost}."
+    return ""
+
+
+def shoot_time_changed(candidate: dict[str, Any], current: dict[str, Any]) -> bool:
+    """확정안과 촬영 시작이나 종료 시각이 다른지 봅니다. 백엔드는 "13:00:00", 후보는 "13:00"으로 줄 수 있어 앞 다섯 글자만 견줍니다."""
+    if not current.get("start"):
+        return False
+    now = (str(current["start"])[:5], str(current.get("end") or "")[:5])
+    return (candidate["time"]["start"][:5], candidate["time"]["end"][:5]) != now
+
+
+def align_follow_ups(candidate: dict[str, Any], current: dict[str, Any], unresolved: list[str]) -> list[str]:
+    """미확정 항목을 실제 변경에 맞춥니다. 순서가 그대로인데 "씬 순서"를 다시 공지하라는 항목은 빼고,
+    엔진 경고와 씬 순서나 촬영 시각 변경에 따라 승인 뒤 사람이 할 일을 담당과 기한까지 채웁니다. 이미 적혀 있으면 넣지 않습니다."""
+    reordered = bool(candidate.get("sceneOrderChanged"))
+    items = [u for u in unresolved if reordered or "씬 순서" not in u]
+    codes = [w.get("code") for w in candidate.get("warnings") or []]
+    for code in dict.fromkeys(codes):
+        if code not in SCRIPT_FOLLOW_UPS:
+            continue
+        owner, keyword, item = SCRIPT_FOLLOW_UPS[code]
+        if not any(owner in u and keyword in u for u in items):
+            items.append(item)
+    if not any("콜타임" in u for u in items):
+        if reordered:
+            items.append(SCENE_ORDER_FOLLOW_UP)
+        elif shoot_time_changed(candidate, current):
+            items.append(SHOOT_TIME_FOLLOW_UP)
+    return items
+
+
 def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
-    return {
+    """엔진이 고른 씬 순서를 그대로 넘겨 검증 게이트와 변경안이 평가 때와 같은 순서를 판정하게 합니다."""
+    body = {
         "location_id": candidate["location"]["id"],
         "equipment_ids": [item["id"] for item in candidate["equipment"]["items"]],
         "start": candidate["time"]["start"],
@@ -161,6 +293,9 @@ def to_mcp_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
             "time": candidate["time"]["optionNo"],
         },
     }
+    if candidate.get("sceneOrder"):
+        body["scene_order"] = [s["code"] for s in candidate["sceneOrder"]]
+    return body
 
 
 def _evidence_lines(evidence: dict[str, dict[str, Any]], limit_chars: int = 220) -> str:
@@ -396,6 +531,7 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         "constraint_collection",
         event=_json(state["event"]),
         contracts=", ".join(impacted["contract_doc_ids"]),
+        scenes=", ".join(scene["code"] for scene in state["plan_set"]["block"]["scenes"]) or "없음",
         places=", ".join(places) or "알 수 없음",
         risks="\n".join(impacted["risks"]) or "없음",
         alerts=_json(state["conditions"]["disaster_alerts"]),
@@ -615,6 +751,7 @@ async def reevaluate_plans(state: dict[str, Any], ctx: RunContext) -> dict[str, 
         "weight_rationale": rationale,
         "candidates": result["candidates"],
         "feasible_count": result["feasibleCount"],
+        "location_blockers": result.get("locationProofBlockers") or [],
         "data_version": result["dataVersion"],
         "weights_feedback_count": len(feedback),
         "_detail": detail,
@@ -724,6 +861,19 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "note": entry.note,
             "evidenceIds": cited,
         }
+    warned = engine_warnings(choice)
+    # 하드 제약 판정은 업무 규칙 엔진이 한다. 엔진이 고른 후보라 위반은 없으므로 상태도 엔진을 따른다.
+    # 엔진 경고(대본 경고, 약한 비)가 있는 범주는 위반이 아니지만 승인자가 놓치지 않게 WARN으로 보이고, 자체 검토는 감점하지 않는다.
+    # 엔진 경고가 없는 범주를 모델이 WARN으로 적으면(비행 금지 구역이 아닌 장소의 NO_FLY_ZONE 등) 없는 위험이라 PASS로 돌린다.
+    # 근거 조각은 그대로 둔다. 근거가 없는 범주는 아래에서 다시 WARN이 된다.
+    for constraint, item in checklist.items():
+        if constraint in warned:
+            item["status"] = "WARN"
+            if not item["note"].strip():
+                item["note"] = " ".join(warned[constraint])
+        elif item["status"] == "WARN":
+            item["status"] = "PASS"
+            item["note"] = "업무 규칙 엔진 판정에서 위반과 경고가 없습니다"
     if NO_DISASTER_ALERT_ID in evidence:
         # 재난 문자가 없다는 조회 결과가 있으면 DISASTER는 통과다. 모델이 근거 없이 경고로 적어도 조회 사실로 바로잡는다.
         item = checklist.get("DISASTER") or {"constraint": "DISASTER", "note": "", "evidenceIds": []}
@@ -736,7 +886,17 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
                 *([] if NO_DISASTER_ALERT_ID in item["evidenceIds"] else [NO_DISASTER_ALERT_ID]),
             ],
         }
-    unresolved = list(explained.unresolved)
+    explanation = explained.explanation
+    left_out = missing_equipment(explanation, choice)
+    if left_out:
+        # 다시 써도 장비 묶음 일부가 빠졌으면 승인자가 묶음 전체를 보도록 코드가 한 문장을 붙인다.
+        names = ", ".join(item["name"] for item in choice["equipment"]["items"])
+        explanation = f"{explanation.rstrip()} 장비 묶음은 {names}입니다."
+    facts = missing_cost_and_distance(explanation, choice)
+    if facts:
+        explanation = f"{explanation.rstrip()} {facts}"
+    problems = explanation_problems(explanation, choice, state["candidates"], current)
+    unresolved = align_follow_ups(choice, current, list(explained.unresolved))
     # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
     unresolved.extend(f"설명 확인 필요, {problem}" for problem in problems)
     for constraint in HARD_CONSTRAINTS:
@@ -756,7 +916,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         "selected_plan": {
             "hash": choice["hash"],
             "candidate": choice,
-            "explanation": explained.explanation,
+            "explanation": explanation,
             "checklist": [checklist[c] for c in HARD_CONSTRAINTS],
             "unresolved": sorted(set(unresolved)),
             # 자체 검토가 '이미 찾은 근거를 인용하라'고 할 때도 이 장소에 맞는 근거만 권하게 같이 넘긴다.
@@ -807,6 +967,24 @@ async def validation_gate(state: dict[str, Any], ctx: RunContext) -> dict[str, A
     return {"gate_result": "PASS", "validated_hash": plan["hash"], "_detail": "하드 제약 위반 없음"}
 
 
+def by_setting_fit(locations: list[dict[str, Any]], state: dict[str, Any]) -> list[dict[str, Any]]:
+    """대체 장소를 씬의 실내/실외에 맞는 곳부터 세운다. 같은 쪽 안에서는 검색 순서(키워드가 많이 맞는 순)를 지킨다.
+    비나 재난 때문에 막혔으면 야외 장면이라도 실내가 먼저다. 밤 야외 장면이면 야경을 볼 수 있는 곳을 더 앞에 둔다."""
+    scenes = state["plan_set"]["block"]["scenes"]
+    exterior = any(scene.get("intExt") == "EXT" for scene in scenes)
+    night = any(scene.get("timeOfDay") == "NIGHT" for scene in scenes)
+    codes = {v["code"] for c in state.get("candidates") or [] for v in c.get("violations") or []}
+    weather = state["event"].get("type") in {"RAIN", "DISASTER"} or bool(codes & {"RAIN_HARD", "DISASTER_ALERT"})
+    want_indoor = weather or not exterior
+
+    def rank(location: dict[str, Any]) -> tuple[int, int]:
+        indoor = location.get("indoor")
+        night_view = night and not want_indoor and any("야경" in k or "야간" in k for k in location.get("keywords") or [])
+        return (0 if indoor is None or indoor == want_indoor else 1, 0 if night_view else 1)
+
+    return sorted(locations, key=rank)
+
+
 # 자체 검토 항목마다 20점이다. 셀 수 있는 항목은 코드가 계산하고, 글을 읽어야 하는 항목만 모델의 점검 답을 쓴다.
 REVIEW_ITEM_MAX = 20
 # compose_plan이 스스로 붙이는 미확정 항목이다. 근거 점수와 사실 대조에서 이미 깎으므로 담당과 기한 점검에서 뺀다.
@@ -828,11 +1006,17 @@ REMOVAL = re.compile(r"제외|빼|뺐|대신|없이|제거|교체|바꾸|바꿨|
 NO_EXTRA_COST = re.compile(r"추가\s*비용(이|은)?\s*없|추가\s*비용\s*0\s*원|비용(은|이)?\s*(현재\s*확정안과\s*)?같")
 
 
-def evidence_score(checklist: list[dict[str, Any]]) -> tuple[int, list[str], list[str]]:
-    """WARN 하나에 2점, 근거 0건 범주 하나에 4점을 빼고, 근거 0건 범주가 있으면 12점을 넘지 않게 합니다."""
+def evidence_score(
+    checklist: list[dict[str, Any]], engine_warned: Collection[str] = ()
+) -> tuple[int, list[str], list[str]]:
+    """WARN 하나에 2점, 근거 0건 범주 하나에 4점을 빼고, 근거 0건 범주가 있으면 12점을 넘지 않게 합니다.
+    엔진 경고(대본 경고, 약한 비)를 승인자에게 보이려고 둔 WARN(engine_warned)은 위반 위험이 아니라 빼지 않습니다.
+    compose_plan이 그 범주를 일부러 WARN으로 두므로, 감점하면 고칠 수 없는 지적으로 회차만 쓴다."""
     by_constraint = {c["constraint"]: c for c in checklist}
     empty = [c for c in HARD_CONSTRAINTS if not (by_constraint.get(c) or {}).get("evidenceIds")]
-    warns = [c for c in HARD_CONSTRAINTS if c not in empty and by_constraint[c]["status"] == "WARN"]
+    warns = [
+        c for c in HARD_CONSTRAINTS if c not in empty and c not in engine_warned and by_constraint[c]["status"] == "WARN"
+    ]
     score = max(REVIEW_ITEM_MAX - 2 * len(warns) - 4 * len(empty), 0)
     return (min(score, 12) if empty else score), warns, empty
 
@@ -865,7 +1049,7 @@ def fact_problems(text: str, choice: dict[str, Any], state: dict[str, Any]) -> l
         named = named.replace(part, " ")
     if choice["location"]["name"] in text:
         named += f" {choice['location']['name']}"
-    problems = explanation_problems(named, choice, candidates, current)
+    problems = explanation_problems(named, choice, candidates, current, require_equipment=False)
     chosen = {item["name"] for item in choice["equipment"]["items"]}
     dropped = {item.get("name") for item in current.get("equipment") or []} - chosen - {None, ""}
     # 사건이나 거절 사유에 나온 장비(예: 고장 난 반사판)는 그 문제를 설명하느라 언급하므로 뺀다.
@@ -987,7 +1171,7 @@ def score_review(checks: ReviewChecks, plan: dict[str, Any], state: dict[str, An
     feedback: list[str] = []
     blocking: list[str] = []
 
-    evidence, warns, empty = evidence_score(plan["checklist"])
+    evidence, warns, empty = evidence_score(plan["checklist"], engine_warnings(candidate))
     # 제약 수집이 이미 찾은 근거가 있는데 설명 단계에서 인용만 빠진 범주는 다시 검색하지 않고 그 ID를 인용하게 한다.
     # 다시 검색하면 같은 근거를 또 찾느라 도구 호출만 늘어 루프 한도에 걸린 적이 있다.
     # 고른 안의 장소에 맞게 추린 근거(compose_plan이 만든 것)를 쓴다. 성수 안에 한강 허가서를 인용하라고 하지 않는다.
@@ -1088,15 +1272,15 @@ def review_facts(candidate: dict[str, Any]) -> str:
     return (
         "하드 제약 위반: 0건 (업무 규칙 엔진과 검증 게이트가 계약, 일정, 법규, 예산 상한, 비행 금지, 재난, 날씨를 모두 확인함)\n"
         f"이 안의 장소와 장비 비용: {candidate['cost']}원 (블록 예산 상한 이내), 현재 확정안 대비 추가 비용: {candidate['extraCost']}원\n"
-        f"목동 기준 이동 거리: {candidate['distanceKm']}km, 실내 여부: {'실내' if candidate['location']['indoor'] else '야외'}\n"
-        f"엔진 경고: {warnings}"
+        f"목동 기준 이동 거리: {float(candidate['distanceKm']):g}km, 실내 여부: {'실내' if candidate['location']['indoor'] else '야외'}\n"
+        f"엔진 경고(위반이 아니라 사람이 확인할 사항): {warnings}"
     )
 
 
 @harnessed("self_review", "자체 검토")
 async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """승인 요청 전에 안을 점검합니다. 통과 점수 미만이거나 통과를 막는 사유가 있으면 고쳐서 다시 검토하고,
-    상한 회차에 닿으면 그때까지 가장 나았던 안으로 승인을 요청합니다."""
+    상한 회차에 닿거나 점수가 두 번 연속 그대로면 그때까지 가장 나았던 안으로 승인을 요청합니다."""
     limits = ctx.settings.limits
     plan = state["selected_plan"]
     candidate = plan["candidate"]
@@ -1143,18 +1327,33 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         best = {"score": score, "round": round_no, "plan": plan, "blocking": blocking}
 
     update: dict[str, Any] = {"review_round": round_no, "review_history": history, "best_review": best}
+    # 고쳐도 점수가 두 번 연속 그대로면 같은 지적이 되풀이되는 것이라 상한까지 돌지 않고 멈춘다.
+    last_three = {h["score"] for h in history[-3:]}
+    stalled = not passed and not stuck and len(history) >= 3 and len(last_three) == 1
     # 점수는 코드가 계산하므로 생각 기록도 코드가 쓴다. 수정 요청 대상은 아니다(판단 근거가 규칙이라 고칠 곳이 설명 단계다).
     update["_thought"] = {
         "observation": f"{round_no}회차 {score}점 (근거 {breakdown['evidence']}, 거절과 사건 대응 {breakdown['rejection']}, "
         f"비용 이유 {breakdown['optimization']}, 설명 {breakdown['explanation']}, 미확정 관리 {breakdown['risk']})",
         "decision": "승인 요청"
         if passed
-        else ("가장 나은 안으로 승인 요청" if round_no >= limits.max_review_rounds or stuck else "다시 고치기"),
+        else (
+            "가장 나은 안으로 승인 요청"
+            if round_no >= limits.max_review_rounds or stuck or stalled
+            else "다시 고치기"
+        ),
         "reason": "; ".join(blocking + scored["feedback"][:2]) or "통과 기준을 모두 넘었습니다",
     }
-    if passed or stuck or round_no >= limits.max_review_rounds:
+    if passed or stuck or stalled or round_no >= limits.max_review_rounds:
         chosen = plan if passed else best["plan"]
         final_score = score if passed else best["score"]
+        if passed:
+            outcome = "통과"
+        elif stuck and round_no < limits.max_review_rounds:
+            outcome = f"더 찾을 근거가 없어 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+        elif stalled:
+            outcome = f"점수가 두 번 연속 그대로라 멈추고 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+        else:
+            outcome = f"{limits.max_review_rounds}회 도달, 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
         update.update(
             {
                 "selected_plan": chosen,
@@ -1162,21 +1361,13 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
                 "review_result": {
                     "score": final_score,
                     "passed": passed,
+                    "stalled": stalled,
                     "threshold": limits.review_pass_score,
                     "rounds": round_no,
                     "chosenRound": round_no if passed else best["round"],
                     "history": history,
                 },
-                "_detail": f"{round_no}회차 {score}점, "
-                + (
-                    "통과"
-                    if passed
-                    else (
-                        f"더 찾을 근거가 없어 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
-                        if stuck and round_no < limits.max_review_rounds
-                        else f"{limits.max_review_rounds}회 도달, 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
-                    )
-                ),
+                "_detail": f"{round_no}회차 {score}점, {outcome}",
             }
         )
         return update
@@ -1200,7 +1391,12 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     if action == "NEXT_CANDIDATE":
         update.update({"review_skipped": skipped, "review_next": "compose_plan"})
     elif action == "MORE_EVIDENCE":
-        weak = [c["constraint"] for c in plan["checklist"] if c["status"] == "WARN" or not c["evidenceIds"]]
+        warned = engine_warnings(candidate)
+        weak = [
+            c["constraint"]
+            for c in plan["checklist"]
+            if not c["evidenceIds"] or (c["status"] == "WARN" and c["constraint"] not in warned)
+        ]
         update.update({"missing_info": weak or list(HARD_CONSTRAINTS), "review_next": "collect_constraints"})
     else:
         update["review_next"] = "compose_plan"
@@ -1495,7 +1691,7 @@ async def publish(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     cited = sorted({cid for item in plan["checklist"] for cid in item["evidenceIds"]})
     execution = state.get("execution") or {}
     answer = (
-        f"변경안 {state['approvals']['version_no']}이 전원 승인되어 확정되었습니다. "
+        f"변경안 {josa(str(state['approvals']['version_no']), '이')} 전원 승인되어 확정되었습니다. "
         f"{describe(plan['candidate'])}. 콜시트 v{state['callsheet_version_no']} 배포를 요청했습니다."
     )
     if execution:
@@ -1555,7 +1751,7 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
         {"keywords": keywords.keywords, "max_distance_km": keywords.max_distance_km},
         allowed=["business_search_locations"],
     )
-    suggestions = (found.data or {}).get("locations", []) if found.ok else []
+    suggestions = by_setting_fit((found.data or {}).get("locations", []) if found.ok else [], state)
     registered = []
     if suggestions:
         # 검색 결과는 키워드가 많이 맞는 순이라 앞의 세 곳만 4안 후보로 올려 평가 범위를 좁힌다.
@@ -1586,21 +1782,43 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
         ),
         "_revisable": True,
         "_detail": ("장소 거절로 후보를 넓힘, " if early else "")
-        + f"키워드 {', '.join(keywords.keywords)}로 4안 장소 {len(registered)}곳 등록: {names}",
+        + f"키워드 {josa(', '.join(keywords.keywords), '으로')} 4안 장소 {len(registered)}곳 등록: {names}",
     }
+
+
+def closest_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """사람에게 보여 줄 가장 가까운 후보입니다. 되는 후보가 있으면 점수 1등을, 없으면 세트 고정에 걸리지 않은 후보 가운데
+    위반이 가장 적은 것을 고릅니다. 점수 1등은 세트 밖 장소처럼 어떤 조율로도 성립하지 않는 안일 수 있습니다."""
+    if not candidates:
+        return None
+    feasible = [c for c in candidates if c["feasible"]]
+    if feasible:
+        return feasible[0]
+
+    def locked(candidate: dict[str, Any]) -> bool:
+        return any(v["code"] == "SCRIPT_SETTING_LOCKED" for v in candidate["violations"])
+
+    pool = [c for c in candidates if not locked(c)] or candidates
+    return min(pool, key=lambda c: (len(c["violations"]), -c["totalScore"]))
 
 
 @harnessed("report_human", "사람에게 보고")
 async def report_human(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """멈춤 조건에 걸리면 지금까지의 최선안, 위반, 추천을 정리합니다. NEEDS_HUMAN 이벤트는 worker가 보냅니다."""
     stop = stop_condition(ctx.counter, ctx.settings.limits) or state.get("stop_condition") or NO_FEASIBLE_PLAN
-    best = next(iter(state.get("candidates") or []), None)
+    best = closest_candidate(state.get("candidates") or [])
+    blockers = state.get("location_blockers") or []
+    reason = STOP_MESSAGES[stop]
+    if blockers:
+        # 새 장소로는 풀리지 않으니 대체 장소를 권하지 않고, 무엇이 막는지 그대로 적어 사람이 일정이나 대본을 조정하게 한다.
+        reason += ". 새 장소로는 풀 수 없는 원인: " + " ".join(blockers)
     payload = {
-        "reason": STOP_MESSAGES[stop],
+        "reason": reason,
         "stopCondition": stop,
         "best": {"summary": describe(best), "violations": best["violations"]} if best else None,
         "violations": state.get("violations") or [],
-        "suggestions": state.get("suggestions") or [],
+        "blockers": blockers,
+        "suggestions": [] if blockers else state.get("suggestions") or [],
         "extraConstraints": state.get("extra_constraints") or [],
     }
     return {"stop_condition": stop, "result": payload, "_detail": payload["reason"]}
