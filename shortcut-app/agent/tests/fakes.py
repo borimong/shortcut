@@ -191,6 +191,10 @@ class FakeBackendState:
     top_k: int | None = None
     # 아워플레이스 검색 결과가 없는 상황
     no_alternatives: bool = False
+    # 발령된 재난 문자. 비어 있으면 재난 문자가 없다는 조회 결과가 DISASTER 근거가 된다.
+    disaster_alerts: list = field(default_factory=list)
+    # 검색 결과 조항에 덮어쓸 값(chunk_id -> {"locations": [...], "doc_type": ...}). 고른 안의 장소와 맞는 조항만 세는지 시험한다.
+    hit_overrides: dict = field(default_factory=dict)
     # 가상 외부 서비스(ops) 상태와 실패 시연 플래그
     venue_conflict: bool = False
     permit_denied: bool = False
@@ -260,7 +264,7 @@ class FakeMcpClient:
         return {"date": "2026-10-21", "locations": [{"locationId": 1, "hourly": [{"hour": 13, "precipProb": 80}]}]}
 
     def _get_disaster_alerts(self, args):
-        return {"alerts": []}
+        return {"alerts": list(self.backend.disaster_alerts)}
 
     def _find_impacted_entities(self, args):
         return {"root": args["node_id"], "nodes": [{"nodeId": "SCENE:S12"}, {"nodeId": "ACTOR:1"}], "edges": []}
@@ -335,10 +339,14 @@ class FakeMcpClient:
         return {"id": args["proposal_id"], "proposed": {"location": {"name": "성수 스튜디오"}}}
 
     def _search_regulation(self, args):
-        return [_hit(c) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] != "CONTRACT"]
+        return [self._located(_hit(c)) for c in HARD_CONSTRAINTS if EVIDENCE_BY_CONSTRAINT[c][5] != "CONTRACT"]
 
     def _search_contract_clause(self, args):
-        return [_hit(c) for c in ("CONTRACT", "SCHEDULE") if EVIDENCE_BY_CONSTRAINT[c][1] == args["contract_doc_id"]]
+        hits = [_hit(c) for c in ("CONTRACT", "SCHEDULE") if EVIDENCE_BY_CONSTRAINT[c][1] == args["contract_doc_id"]]
+        return [self._located(h) for h in hits]
+
+    def _located(self, hit):
+        return {"locations": [], **hit, **self.backend.hit_overrides.get(hit["chunk_id"], {})}
 
     # ---------------- 가상 외부 서비스 (ops-mcp 도구, backend 계약과 같은 모양)
 

@@ -19,6 +19,7 @@ from app.harness.instructions import prompt_versions
 from app.harness.limits import new_counter
 from app.harness.model import ModelGateway
 from app.harness.observability import BackendEventPublisher, log_event, run_config, trace_url_for
+from app.harness.recovery import PermanentError
 from app.harness.tools import McpConnections, ToolGateway
 from app.runtime import RunContext
 
@@ -265,7 +266,9 @@ async def consume(settings: Settings, runner: TaskRunner, http: httpx.AsyncClien
                         error=repr(error),
                         trace_id=body.get("traceId"),
                     )
-                    target = RETRY_QUEUE if attempt < MAX_ATTEMPTS else DEAD_LETTER_QUEUE
+                    # 다시 해도 같은 오류(설정 누락 등)는 재시도로 토큰과 시간만 쓰므로 바로 DLQ로 보낸다.
+                    permanent = isinstance(error, PermanentError)
+                    target = RETRY_QUEUE if attempt < MAX_ATTEMPTS and not permanent else DEAD_LETTER_QUEUE
                     await exchange.publish(
                         aio_pika.Message(
                             message.body,
@@ -277,7 +280,8 @@ async def consume(settings: Settings, runner: TaskRunner, http: httpx.AsyncClien
                     )
                     if target == DEAD_LETTER_QUEUE:
                         events = BackendEventPublisher(http, body["taskId"], body.get("traceId") or "")
-                        await events.publish("FAILED", {"error": f"{MAX_ATTEMPTS}회 시도 후 실패: {error}", "attempts": attempt})
+                        reason = "재시도해도 같은 오류라 바로 실패" if permanent else f"{MAX_ATTEMPTS}회 시도 후 실패"
+                        await events.publish("FAILED", {"error": f"{reason}: {error}", "attempts": attempt})
 
         consumer_tag = await queue.consume(lambda m: asyncio.ensure_future(handle(m)))
         await stop.wait()

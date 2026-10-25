@@ -28,7 +28,8 @@ def guarded(limits: Limits, route: Callable[[dict[str, Any]], str]) -> Callable[
 
 def after_collect(state: dict[str, Any]) -> str:
     # 첫 검색에서 빠진 범주가 있으면 그 범주만 한 번 더 찾게 한다.
-    if state.get("missing_info") and state.get("info_retries", 0) < 2:
+    # 다시 찾아도 새 근거가 없었으면 같은 검색을 되풀이하지 않는다.
+    if state.get("missing_info") and state.get("info_retries", 0) < 2 and not state.get("evidence_stalled"):
         return "collect_constraints"
     return "reevaluate_plans"
 
@@ -45,7 +46,7 @@ def after_reevaluate(state: dict[str, Any]) -> str:
 def after_compose(state: dict[str, Any]) -> str:
     if state.get("selected_plan") is None:
         return "reevaluate_plans" if state.get("repeat_filtered") else when_exhausted(state)
-    if state.get("missing_info") and state.get("info_retries", 0) < nodes.MAX_INFO_RETRIES:
+    if state.get("missing_info") and state.get("info_retries", 0) < nodes.MAX_INFO_RETRIES and not state.get("evidence_stalled"):
         return "collect_constraints"
     # 자체 검토에서 설명만 고친 경우에는 같은 후보라 검증 게이트를 다시 거치지 않는다.
     if state["selected_plan"]["hash"] == state.get("validated_hash"):

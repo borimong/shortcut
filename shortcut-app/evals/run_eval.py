@@ -118,6 +118,16 @@ class Api:
             time.sleep(1.5)
         raise TimeoutError(f"{task_id}가 {statuses} 상태가 되지 않았습니다")
 
+    def wait_past(self, task_id: str, proposal_id: int) -> None:
+        """결정을 보낸 변경안에서 작업이 넘어갈 때까지 기다립니다. 승인 대기를 벗어나거나 새 변경안이 올라오면 넘어간 것이다."""
+        deadline = time.monotonic() + WAIT_SECONDS
+        while time.monotonic() < deadline:
+            task = self.call("GET", f"/api/ai/tasks/{task_id}", "pd")
+            if task["status"] != "WAITING_APPROVAL" or task.get("proposalId") != proposal_id:
+                return
+            time.sleep(1.5)
+        raise TimeoutError(f"{task_id}가 변경안 {proposal_id}의 승인 대기에서 넘어가지 않았습니다")
+
     def events(self, task_id: str) -> list[dict[str, Any]]:
         """SSE 스트림을 끝까지 읽어 저장된 이벤트를 모읍니다. 종료 이벤트 뒤 서버가 스트림을 닫는다."""
         collected, current = [], {}
@@ -184,8 +194,9 @@ def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
                     ROLE_USERS[role],
                     json={"proposalId": proposal["id"], "decision": "APPROVE"},
                 )
-        # 거절 뒤 재개가 큐를 거쳐 다시 RUNNING이 될 때까지 잠시 기다린다.
-        time.sleep(3)
+        # 거절 뒤 재개는 큐를 거쳐 늦게 시작될 수 있다. 고정 시간만 기다리면 아직 승인 대기인 이전(거절된) 변경안을
+        # 다시 읽어 승인을 보내는 일이 있어(409, 다음 승인 요청을 못 받아 시간 초과), 그 변경안에서 넘어갈 때까지 기다린다.
+        api.wait_past(task_id, proposal["id"])
     final = api.wait_task(task_id, {"DONE", "FAILED", "NEEDS_HUMAN"})
     events = api.events(task_id)
     terminal = next((e["payload"] for e in reversed(events) if e.get("type") in {"DONE", "FAILED", "NEEDS_HUMAN"}), {})

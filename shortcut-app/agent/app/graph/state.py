@@ -37,6 +37,10 @@ class ReplanState(TypedDict, total=False):
     evidence: dict[str, dict[str, Any]]
     missing_info: list[str]
     info_retries: int
+    # 마지막 재수집이 새 조항도 새 범주도 찾지 못했는지. 참이면 같은 루프 안에서는 다시 검색하지 않는다.
+    evidence_stalled: bool
+    # 장소 이름 -> 그 장소에 맞게 추린 하드 제약 근거와, 추릴 때의 수집 회차
+    place_constraints: dict[str, dict[str, Any]]
     # 최적화 가중치와 조정 이유
     weights: dict[str, float]
     weight_rationale: str

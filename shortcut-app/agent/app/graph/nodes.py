@@ -65,6 +65,8 @@ REVIEW_RESET = {
     "review_skipped": [],
     "validated_hash": None,
     "review_result": None,
+    # 새 루프에서는 후보 장소가 바뀔 수 있으므로 근거를 다시 찾을 수 있게 한다.
+    "evidence_stalled": False,
 }
 # 4안 후보로 올릴 대체 장소 수다. 많이 올리면 조합이 늘어 평가 결과가 길어지고 판단이 흐려진다.
 MAX_ALTERNATIVES = 3
@@ -171,6 +173,16 @@ def applies_to_places(hit: dict[str, Any], places: list[str]) -> bool:
         return True
     names = [p.replace(" ", "") for p in places]
     return any(k in name for k in keywords for name in names)
+
+
+# 장소마다 따로 내주는 문서라 다른 장소의 안에는 근거가 될 수 없는 종류다.
+# 비행금지 안내는 피해야 할 장소 목록이라 목록에 없는 장소의 안에도 근거가 되므로 넣지 않는다.
+PLACE_BOUND_TYPES = {"PERMIT"}
+
+
+def usable_for_place(hit: dict[str, Any], place: str) -> bool:
+    """고른 안의 장소에서 근거로 쓸 수 있는 조항인지 봅니다. 성수 안의 허가 시간 근거로 한강 허가서를 쓰지 않게 한다."""
+    return hit.get("doc_type") not in PLACE_BOUND_TYPES or applies_to_places(hit, [place])
 
 
 def data_evidence(conditions: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -404,28 +416,47 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         ],
         ConstraintSet,
     )
-    findings = []
+    findings: dict[str, dict[str, Any]] = {}
     for finding in found.findings:
         # 모델이 검색하지 않은 ID를 근거로 적으면 확인할 수 없으므로 실제로 받은 chunk_id만 남긴다.
         # 범주와 맞지 않는 종류의 문서를 적은 것도 그 범주의 근거로 세지 않는다.
         cited = [cid for cid in finding.evidence_ids if cid in evidence and counts_as_evidence(finding.constraint, evidence[cid])]
-        findings.append({"constraint": finding.constraint, "summary": finding.summary, "evidence_ids": cited})
+        findings[finding.constraint] = {"constraint": finding.constraint, "summary": finding.summary, "evidence_ids": cited}
+    # 다시 수집할 때 모델이 이전에 인용한 근거를 빠뜨려도 지우지 않는다. 재수집은 빈 범주를 채우려는 것인데,
+    # 정리를 처음부터 다시 받으면 앞에서 찾은 날씨 근거가 빠져 빈 범주가 오히려 늘어난 적이 있다.
+    previous = state.get("hard_constraints") or []
+    for before in previous:
+        item = findings.setdefault(before["constraint"], {"constraint": before["constraint"], "summary": "", "evidence_ids": []})
+        if not item["evidence_ids"]:
+            item["summary"] = before["summary"]
+        item["evidence_ids"] = [
+            *before["evidence_ids"],
+            *(cid for cid in item["evidence_ids"] if cid not in before["evidence_ids"]),
+        ]
     if NO_DISASTER_ALERT_ID in facts:
         # 발령이 없다는 사실은 조회로 확정됐으므로 모델이 인용을 빠뜨려도 코드가 붙인다.
-        disaster = next((f for f in findings if f["constraint"] == "DISASTER"), None)
-        if disaster is None:
-            disaster = {"constraint": "DISASTER", "summary": facts[NO_DISASTER_ALERT_ID]["text"], "evidence_ids": []}
-            findings.append(disaster)
+        disaster = findings.setdefault(
+            "DISASTER", {"constraint": "DISASTER", "summary": facts[NO_DISASTER_ALERT_ID]["text"], "evidence_ids": []}
+        )
         if NO_DISASTER_ALERT_ID not in disaster["evidence_ids"]:
             disaster["evidence_ids"].append(NO_DISASTER_ALERT_ID)
-    covered = {f["constraint"] for f in findings if f["evidence_ids"]}
+    rechecked = await recheck_empty_categories(ctx, state, findings, evidence)
+
+    covered = {c for c, f in findings.items() if f["evidence_ids"]}
     missing = [c for c in HARD_CONSTRAINTS if c not in covered]
+    # 다시 찾았는데 새 조항도 새로 채운 범주도 없으면 더 찾아도 같은 결과라 재수집을 멈추게 한다.
+    previous_covered = {f["constraint"] for f in previous if f["evidence_ids"]}
+    stalled = bool(previous) and not set(evidence) - set(state.get("evidence") or {}) and covered <= previous_covered
     return {
         "evidence": evidence,
-        "hard_constraints": findings,
+        "hard_constraints": [findings[c] for c in HARD_CONSTRAINTS if c in findings],
         "missing_info": missing,
+        "evidence_stalled": stalled,
         "info_retries": state.get("info_retries", 0) + 1,
-        "_detail": f"근거 {len(evidence)}건, 대상 밖 조항 {len(excluded)}건 제외, 근거 부족 범주 {', '.join(missing) or '없음'}",
+        "_detail": f"근거 {len(evidence)}건, 대상 밖 조항 {len(excluded)}건 제외, "
+        + (f"빈 범주 재확인으로 {', '.join(rechecked)} 채움, " if rechecked else "")
+        + f"근거 부족 범주 {', '.join(missing) or '없음'}"
+        + (", 새로 찾은 근거가 없어 재수집을 멈춤" if stalled else ""),
         "_thought": thought_of(
             found,
             {
@@ -436,6 +467,83 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         ),
         "_revisable": True,
     }
+
+
+async def recheck_empty_categories(
+    ctx: RunContext,
+    state: dict[str, Any],
+    findings: dict[str, dict[str, Any]],
+    evidence: dict[str, dict[str, Any]],
+    only: set[str] | None = None,
+) -> list[str]:
+    """정리에서 빈 범주를, 그 범주에 맞는 종류의 조항만 추려 한 번 더 묻습니다. 채운 범주를 돌려줍니다.
+    조항 20여 건이 섞인 목록에서는 모델이 맞는 조항(재난 문자 원칙 등)을 받아 두고도 범주를 비워 두는 일이 잦았다.
+    다시 검색하는 것보다 이미 받은 조항에서 고르게 하는 편이 빠르고, 고를 조항이 없으면 모델을 부르지 않는다."""
+    options: dict[str, list[str]] = {}
+    for constraint in HARD_CONSTRAINTS:
+        if (findings.get(constraint) or {}).get("evidence_ids") or (only is not None and constraint not in only):
+            continue
+        ids = [cid for cid, hit in evidence.items() if counts_as_evidence(constraint, hit)]
+        if ids:
+            options[constraint] = ids
+    if not options:
+        return []
+    sections = "\n\n".join(
+        f"## {constraint}\n" + _evidence_lines({cid: evidence[cid] for cid in ids}) for constraint, ids in options.items()
+    )
+    answer = await ctx.model.structured(
+        ctx,
+        [
+            SystemMessage(_system()),
+            HumanMessage(render("constraint_recheck", event=_json(state["event"]), sections=sections) + feedback_block(state)),
+        ],
+        ConstraintSet,
+    )
+    filled = []
+    for finding in answer.findings:
+        picked = {finding.constraint: [cid for cid in finding.evidence_ids if cid in options.get(finding.constraint, [])]}
+        summary = finding.summary
+        if not picked[finding.constraint]:
+            # 재난 문자가 걸린 사건에서 일정 칸의 계약 조항을 고르고 범주 이름은 DISASTER로 적은 일이 있었다.
+            # 고른 조항이 어느 범주의 후보인지는 코드가 아니까, 한 범주의 후보에만 있는 조항은 그 범주로 넣는다.
+            # 요약은 틀린 범주를 보고 쓴 것이라 조항 제목으로 바꾼다.
+            picked = {}
+            for cid in finding.evidence_ids:
+                owners = [c for c, ids in options.items() if cid in ids]
+                if len(owners) == 1:
+                    picked.setdefault(owners[0], []).append(cid)
+            summary = ""
+        for constraint, cited in picked.items():
+            if cited and constraint not in filled:
+                headings = ", ".join(evidence[cid]["heading"] for cid in cited)
+                findings[constraint] = {
+                    "constraint": constraint,
+                    "summary": summary or f"{headings} 조항을 적용합니다",
+                    "evidence_ids": cited,
+                }
+                filled.append(constraint)
+    return filled
+
+
+async def constraints_for_place(
+    ctx: RunContext, state: dict[str, Any], place: str, evidence: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """제약 정리 결과에서 고른 장소에 쓸 수 없는 근거를 빼고, 그 때문에 빈 범주는 이 장소에 맞는 조항에서 다시 고릅니다.
+    성수 안의 일정 근거가 한강 허가서뿐이었다면 배우 계약서의 가용 시간 조항으로 바꾼다.
+    같은 수집 결과와 같은 장소로 여러 번 구성하므로 결과를 State에 두고 다시 쓴다."""
+    cached = (state.get("place_constraints") or {}).get(place)
+    if cached and cached["info_retries"] == state.get("info_retries", 0):
+        return cached["hard"]
+    findings = {}
+    lost = set()
+    for h in state.get("hard_constraints") or []:
+        kept = [cid for cid in h["evidence_ids"] if cid in evidence]
+        if h["evidence_ids"] and not kept:
+            lost.add(h["constraint"])
+        findings[h["constraint"]] = {**h, "evidence_ids": kept}
+    if lost:
+        await recheck_empty_categories(ctx, state, findings, evidence, only=lost)
+    return [findings[c] for c in HARD_CONSTRAINTS if c in findings]
 
 
 @harnessed("reevaluate_plans", "1/2/3안 재평가")
@@ -551,7 +659,11 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             }
         return {"selected_plan": None, "repeat_filtered": False, "_detail": "남은 실행 가능 후보 없음"}
 
-    evidence = state.get("evidence") or {}
+    # 고른 안의 장소에 맞는 조항만 보여 주고 근거로 센다. 제약 수집은 후보 장소 전체로 거르므로 현재 장소(한강)의 허가서가
+    # 남아 있어, 성수 안의 허가 시간 근거로 한강 허가서를 인용한 일이 있었다.
+    place = choice["location"]["name"]
+    evidence = {cid: hit for cid, hit in (state.get("evidence") or {}).items() if usable_for_place(hit, place)}
+    hard = await constraints_for_place(ctx, state, place, evidence)
     others = [describe(c) for c in state["candidates"][1:4]]
     sections = [
         # 검토 단계와 같은 사실(거리, 실내 여부, 비용)을 줘야 검토에서 지적한 점을 설명에 반영할 수 있다.
@@ -565,7 +677,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         Section("직전 거절", _rejection_line(state.get("last_rejection")), 0),
         Section("자체 검토 피드백 (반드시 반영)", "\n".join(state.get("review_feedback") or []) or "없음", 0),
         Section("사용자 수정 요청 (반드시 반영)", "\n".join(state.get("user_feedback") or []) or "없음", 0),
-        Section("하드 제약과 근거 요약", _json(state.get("hard_constraints") or []), 1),
+        Section("하드 제약과 근거 요약", _json(hard), 1),
         Section("가중치", f"{_json(state['weights'])} {state.get('weight_rationale', '')}", 1),
         Section("이전 루프", summarize_loops(state.get("loop_summaries") or []), 1),
         Section("추가 제약", _json(state.get("extra_constraints") or []), 1),
@@ -588,12 +700,8 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
 
     checklist = {}
     for entry in explained.checklist:
-        # 조회 결과는 그 결과가 정하는 범주(재난 문자는 DISASTER)에서만 근거로 센다.
-        cited = [
-            cid
-            for cid in entry.evidence_ids
-            if cid in evidence and (evidence[cid]["doc_type"] != "DATA" or counts_as_evidence(entry.constraint, evidence[cid]))
-        ]
+        # 제약 수집과 같은 기준으로 센다. 범주와 맞지 않는 종류의 문서, 문서 머리말(개요), 조회 결과를 다른 범주에 쓴 것은 빠진다.
+        cited = [cid for cid in entry.evidence_ids if cid in evidence and counts_as_evidence(entry.constraint, evidence[cid])]
         checklist[entry.constraint] = {
             "constraint": entry.constraint,
             "status": entry.status,
@@ -635,6 +743,12 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
             "explanation": explained.explanation,
             "checklist": [checklist[c] for c in HARD_CONSTRAINTS],
             "unresolved": sorted(set(unresolved)),
+            # 자체 검토가 '이미 찾은 근거를 인용하라'고 할 때도 이 장소에 맞는 근거만 권하게 같이 넘긴다.
+            "hard_constraints": hard,
+        },
+        "place_constraints": {
+            **(state.get("place_constraints") or {}),
+            place: {"info_retries": state.get("info_retries", 0), "hard": hard},
         },
         "missing_info": missing,
         "repeat_filtered": False,
@@ -860,7 +974,9 @@ def score_review(checks: ReviewChecks, plan: dict[str, Any], state: dict[str, An
     evidence, warns, empty = evidence_score(plan["checklist"])
     # 제약 수집이 이미 찾은 근거가 있는데 설명 단계에서 인용만 빠진 범주는 다시 검색하지 않고 그 ID를 인용하게 한다.
     # 다시 검색하면 같은 근거를 또 찾느라 도구 호출만 늘어 루프 한도에 걸린 적이 있다.
-    found = {h["constraint"]: h.get("evidence_ids") or [] for h in state.get("hard_constraints") or []}
+    # 고른 안의 장소에 맞게 추린 근거(compose_plan이 만든 것)를 쓴다. 성수 안에 한강 허가서를 인용하라고 하지 않는다.
+    hard = plan.get("hard_constraints") or state.get("hard_constraints") or []
+    found = {h["constraint"]: h.get("evidence_ids") or [] for h in hard}
     citable = {c: found[c][:2] for c in empty if found.get(c)}
     if empty:
         blocking.append("근거 0건 범주")
@@ -936,8 +1052,11 @@ def score_review(checks: ReviewChecks, plan: dict[str, Any], state: dict[str, An
         "risk": risk,
     }
     uncited = set(empty) - set(citable)
-    action = "MORE_EVIDENCE" if uncited and state.get("info_retries", 0) < MAX_INFO_RETRIES else "REWRITE"
-    return {"breakdown": breakdown, "blocking": blocking, "feedback": feedback, "action": action}
+    no_more_evidence = state.get("info_retries", 0) >= MAX_INFO_RETRIES or bool(state.get("evidence_stalled"))
+    action = "MORE_EVIDENCE" if uncited and not no_more_evidence else "REWRITE"
+    # 남은 사유가 더 찾을 수도, 이미 찾은 것에서 인용할 수도 없는 근거뿐이면 고쳐도 같은 사유로 회차만 쓴다.
+    stuck = blocking == ["근거 0건 범주"] and not citable and no_more_evidence
+    return {"breakdown": breakdown, "blocking": blocking, "feedback": feedback, "action": action, "stuck": stuck}
 
 
 def _rejection_line(rejection: dict[str, Any] | None) -> str:
@@ -986,6 +1105,9 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     breakdown, blocking = scored["breakdown"], scored["blocking"]
     score = sum(breakdown.values())
     passed = score >= limits.review_pass_score and not blocking
+    # 근거 말고는 통과 점수를 넘었고 그 근거를 더 구할 방법이 없으면, 남은 회차를 쓰지 않고 지금까지 가장 나은 안으로 넘긴다.
+    # 빈 범주는 미확정 항목에 '근거 조항 확인 필요'로 남아 승인자가 본다.
+    stuck = not passed and scored["stuck"] and score >= limits.review_pass_score
     history = [
         *(state.get("review_history") or []),
         {
@@ -1011,10 +1133,10 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         f"비용 이유 {breakdown['optimization']}, 설명 {breakdown['explanation']}, 미확정 관리 {breakdown['risk']})",
         "decision": "승인 요청"
         if passed
-        else ("가장 나은 안으로 승인 요청" if round_no >= limits.max_review_rounds else "다시 고치기"),
+        else ("가장 나은 안으로 승인 요청" if round_no >= limits.max_review_rounds or stuck else "다시 고치기"),
         "reason": "; ".join(blocking + scored["feedback"][:2]) or "통과 기준을 모두 넘었습니다",
     }
-    if passed or round_no >= limits.max_review_rounds:
+    if passed or stuck or round_no >= limits.max_review_rounds:
         chosen = plan if passed else best["plan"]
         final_score = score if passed else best["score"]
         update.update(
@@ -1033,7 +1155,11 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
                 + (
                     "통과"
                     if passed
-                    else f"{limits.max_review_rounds}회 도달, 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+                    else (
+                        f"더 찾을 근거가 없어 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+                        if stuck and round_no < limits.max_review_rounds
+                        else f"{limits.max_review_rounds}회 도달, 가장 나은 {best['round']}회차 {best['score']}점 안으로 승인 요청"
+                    )
                 ),
             }
         )
@@ -1050,7 +1176,7 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     # 바꿀 후보가 없거나 근거 검색을 이미 다 쓴 경우에는 같은 안의 설명과 체크리스트를 고치는 쪽으로 돌린다.
     if action == "NEXT_CANDIDATE" and not has_other:
         action = "REWRITE"
-    if action == "MORE_EVIDENCE" and state.get("info_retries", 0) >= MAX_INFO_RETRIES:
+    if action == "MORE_EVIDENCE" and (state.get("info_retries", 0) >= MAX_INFO_RETRIES or state.get("evidence_stalled")):
         action = "REWRITE"
     # 이력에는 실제로 실행한 행동을 남겨야 다음 회차의 정체 판단과 화면 표시가 맞는다.
     history[-1]["action"] = action
@@ -1429,6 +1555,8 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
     return {
         "alternatives_tried": True,
         "widen_search": False,
+        # 대체 장소가 들어오면 그 장소의 허가 조항을 새로 찾아야 한다.
+        "evidence_stalled": False,
         "alternatives": registered,
         "suggestions": suggestions,
         "stop_condition": None if registered or early else NO_FEASIBLE_PLAN,

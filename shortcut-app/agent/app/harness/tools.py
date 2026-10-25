@@ -14,9 +14,15 @@ from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 
 from app.harness.guardrails import DESTRUCTIVE_TOOLS, as_untrusted, mask_value
+from app.harness.recovery import PermanentError
 
 if TYPE_CHECKING:
     from app.runtime import RunContext
+
+
+class MissingToolError(PermanentError):
+    """허용 목록의 도구가 MCP 서버에 없을 때 냅니다."""
+
 
 _TOOL_ERROR = re.compile(r"\[(?P<code>[A-Z0-9_]+)\](?P<message>.*?)\(retryable=(?P<retryable>true|false)\)", re.S)
 
@@ -75,9 +81,13 @@ class ToolGateway:
         async with self._specs_lock:
             if self._specs is None:
                 self._specs = await self._load_specs()
+            # 목록은 처음 한 번 읽어 두므로, 에이전트보다 늦게 뜬 MCP 서버의 도구는 빠져 있을 수 있다. 한 번 다시 읽는다.
+            if any(name not in self._specs for name in allowed):
+                self._specs = await self._load_specs()
         missing = [name for name in allowed if name not in self._specs]
         if missing:
-            raise ConnectionError(f"MCP 도구 목록에 없는 도구: {', '.join(missing)}")
+            # 다시 읽어도 없으면 설정 문제라 작업을 재시도해도 같은 오류가 난다.
+            raise MissingToolError(f"MCP 도구 목록에 없는 도구: {', '.join(missing)}")
         return [self._specs[name] for name in allowed]
 
     async def _load_specs(self) -> dict[str, dict]:
