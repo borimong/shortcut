@@ -10,10 +10,12 @@ from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
 from app.graph.nodes import (
+    NO_DISASTER_ALERT_ID,
     applies_to_places,
     candidate_places,
     constraints_for_issues,
     counts_as_evidence,
+    data_evidence,
     evidence_score,
     fact_problems,
     mentions,
@@ -187,9 +189,30 @@ def test_pass_without_evidence_is_downgraded_to_warning():
         return await graph.aget_state(CONFIG)
 
     run(scenario())
-    checklist = backend.proposals[0]["checklist"]
-    assert all(item["status"] == "WARN" for item in checklist)
+    checklist = {item["constraint"]: item for item in backend.proposals[0]["checklist"]}
+    # 재난 문자는 조회 결과(0건)가 근거라 모델이 인용하지 않아도 통과다.
+    assert checklist.pop("DISASTER")["status"] == "PASS"
+    assert all(item["status"] == "WARN" for item in checklist.values())
     assert any("근거 조항 확인 필요" in u for u in backend.proposals[0]["unresolved"])
+
+
+def test_no_disaster_alert_is_evidence_for_the_disaster_category():
+    ctx, backend, _, _ = make_context()
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    disaster = next(item for item in proposal["checklist"] if item["constraint"] == "DISASTER")
+    assert disaster["status"] == "PASS" and NO_DISASTER_ALERT_ID in disaster["evidence_ids"]
+    # 조회 결과는 rag 원문 대조 없이 근거 패널에 실린다.
+    assert any(e["id"] == NO_DISASTER_ALERT_ID and e["doc_type"] == "DATA" for e in proposal["evidence"])
+
+
+def test_disaster_alert_data_counts_only_when_no_alert_was_issued():
+    assert NO_DISASTER_ALERT_ID in data_evidence({"disaster_alerts": {"alerts": []}})
+    assert data_evidence({"disaster_alerts": {"alerts": [{"type": "HEAVY_RAIN"}]}}) == {}
+    assert data_evidence({}) == {}
+    fact = data_evidence({"disaster_alerts": {"alerts": []}})[NO_DISASTER_ALERT_ID]
+    assert counts_as_evidence("DISASTER", fact) and not counts_as_evidence("WEATHER", fact)
 
 
 def test_cited_evidence_is_checked_against_original_resource():

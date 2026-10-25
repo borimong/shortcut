@@ -69,11 +69,13 @@ EVIDENCE_TYPES = {
     "LAW": {"LAW", "PERMIT"},
     "BUDGET": {"POLICY", "PERMIT"},
     "NO_FLY_ZONE": {"NO_FLY", "PERMIT", "LAW"},
-    "DISASTER": {"SAFETY", "PERMIT"},
+    "DISASTER": {"SAFETY", "PERMIT", "DATA"},
     "WEATHER": {"SAFETY", "PERMIT"},
 }
 # 문서 첫 제목 앞의 머리글 조각이다. 문서 소개일 뿐 조항이 아니므로 근거로 세지 않는다.
 INTRO_HEADING = "개요"
+# 업무 데이터 조회 결과를 근거로 쓸 때의 ID다. 문서 조항이 아니라 조회한 사실이라 원문 대조 없이 그대로 싣는다.
+NO_DISASTER_ALERT_ID = "data:disaster_alerts"
 
 
 def _system() -> str:
@@ -158,6 +160,25 @@ def applies_to_places(hit: dict[str, Any], places: list[str]) -> bool:
         return True
     names = [p.replace(" ", "") for p in places]
     return any(k in name for k in keywords for name in names)
+
+
+def data_evidence(conditions: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """재난 문자가 한 건도 없다는 조회 결과를 DISASTER 범주의 근거로 만듭니다.
+    재난 문자 조항은 '발령되면 그 지역 촬영을 하지 않는다'는 조건이라, 조항만으로는 이번 촬영이 괜찮은지 알 수 없고
+    발령이 없다는 사실이 있어야 통과로 판단할 수 있다. 발령된 문자가 있으면 만들지 않고 조항 근거로만 판단한다."""
+    alerts = (conditions.get("disaster_alerts") or {}).get("alerts")
+    if alerts is None or alerts:
+        return {}
+    return {
+        NO_DISASTER_ALERT_ID: {
+            "chunk_id": NO_DISASTER_ALERT_ID,
+            "doc_id": "business:disaster_alerts",
+            "doc_type": "DATA",
+            "title": "업무 데이터 조회 결과",
+            "heading": "재난 문자",
+            "text": "촬영일 촬영 지역에 발령된 재난 문자가 없습니다(재난 문자 조회 결과 0건).",
+        }
+    }
 
 
 def counts_as_evidence(constraint: str, hit: dict[str, Any]) -> bool:
@@ -348,6 +369,8 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
                     excluded.add(hit["chunk_id"])
                     continue
                 evidence[hit["chunk_id"]] = hit
+    facts = data_evidence(state["conditions"])
+    evidence.update(facts)
 
     found = await ctx.model.structured(
         ctx,
@@ -365,6 +388,14 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         # 범주와 맞지 않는 종류의 문서를 적은 것도 그 범주의 근거로 세지 않는다.
         cited = [cid for cid in finding.evidence_ids if cid in evidence and counts_as_evidence(finding.constraint, evidence[cid])]
         findings.append({"constraint": finding.constraint, "summary": finding.summary, "evidence_ids": cited})
+    if NO_DISASTER_ALERT_ID in facts:
+        # 발령이 없다는 사실은 조회로 확정됐으므로 모델이 인용을 빠뜨려도 코드가 붙인다.
+        disaster = next((f for f in findings if f["constraint"] == "DISASTER"), None)
+        if disaster is None:
+            disaster = {"constraint": "DISASTER", "summary": facts[NO_DISASTER_ALERT_ID]["text"], "evidence_ids": []}
+            findings.append(disaster)
+        if NO_DISASTER_ALERT_ID not in disaster["evidence_ids"]:
+            disaster["evidence_ids"].append(NO_DISASTER_ALERT_ID)
     covered = {f["constraint"] for f in findings if f["evidence_ids"]}
     missing = [c for c in HARD_CONSTRAINTS if c not in covered]
     return {
@@ -477,12 +508,29 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
 
     checklist = {}
     for entry in explained.checklist:
-        cited = [cid for cid in entry.evidence_ids if cid in evidence]
+        # 조회 결과는 그 결과가 정하는 범주(재난 문자는 DISASTER)에서만 근거로 센다.
+        cited = [
+            cid
+            for cid in entry.evidence_ids
+            if cid in evidence and (evidence[cid]["doc_type"] != "DATA" or counts_as_evidence(entry.constraint, evidence[cid]))
+        ]
         checklist[entry.constraint] = {
             "constraint": entry.constraint,
             "status": entry.status,
             "note": entry.note,
             "evidenceIds": cited,
+        }
+    if NO_DISASTER_ALERT_ID in evidence:
+        # 재난 문자가 없다는 조회 결과가 있으면 DISASTER는 통과다. 모델이 근거 없이 경고로 적어도 조회 사실로 바로잡는다.
+        item = checklist.get("DISASTER") or {"constraint": "DISASTER", "note": "", "evidenceIds": []}
+        checklist["DISASTER"] = {
+            **item,
+            "status": "PASS",
+            "note": item["note"] or "촬영 지역에 발령된 재난 문자가 없습니다",
+            "evidenceIds": [
+                *item["evidenceIds"],
+                *([] if NO_DISASTER_ALERT_ID in item["evidenceIds"] else [NO_DISASTER_ALERT_ID]),
+            ],
         }
     unresolved = list(explained.unresolved)
     # 다시 써도 틀리면 승인자가 직접 확인하도록 미확정 항목에 올린다.
@@ -934,6 +982,18 @@ async def request_approval(state: dict[str, Any], ctx: RunContext) -> dict[str, 
     cited = []
     for cid in cited_ids:
         hit = evidence[cid]
+        if hit["doc_type"] == "DATA":
+            # 조회 결과는 rag 문서가 아니라 대조할 원문이 없다.
+            cited.append(
+                {
+                    "id": cid,
+                    "doc_id": hit["doc_id"],
+                    "title": f"{hit['title']} / {hit['heading']}",
+                    "text": hit["text"],
+                    "doc_type": "DATA",
+                }
+            )
+            continue
         if hit["doc_id"] not in originals:
             originals[hit["doc_id"]] = await ctx.tools.read_resource("rag", f"rag://documents/{hit['doc_id']}")
         # 검색 결과가 색인 이후 바뀐 원문과 다르면 근거로 쓰지 않는다.
