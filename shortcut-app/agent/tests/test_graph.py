@@ -84,7 +84,9 @@ def test_first_loop_stops_at_approval_and_commits_after_all_approve():
         "compose_plan",
         "validation_gate",
     ]
-    assert nodes[-2:] == ["commit_plan", "publish"]
+    # 확정 뒤 실행팀이 돌고 공지로 끝난다.
+    assert nodes[-2:] == ["execute", "publish"]
+    assert nodes[nodes.index("commit_plan") + 1] == "supervisor"
 
 
 def test_impact_analysis_names_the_block_node_to_start_from():

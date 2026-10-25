@@ -35,7 +35,17 @@ public class ResetRepository {
                     + "(SELECT id FROM callsheet_versions WHERE shoot_day_id = :id AND version_no > 1)",
             "DELETE FROM callsheet_versions WHERE shoot_day_id = :id AND version_no > 1",
             "DELETE FROM reservations WHERE shoot_day_id = :id AND provider <> 'OURPLACE'",
-            "UPDATE reservations SET status = 'HELD' WHERE shoot_day_id = :id AND provider = 'OURPLACE'",
+            // 실행팀이 시드 예약을 확정하거나 취소했어도 시드 상태(가예약, 금액과 수수료 없음)로 되돌린다.
+            """
+            UPDATE reservations SET status = 'HELD', task_id = NULL, cost_krw = 0, cancel_fee_krw = 0
+            WHERE shoot_day_id = :id AND provider = 'OURPLACE'
+            """,
+            // 실행팀이 남긴 렌탈, 허가, 차량, 연락, 장부 기록을 지운다.
+            "DELETE FROM ledger_entries WHERE shoot_day_id = :id",
+            "DELETE FROM outreach_messages WHERE shoot_day_id = :id",
+            "DELETE FROM transport_bookings WHERE shoot_day_id = :id",
+            "DELETE FROM permits WHERE shoot_day_id = :id",
+            "DELETE FROM rental_bookings WHERE shoot_day_id = :id",
             """
             UPDATE blocks b SET location_id = o.location_id, equipment_ids = o.equipment_ids,
                    start_time = o.start_time, end_time = o.end_time

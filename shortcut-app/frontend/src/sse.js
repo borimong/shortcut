@@ -3,11 +3,14 @@ import { useAuthStore } from './stores/auth.js'
 export const TERMINAL_EVENTS = ['DONE', 'FAILED', 'NEEDS_HUMAN', 'SUPERSEDED']
 
 // EventSource는 Authorization 헤더를 붙일 수 없어서 서버와 약속한 access_token 쿼리로 토큰을 보낸다.
-export function openStream(path, handlers, { onStateChange } = {}) {
+// after를 주면 그 이벤트 id 다음부터 받는다. 작업이 끝나 닫힌 스트림을 수정 요청 뒤에 이어 열 때 쓴다.
+export function openStream(path, handlers, { onStateChange, after } = {}) {
   const auth = useAuthStore()
+  const params = [`access_token=${encodeURIComponent(auth.token ?? '')}`]
+  if (after !== undefined && after !== null && after >= 0) params.push(`after=${after}`)
   const sep = path.includes('?') ? '&' : '?'
-  const source = new EventSource(`/api${path}${sep}access_token=${encodeURIComponent(auth.token ?? '')}`)
-  let lastId = -1
+  const source = new EventSource(`/api${path}${sep}${params.join('&')}`)
+  let lastId = after ?? -1
 
   for (const [type, handler] of Object.entries(handlers)) {
     source.addEventListener(type, (event) => {
@@ -23,7 +26,8 @@ export function openStream(path, handlers, { onStateChange } = {}) {
       } catch {
         data = event.data
       }
-      handler(data)
+      // 핸들러는 두 번째 인자로 이벤트 id를 받는다. 생각 기록의 수정 요청이 이 id로 대상을 고른다.
+      handler(data, Number.isFinite(id) && event.lastEventId !== '' ? id : null)
       if (TERMINAL_EVENTS.includes(type)) source.close()
     })
   }

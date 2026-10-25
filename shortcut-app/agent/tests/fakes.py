@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from types import SimpleNamespace
@@ -12,14 +13,19 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from app.config import Limits, Settings
 from app.graph.schemas import (
     AlternativeKeywords,
+    CandidateChoice,
     ConstraintFinding,
     ConstraintItem,
     ConstraintSet,
+    ExecOrder,
+    ExecutionNote,
     ImpactSummary,
     PlanExplanation,
     QuotedCheck,
     RejectionPlan,
     ReviewChecks,
+    SupervisorDecision,
+    Thought,
     WeightAdjustment,
 )
 from app.graph.state import HARD_CONSTRAINTS
@@ -93,6 +99,7 @@ def make_settings(**limit_overrides) -> Settings:
         internal_token="t",
         business_mcp_url="http://b/mcp",
         rag_mcp_url="http://r/mcp",
+        ops_mcp_url="http://o/mcp",
         rabbitmq_url="amqp://x",
         checkpoint_dsn="postgresql://x",
         openai_model="gpt-4o-mini",
@@ -184,6 +191,12 @@ class FakeBackendState:
     top_k: int | None = None
     # 아워플레이스 검색 결과가 없는 상황
     no_alternatives: bool = False
+    # 가상 외부 서비스(ops) 상태와 실패 시연 플래그
+    venue_conflict: bool = False
+    permit_denied: bool = False
+    ops: dict = field(
+        default_factory=lambda: {"reservations": {}, "rentals": {}, "permits": {}, "transports": {}, "messages": [], "ledger": []}
+    )
 
 
 class FakeMcpClient:
@@ -195,7 +208,7 @@ class FakeMcpClient:
         self.calls: list[tuple[str, dict]] = []
 
     async def list_tools(self):
-        names = BUSINESS_TOOLS if self.prefix == "business" else RAG_TOOLS
+        names = {"business": BUSINESS_TOOLS, "rag": RAG_TOOLS, "ops": OPS_TOOLS}[self.prefix]
         return [
             SimpleNamespace(name=n, description=f"{n} 설명", input_schema={"type": "object", "properties": {}}) for n in names
         ]
@@ -327,6 +340,148 @@ class FakeMcpClient:
     def _search_contract_clause(self, args):
         return [_hit(c) for c in ("CONTRACT", "SCHEDULE") if EVIDENCE_BY_CONSTRAINT[c][1] == args["contract_doc_id"]]
 
+    # ---------------- 가상 외부 서비스 (ops-mcp 도구, backend 계약과 같은 모양)
+
+    def _new_id(self, prefix: str, table: str) -> str:
+        return f"{prefix}-{3001 + len(self.backend.ops[table])}"
+
+    def _venue_check(self, args):
+        reservations = [
+            {"reservationId": rid, **{k: r[k] for k in ("locationId", "start", "end", "status")}}
+            for rid, r in self.backend.ops["reservations"].items()
+        ]
+        available = not self.backend.venue_conflict
+        return {
+            "locationId": args["location_id"],
+            "available": available,
+            "reason": "" if available else "같은 시간대에 다른 예약이 있습니다",
+            "reservations": reservations,
+        }
+
+    def _venue_hold(self, args):
+        if self.backend.venue_conflict:
+            raise FakeToolError("[VENUE_CONFLICT] 같은 시간대에 다른 예약이 있습니다. (retryable=false)")
+        for rid, r in self.backend.ops["reservations"].items():
+            if (r["locationId"], r["start"], r["end"]) == (args["location_id"], args["start"], args["end"]) and r[
+                "status"
+            ] != "CANCELLED":
+                return {"reservationId": rid, "status": r["status"], "priceKrw": 450000}
+        rid = self._new_id("R", "reservations")
+        self.backend.ops["reservations"][rid] = {
+            "locationId": args["location_id"],
+            "start": args["start"],
+            "end": args["end"],
+            "status": "HELD",
+        }
+        return {"reservationId": rid, "status": "HELD", "priceKrw": 450000}
+
+    def _venue_confirm(self, args):
+        r = self.backend.ops["reservations"][args["reservation_id"]]
+        r["status"] = "CONFIRMED"
+        return {"reservationId": args["reservation_id"], "status": "CONFIRMED", "priceKrw": 450000}
+
+    def _venue_cancel(self, args):
+        r = self.backend.ops["reservations"][args["reservation_id"]]
+        fee = 45000 if r["status"] == "CONFIRMED" else 0
+        r["status"] = "CANCELLED"
+        return {"reservationId": args["reservation_id"], "status": "CANCELLED", "cancelFeeKrw": fee}
+
+    def _rental_quote(self, args):
+        items = [
+            {"equipmentId": i, "name": f"장비 {i}", "priceKrw": 250000 if i == 4 else 0, "owned": i != 4}
+            for i in args["equipment_ids"]
+        ]
+        return {"items": items, "totalKrw": sum(i["priceKrw"] for i in items), "deliveryAt": "13:00", "bookings": []}
+
+    def _rental_book(self, args):
+        bid = self._new_id("RB", "rentals")
+        self.backend.ops["rentals"][bid] = dict(args)
+        return {"bookingId": bid, "status": "BOOKED", "totalKrw": 250000, "deliveryAt": "13:00"}
+
+    def _rental_cancel(self, args):
+        return {"bookingId": args["booking_id"], "status": "CANCELLED", "cancelFeeKrw": 25000}
+
+    def _permit_check_requirement(self, args):
+        kinds = (["LOCATION"] if args["location_id"] == 1 else []) + (["DRONE"] if args.get("drone") else [])
+        return {"required": bool(kinds), "kinds": kinds, "feeKrw": 50000 * len(kinds), "permits": []}
+
+    def _permit_apply(self, args):
+        pid = self._new_id("PM", "permits")
+        status = "DENIED" if self.backend.permit_denied else "APPROVED"
+        self.backend.ops["permits"][pid] = {**args, "status": status}
+        return {
+            "permitId": pid,
+            "kind": args["kind"],
+            "status": status,
+            "feeKrw": 0 if status == "DENIED" else 30000,
+            "conditions": [],
+            "denialReason": "허가 시간대 밖" if status == "DENIED" else None,
+        }
+
+    def _permit_status(self, args):
+        return {"permitId": args["permit_id"], **self.backend.ops["permits"][args["permit_id"]]}
+
+    def _transport_quote(self, args):
+        option = {"vehicle": "VAN_12", "count": 1, "priceKrw": 180000}
+        return {
+            "pickup": "목동 오피스 세트",
+            "departAt": "13:02",
+            "travelMinutes": 38,
+            "options": [option],
+            "recommended": option,
+            "bookings": [],
+        }
+
+    def _transport_book(self, args):
+        bid = self._new_id("TB", "transports")
+        self.backend.ops["transports"][bid] = dict(args)
+        return {
+            "bookingId": bid,
+            "status": "BOOKED",
+            "costKrw": 180000,
+            "departAt": args["depart_at"],
+            "pickup": args["pickup"],
+            "vehicle": args["vehicle"],
+            "count": args["count"],
+        }
+
+    def _transport_cancel(self, args):
+        return {"bookingId": args["booking_id"], "status": "CANCELLED", "cancelFeeKrw": 18000}
+
+    def _contacts_for_change(self, args):
+        return {
+            "contacts": [
+                {"recipientId": "ACTOR:1", "name": "배우 A", "role": "ACTOR", "channel": "SMS"},
+                {"recipientId": "USER:ad1", "name": "윤하린", "role": "AD1", "channel": "APP"},
+            ]
+        }
+
+    def _send_message(self, args):
+        self.backend.ops["messages"].extend(args["messages"])
+        return {
+            "sent": [
+                {"messageId": i + 1, "recipientId": m["recipient_id"], "status": "SENT"} for i, m in enumerate(args["messages"])
+            ]
+        }
+
+    def _get_replies(self, args):
+        n = len(self.backend.ops["messages"])
+        return {"sent": n, "acked": n, "questions": [], "pending": 0}
+
+    def _ledger_record(self, args):
+        self.backend.ops["ledger"].extend(args["entries"])
+        entries = [{"entryId": i + 1, **e, "amountKrw": 100000} for i, e in enumerate(args["entries"])]
+        total = 100000 * len(entries)
+        return {
+            "entries": entries,
+            "totalKrw": total,
+            "budget": {"capKrw": 1000000, "spentKrw": total, "remainingKrw": 1000000 - total, "over": False},
+        }
+
+    def _ledger_budget_status(self, args):
+        spent = 100000 * len(self.backend.ops["ledger"])
+        return {"capKrw": 1000000, "spentKrw": spent, "remainingKrw": 1000000 - spent, "over": False, "entries": []}
+
 
 class FakeToolError(Exception):
     pass
@@ -349,6 +504,15 @@ BUSINESS_TOOLS = [
     "commit_plan",
 ]
 RAG_TOOLS = ["search_regulation", "search_contract_clause", "index_document", "delete_document"]
+OPS_TOOLS = [
+    "venue_check", "venue_hold", "venue_confirm", "venue_cancel",
+    "rental_quote", "rental_book", "rental_cancel",
+    "permit_check_requirement", "permit_apply", "permit_status",
+    "transport_quote", "transport_book", "transport_cancel",
+    "contacts_for_change", "send_message", "get_replies",
+    "ledger_record", "ledger_budget_status",
+]  # fmt: skip
+THOUGHT = Thought(observation="관찰한 사실", decision="정한 것", reason="그렇게 정한 이유")
 
 
 def _hit(constraint: str) -> dict:
@@ -368,7 +532,9 @@ def _hit(constraint: str) -> dict:
 class FakeModel:
     """노드 프롬프트의 첫 줄을 보고 정해진 행동을 돌려주는 가짜 LLM입니다."""
 
-    def __init__(self, *, cite_evidence: bool = True, review_misses=None, explanation_extras=None):
+    def __init__(
+        self, *, cite_evidence: bool = True, review_misses=None, explanation_extras=None, choose_hash=None, supervisor_skip=()
+    ):
         self.cite_evidence = cite_evidence
         # 설명을 쓸 때마다 하나씩 덧붙일 문장이다. 선택하지 않은 장비 이름을 넣어 설명 검사를 시험한다.
         self.explanation_extras = list(explanation_extras or [])
@@ -377,10 +543,19 @@ class FakeModel:
         self.review_misses = [set(m) for m in (review_misses or [()])]
         self.structured_calls: list[str] = []
         self.impact_prompts: list[str] = []
+        # 사용자 수정 요청이 있을 때 후보 선택에서 고를 hash와, supervisor가 후보에서 빼고 보낼 Agent
+        self.choose_hash = choose_hash
+        self.supervisor_skip = set(supervisor_skip)
+        # 프롬프트 이름(첫 줄)별 사람 메시지를 모아 수정 요청이 프롬프트에 들어갔는지 확인한다.
+        self.prompts: dict[str, list[str]] = {}
 
     async def chat(self, ctx: RunContext, messages, tools=None) -> AIMessage:
         ctx.counter["llm_calls"] += 1
         task = _task_line(messages)
+        human = str(next(m for m in messages if isinstance(m, HumanMessage)).content)
+        self.prompts.setdefault(task, []).append(human)
+        if "실행" in task and task.startswith("# 할 일:") and "지휘" not in task:
+            return _exec_step(task, human, messages)
         if any(isinstance(m, ToolMessage) for m in messages):
             return AIMessage(content="조사를 마쳤습니다.")
         if "변경 영향 분석" in task:
@@ -402,9 +577,11 @@ class FakeModel:
         ctx.counter["llm_calls"] += 1
         self.structured_calls.append(schema.__name__)
         text = "\n".join(str(m.content) for m in messages)
+        human = str(next(m for m in messages if isinstance(m, HumanMessage)).content)
+        self.prompts.setdefault(_task_line(messages), []).append(human)
         ids = re.findall(r"\[([a-z0-9\-]+#\d+)\]", text)
         if schema is ImpactSummary:
-            return ImpactSummary(focus_nodes=["SCENE:S12"], impacted=[], risks=["13시 이후 우천"])
+            return ImpactSummary(focus_nodes=["SCENE:S12"], impacted=[], risks=["13시 이후 우천"], thought=THOUGHT)
         if schema is ConstraintSet:
             by_constraint = {c: EVIDENCE_BY_CONSTRAINT[c][0] for c in HARD_CONSTRAINTS}
             return ConstraintSet(
@@ -413,11 +590,19 @@ class FakeModel:
                         constraint=c, summary="적용", evidence_ids=[by_constraint[c]] if by_constraint[c] in ids else []
                     )
                     for c in HARD_CONSTRAINTS
-                ]
+                ],
+                thought=THOUGHT,
             )
         if schema is WeightAdjustment:
             return WeightAdjustment(
-                location=0.5, equipment=0.15, weather=0.2, budget=0.0, time=0.1, distance=0.15, rationale="품질 우선"
+                location=0.5,
+                equipment=0.15,
+                weather=0.2,
+                budget=0.0,
+                time=0.1,
+                distance=0.15,
+                rationale="품질 우선",
+                thought=THOUGHT,
             )
         if schema is PlanExplanation:
             checklist = [
@@ -438,6 +623,7 @@ class FakeModel:
                 checklist=checklist,
                 unresolved=["제작부: 예약 확정, 승인 후 1시간 안"],
                 needs_more_info=False,
+                thought=THOUGHT,
             )
         if schema is RejectionPlan:
             location_id = int(re.search(r"장소 ID (\d+)", text).group(1))
@@ -445,7 +631,7 @@ class FakeModel:
                 item = ConstraintItem(type="EXCLUDE_LOCATION_TIME", location_id=2, from_time="13:00", to_time="18:00")
             else:
                 item = ConstraintItem(type="EXCLUDE_LOCATION", location_id=location_id)
-            return RejectionPlan(constraints=[item], summary=f"장소 {location_id}을 빼고 다시 짭니다")
+            return RejectionPlan(constraints=[item], summary=f"장소 {location_id}을 빼고 다시 짭니다", thought=THOUGHT)
         if schema is ReviewChecks:
             misses = self.review_misses.pop(0) if len(self.review_misses) > 1 else self.review_misses[0]
             explanation = re.search(r"## 설명\n(.*?)(?:\n\n## |\Z)", text, re.S).group(1)
@@ -470,7 +656,17 @@ class FakeModel:
                 cost_reason=check("cost"),
             )
         if schema is AlternativeKeywords:
-            return AlternativeKeywords(keywords=["실내", "자연광"], max_distance_km=40)
+            return AlternativeKeywords(keywords=["실내", "자연광"], max_distance_km=40, thought=THOUGHT)
+        if schema is CandidateChoice:
+            hashes = re.findall(r"^(L[^ ]+) /", text.split("## 실행 가능 후보")[1], re.M)
+            return CandidateChoice(chosen_hash=self.choose_hash or hashes[0], thought=THOUGHT)
+        if schema is SupervisorDecision:
+            section = text.split("## 이번 단계 후보")[1].split("## ")[0]
+            agents = [a for a in re.findall(r"^- (\w+):", section, re.M) if a not in self.supervisor_skip]
+            return SupervisorDecision(orders=[ExecOrder(agent=a, goal=f"{a} 처리") for a in agents], thought=THOUGHT)
+        if schema is ExecutionNote:
+            status = re.search(r"## 코드 판정\n(\w+)", text).group(1)
+            return ExecutionNote(summary=f"처리 결과 {status}", needs_human=False, thought=THOUGHT)
         raise AssertionError(schema)
 
     async def stream_text(self, ctx: RunContext, messages) -> str:
@@ -490,6 +686,135 @@ def _tool_calls(*calls) -> AIMessage:
     return AIMessage(content="", tool_calls=[{"name": n, "args": a, "id": f"call-{i}"} for i, (n, a) in enumerate(calls)])
 
 
+def _section_json(text: str, title: str) -> dict:
+    body = text.split(f"## {title}\n")[1].split("\n\n## ")[0]
+    return json.loads(body)
+
+
+def _results(messages) -> dict[str, list[dict]]:
+    """지금까지 받은 도구 결과를 도구 이름별로 모읍니다. 실패한 호출은 빼고 셉니다."""
+    found: dict[str, list[dict]] = {}
+    for m in messages:
+        if isinstance(m, ToolMessage) and m.status == "success":
+            body = str(m.content).split("\n", 1)[1].rsplit("\n", 1)[0]
+            found.setdefault(m.name, []).append(json.loads(body))
+    return found
+
+
+def _tried(messages) -> set[str]:
+    return {m.name for m in messages if isinstance(m, ToolMessage)}
+
+
+def _exec_step(task: str, human: str, messages) -> AIMessage:
+    """실행 Agent가 라운드마다 고를 도구를 흉내 냅니다. 받은 결과를 보고 다음 도구를 정합니다."""
+    facts = _section_json(human, "사실 정보")
+    prior = _section_json(human, "앞 단계 결과")
+    got, tried = _results(messages), _tried(messages)
+    day, task_id, loc = facts["shootDayId"], facts["taskId"], facts["location"]["id"]
+    span = {"start": facts["start"], "end": facts["end"]}
+    done = AIMessage(content="처리를 마쳤습니다.")
+    if "장소 예약" in task:
+        if "ops_venue_check" not in tried:
+            return _tool_calls(
+                ("ops_venue_check", {"shoot_day_id": day, "location_id": loc, **span}),
+                ("ops_venue_hold", {"shoot_day_id": day, "task_id": task_id, "location_id": loc, **span}),
+            )
+        if "ops_venue_hold" in got and "ops_venue_confirm" not in tried:
+            return _tool_calls(("ops_venue_confirm", {"reservation_id": got["ops_venue_hold"][-1]["reservationId"]}))
+        return done
+    if "장비 렌탈" in task:
+        ids = [e["id"] for e in facts["equipment"]]
+        if "ops_rental_quote" not in tried:
+            return _tool_calls(("ops_rental_quote", {"shoot_day_id": day, "equipment_ids": ids, **span}))
+        need = [i["equipmentId"] for i in got["ops_rental_quote"][-1]["items"] if not i["owned"]]
+        if need and "ops_rental_book" not in tried:
+            return _tool_calls(("ops_rental_book", {"shoot_day_id": day, "task_id": task_id, "equipment_ids": need, **span}))
+        return done
+    if "촬영 허가" in task:
+        if "ops_permit_check_requirement" not in tried:
+            return _tool_calls(
+                ("ops_permit_check_requirement", {"shoot_day_id": day, "location_id": loc, **span, "drone": facts["drone"]})
+            )
+        kinds = got["ops_permit_check_requirement"][-1]["kinds"]
+        if kinds and "ops_permit_apply" not in tried:
+            return _tool_calls(
+                *[
+                    ("ops_permit_apply", {"shoot_day_id": day, "task_id": task_id, "location_id": loc, **span, "kind": k})
+                    for k in kinds
+                ]
+            )
+        return done
+    if "이동 수단" in task:
+        if "ops_transport_quote" not in tried:
+            return _tool_calls(
+                (
+                    "ops_transport_quote",
+                    {
+                        "shoot_day_id": day,
+                        "dest_location_id": loc,
+                        "start": facts["start"],
+                        "headcount": facts["headcount"],
+                        "equipment_ids": [e["id"] for e in facts["equipment"]],
+                    },
+                )
+            )
+        quote = got["ops_transport_quote"][-1]
+        if "ops_transport_book" not in tried:
+            rec = quote["recommended"]
+            return _tool_calls(
+                (
+                    "ops_transport_book",
+                    {
+                        "shoot_day_id": day,
+                        "task_id": task_id,
+                        "dest_location_id": loc,
+                        "vehicle": rec["vehicle"],
+                        "count": rec["count"],
+                        "depart_at": quote["departAt"],
+                        "pickup": quote["pickup"],
+                        "headcount": facts["headcount"],
+                    },
+                )
+            )
+        return done
+    if "연락" in task:
+        if "ops_contacts_for_change" not in tried:
+            return _tool_calls(
+                ("ops_contacts_for_change", {"shoot_day_id": day, "changed": [c for c in facts["changed"] if c != "COST"]})
+            )
+        if "ops_send_message" not in tried:
+            pickup = (prior.get("transport") or {}).get("artifacts", {}).get("pickup", "")
+            text = f"{facts['location']['name']} {facts['start']} 촬영, 집결 {pickup}"
+            msgs = [{"recipient_id": c["recipientId"], "text": text} for c in got["ops_contacts_for_change"][-1]["contacts"]]
+            return _tool_calls(("ops_send_message", {"shoot_day_id": day, "task_id": task_id, "messages": msgs}))
+        if "ops_get_replies" not in tried:
+            return _tool_calls(("ops_get_replies", {"task_id": task_id}))
+        return done
+    if "제작비 장부" in task:
+        if "ops_ledger_record" not in tried:
+            entries = []
+            venue = (prior.get("venue") or {}).get("artifacts", {})
+            if venue.get("reservationId"):
+                entries.append(
+                    {"account": "VENUE", "memo": "장소 변경 대관료", "ref_type": "RESERVATION", "ref_id": venue["reservationId"]}
+                )
+            rental = (prior.get("rental") or {}).get("artifacts", {})
+            if rental.get("bookingId"):
+                entries.append(
+                    {"account": "EQUIPMENT_RENTAL", "memo": "추가 장비 임차", "ref_type": "RENTAL", "ref_id": rental["bookingId"]}
+                )
+            transport = (prior.get("transport") or {}).get("artifacts", {})
+            if transport.get("bookingId"):
+                entries.append(
+                    {"account": "TRANSPORT", "memo": "이동 차량", "ref_type": "TRANSPORT", "ref_id": transport["bookingId"]}
+                )
+            return _tool_calls(("ops_ledger_record", {"shoot_day_id": day, "task_id": task_id, "entries": entries}))
+        if "ops_ledger_budget_status" not in tried:
+            return _tool_calls(("ops_ledger_budget_status", {"shoot_day_id": day}))
+        return done
+    raise AssertionError(task)
+
+
 class EventLog:
     def __init__(self):
         self.events: list[tuple[str, dict[str, Any]]] = []
@@ -504,7 +829,7 @@ class EventLog:
 def make_context(backend: FakeBackendState | None = None, *, model: FakeModel | None = None, **limit_overrides):
     backend = backend or FakeBackendState()
     settings = make_settings(**limit_overrides)
-    clients = {"business": FakeMcpClient("business", backend), "rag": FakeMcpClient("rag", backend)}
+    clients = {name: FakeMcpClient(name, backend) for name in ("business", "rag", "ops")}
     tools = ToolGateway(clients, timeout_seconds=5, max_chars=4000, max_same_calls=settings.limits.max_same_tool_calls)
     events = EventLog()
     ctx = RunContext("task-1", "trace-1", settings, model or FakeModel(), tools, events)

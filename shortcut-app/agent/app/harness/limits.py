@@ -12,6 +12,7 @@ TOOL_LIMIT = "TOOL_LIMIT"
 TIME_LIMIT = "TIME_LIMIT"
 NO_FEASIBLE_PLAN = "NO_FEASIBLE_PLAN"
 MODEL_UNAVAILABLE = "MODEL_UNAVAILABLE"
+EXEC_NEEDS_HUMAN = "EXEC_NEEDS_HUMAN"
 
 STOP_MESSAGES = {
     LOOP_LIMIT: "재계획 루프 한도에 도달했습니다",
@@ -19,6 +20,7 @@ STOP_MESSAGES = {
     TIME_LIMIT: "자동 탐색 시간 한도에 도달했습니다",
     NO_FEASIBLE_PLAN: "하드 제약을 모두 지키는 후보가 없습니다",
     MODEL_UNAVAILABLE: "모델 호출이 재시도와 대체 모델까지 실패했습니다",
+    EXEC_NEEDS_HUMAN: "콜시트는 확정됐지만 실행 단계에서 사람이 처리할 일이 남았습니다",
 }
 
 

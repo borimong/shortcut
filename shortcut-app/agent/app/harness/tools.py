@@ -34,15 +34,15 @@ class ToolOutcome:
 
 
 class McpConnections:
-    """business-mcp와 rag-mcp에 Streamable HTTP로 따로 연결합니다.
+    """MCP 서버마다 Streamable HTTP로 따로 연결합니다. 키가 도구 이름 접두어가 됩니다(business_, rag_, ops_).
 
     여러 서버를 설정 하나로 묶으면 한 서버가 꺼져 있어도 경고만 남기고 넘어가므로,
     연결 실패를 작업 재시도로 이어 가려고 서버마다 Client를 둔다.
     """
 
-    def __init__(self, business_url: str, rag_url: str, acting_user: str | None):
+    def __init__(self, urls: dict[str, str], acting_user: str | None):
         headers = {"X-Acting-User": acting_user} if acting_user else {}
-        self._urls = {"business": business_url, "rag": rag_url}
+        self._urls = dict(urls)
         self._headers = headers
         self._stack = AsyncExitStack()
         self.clients: dict[str, Client] = {}
@@ -58,7 +58,7 @@ class McpConnections:
 
 
 class ToolGateway:
-    """도구 이름 앞에 서버 접두어(business_, rag_)를 붙여 하나의 목록처럼 다룹니다."""
+    """도구 이름 앞에 서버 접두어(business_, rag_, ops_)를 붙여 하나의 목록처럼 다룹니다."""
 
     def __init__(self, clients: dict[str, Any], *, timeout_seconds: float, max_chars: int, max_same_calls: int):
         self._clients = clients
@@ -66,26 +66,30 @@ class ToolGateway:
         self._max_chars = max_chars
         self._max_same_calls = max_same_calls
         self._specs: dict[str, dict] | None = None
+        # 실행팀 Agent가 Send로 동시에 처음 목록을 읽으면 먼저 들어온 쪽이 빈 dict를 넣은 채 기다리는 사이
+        # 다른 쪽이 빈 목록을 보고 도구가 없다고 판단하므로 목록 채우기를 잠금으로 묶는다.
+        self._specs_lock = asyncio.Lock()
 
     async def specs(self, allowed: list[str]) -> list[dict]:
         """허용된 도구만 OpenAI tool 형식으로 돌려줍니다. 모델은 이 설명을 읽고 도구를 고른다."""
-        if self._specs is None:
-            self._specs = {}
-            for prefix, client in self._clients.items():
-                for tool in await client.list_tools():
-                    schema = getattr(tool, "input_schema", None) or getattr(tool, "inputSchema", None) or {}
-                    self._specs[f"{prefix}_{tool.name}"] = {
-                        "type": "function",
-                        "function": {
-                            "name": f"{prefix}_{tool.name}",
-                            "description": tool.description or "",
-                            "parameters": schema,
-                        },
-                    }
+        async with self._specs_lock:
+            if self._specs is None:
+                self._specs = await self._load_specs()
         missing = [name for name in allowed if name not in self._specs]
         if missing:
             raise ConnectionError(f"MCP 도구 목록에 없는 도구: {', '.join(missing)}")
         return [self._specs[name] for name in allowed]
+
+    async def _load_specs(self) -> dict[str, dict]:
+        specs: dict[str, dict] = {}
+        for prefix, client in self._clients.items():
+            for tool in await client.list_tools():
+                schema = getattr(tool, "input_schema", None) or getattr(tool, "inputSchema", None) or {}
+                specs[f"{prefix}_{tool.name}"] = {
+                    "type": "function",
+                    "function": {"name": f"{prefix}_{tool.name}", "description": tool.description or "", "parameters": schema},
+                }
+        return specs
 
     async def call(
         self, ctx: RunContext, name: str, args: dict[str, Any], *, allowed: list[str], approved: bool = False
@@ -108,7 +112,8 @@ class ToolGateway:
         ctx.counter["tool_calls"] += 1
 
         prefix, _, tool_name = name.partition("_")
-        await ctx.events.publish("TOOL_START", {"tool": tool_name, "server": prefix, "args": mask_value(args)})
+        agent = getattr(ctx, "agent", None)
+        await ctx.events.publish("TOOL_START", {"tool": tool_name, "server": prefix, "agent": agent, "args": mask_value(args)})
         started = time.monotonic()
         outcome = await self._call_once(prefix, tool_name, name, args)
         # 연결 끊김이나 일시 오류는 같은 호출을 한 번 더 보내 보고, 인자 오류는 모델이 고치도록 그대로 돌려준다.
@@ -119,6 +124,7 @@ class ToolGateway:
             "TOOL_END",
             {
                 "tool": tool_name,
+                "agent": agent,
                 "ok": outcome.ok,
                 "ms": int((time.monotonic() - started) * 1000),
                 "preview": outcome.content[:160] if outcome.ok else outcome.error_code,

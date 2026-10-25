@@ -24,8 +24,8 @@ PASSWORD = "shortcut1234"
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
 HARD = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER")
 ROLE_USERS = {"PRODUCER": "pd", "DIRECTOR": "director", "AD1": "ad1", "AD2": "ad2", "DOP": "dop", "SOUND": "sound"}
-# 승인 대기까지 LLM 호출이 여러 번 이어지므로 120초 한도에 여유를 더해 기다린다.
-WAIT_SECONDS = 180
+# 승인 대기까지 LLM 호출이 여러 번 이어지고, 확정 뒤에는 실행팀(3단계, Agent 최대 6개)이 더 돌아서 넉넉히 기다린다.
+WAIT_SECONDS = 360
 
 
 @dataclass
@@ -39,6 +39,12 @@ class Scenario:
     expect_location_id: int | None = None
     # 최종 안의 장소가 몇 안에서 왔는지. 4면 1/2/3안 밖의 대체 장소다.
     expect_location_source: int | None = None
+    # 실행팀 결과. 확정까지 간 시나리오는 실행도 끝나야 한다(DONE). 실패 시연은 NEEDS_HUMAN을 기대한다
+    expect_exec_status: str | None = "DONE"
+    # 실행팀에서 실행되면 안 되는 Agent(예: 장소 예약 실패 뒤의 연락)
+    forbid_exec_agents: tuple[str, ...] = ()
+    # 시나리오 동안 켤 관리자 설정(실패 시연 플래그). 끝나면 원래 값으로 되돌린다
+    settings: dict[str, Any] = field(default_factory=dict)
 
 
 SCENARIOS = [
@@ -72,6 +78,15 @@ SCENARIOS = [
             ("APPROVE",),
         ],
         expect_location_source=4,
+    ),
+    Scenario(
+        "exec_venue_conflict",
+        {"type": "RAIN", "detail": "13시 이후 한강 시간당 8mm 비 예보"},
+        settings={"mockVenueConflict": True},
+        expect_status="NEEDS_HUMAN",
+        expect_exec_status="NEEDS_HUMAN",
+        # 장소가 확정되지 않았으므로 허가, 차량, 연락, 장부는 실행되면 안 된다.
+        forbid_exec_agents=("permit", "transport", "contact", "ledger"),
     ),
 ]
 
@@ -121,7 +136,24 @@ class Api:
         return collected
 
 
+def apply_settings(api: Api, changes: dict[str, Any]) -> dict[str, Any]:
+    """관리자 설정을 바꾸고 바꾸기 전 값을 돌려줍니다."""
+    current = api.call("GET", "/api/admin/settings", "pd")
+    keys = ("maxLoops", "rainBlockMm", "rainWarnMm", "rainAlertLeadHours", "mockVenueConflict", "mockPermitDenied")
+    api.call("PUT", "/api/admin/settings", "pd", json={**{k: current[k] for k in keys}, **changes})
+    return {k: current[k] for k in changes}
+
+
 def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
+    previous = apply_settings(api, scenario.settings) if scenario.settings else {}
+    try:
+        return _run_scenario(api, scenario)
+    finally:
+        if previous:
+            apply_settings(api, previous)
+
+
+def _run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
     api.call("POST", "/internal/test/reset")
     for alert in scenario.disaster_alerts:
         api.call("POST", "/internal/test/disaster-alerts", json=alert)
@@ -181,12 +213,17 @@ def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
             },
         )
         hard_violation_passed = bool(check["violations"])
+    execution = terminal.get("execution") or {}
+    exec_reports = execution.get("reports") or []
+    exec_done = [r["agent"] for r in exec_reports if r["status"] == "DONE"]
     location_id = last["proposed"]["location"]["id"] if last else None
     location_source = (last["proposed"].get("source") or {}).get("location") if last else None
     ok = (
         final["status"] == scenario.expect_status
         and scenario.expect_location_id in (None, location_id)
         and scenario.expect_location_source in (None, location_source)
+        and (scenario.expect_exec_status is None or execution.get("status") == scenario.expect_exec_status)
+        and not set(scenario.forbid_exec_agents) & {r["agent"] for r in exec_reports}
     )
     return {
         "scenario": scenario.name,
@@ -208,6 +245,10 @@ def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
         "reviewRounds": (last.get("review") or {}).get("rounds") if last else None,
         "reviewScore": (last.get("review") or {}).get("score") if last else None,
         "hardViolationPassed": hard_violation_passed,
+        "execStatus": execution.get("status"),
+        "execDone": ",".join(exec_done),
+        "execSkipped": ",".join(execution.get("skipped") or []),
+        "execBudgetRemaining": (execution.get("budget") or {}).get("remainingKrw"),
         "weights": last.get("weights") if last else None,
         "traceUrl": terminal.get("traceUrl"),
         "taskId": task_id,
@@ -235,6 +276,9 @@ COLUMNS = [
     "reviewRounds",
     "reviewScore",
     "hardViolationPassed",
+    "execStatus",
+    "execDone",
+    "execSkipped",
 ]
 
 

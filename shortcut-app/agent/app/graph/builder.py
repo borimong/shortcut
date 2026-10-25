@@ -78,7 +78,8 @@ def after_alternatives(state: dict[str, Any]) -> str:
 
 
 def after_commit(state: dict[str, Any]) -> str:
-    return "publish" if state.get("callsheet_version_no") else "reevaluate_plans"
+    # 확정되면 실행팀이 예약, 렌탈, 허가, 차량, 연락, 장부를 처리한 뒤 공지한다.
+    return "execute" if state.get("callsheet_version_no") else "reevaluate_plans"
 
 
 def build_replan_graph(limits: Limits) -> StateGraph:
@@ -95,6 +96,7 @@ def build_replan_graph(limits: Limits) -> StateGraph:
         "request_approval",
         "await_approval",
         "commit_plan",
+        "execute",
         "publish",
         "suggest_alternatives",
         "report_human",
@@ -136,7 +138,9 @@ def build_replan_graph(limits: Limits) -> StateGraph:
         ["commit_plan", "reevaluate_plans", "suggest_alternatives", "report_human"],
     )
     # 확정은 이미 사람이 승인한 결과라 한도를 넘었다는 이유로 멈추지 않는다.
-    graph.add_conditional_edges("commit_plan", after_commit, ["publish", "reevaluate_plans"])
+    graph.add_conditional_edges("commit_plan", after_commit, ["execute", "reevaluate_plans"])
+    # 확정 이후라 한도를 넘어도 되돌리지 않는다. 실행팀은 자체 한도(supervisor 판단 횟수, Agent별 반복)로 멈춘다.
+    graph.add_edge("execute", "publish")
     graph.add_edge("publish", END)
     graph.add_conditional_edges("suggest_alternatives", guarded(limits, after_alternatives), ["reevaluate_plans", "report_human"])
     graph.add_edge("report_human", END)

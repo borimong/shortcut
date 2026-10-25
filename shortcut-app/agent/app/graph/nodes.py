@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import difflib
 import json
 import re
@@ -10,9 +11,19 @@ from typing import Any
 from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.types import interrupt
 
-from app.graph.common import ToolCallError, call_tool_or_raise, harnessed, run_tool_loop
+from app.graph.common import (
+    ToolCallError,
+    add_usage_to,
+    call_tool_or_raise,
+    feedback_block,
+    harnessed,
+    run_tool_loop,
+    thought_of,
+)
+from app.graph.execution import AGENT_LABELS, AGENTS, DONE, build_execution_graph, execution_facts, latest_reports
 from app.graph.schemas import (
     AlternativeKeywords,
+    CandidateChoice,
     ConstraintSet,
     ImpactSummary,
     PlanExplanation,
@@ -23,7 +34,7 @@ from app.graph.schemas import (
 from app.graph.state import DEFAULT_WEIGHTS, HARD_CONSTRAINTS
 from app.harness.context import Section, fit_sections, summarize_loops
 from app.harness.instructions import render
-from app.harness.limits import NO_FEASIBLE_PLAN, STOP_MESSAGES, stop_condition
+from app.harness.limits import EXEC_NEEDS_HUMAN, NO_FEASIBLE_PLAN, STOP_MESSAGES, new_counter, stop_condition
 from app.runtime import RunContext
 
 # LLM이 고를 수 있는 도구 목록이다. 데이터를 바꾸는 도구는 넣지 않는다.
@@ -291,7 +302,7 @@ async def analyze_impact(state: dict[str, Any], ctx: RunContext) -> dict[str, An
         shoot_day_id=state["shoot_day_id"],
         current=_json(plan_set["current"]),
         memory="\n".join(state.get("memory_notes") or []) or "없음",
-    )
+    ) + feedback_block(state)
     outcomes, _ = await run_tool_loop(ctx, _system(), user, IMPACT_TOOLS, ctx.settings.limits.max_node_tool_rounds)
 
     conditions: dict[str, Any] = {}
@@ -324,6 +335,7 @@ async def analyze_impact(state: dict[str, Any], ctx: RunContext) -> dict[str, An
                     graph=_json(graph_results)[:3000],
                     alerts=_json(conditions["disaster_alerts"]),
                 )
+                + feedback_block(state)
             ),
         ],
         ImpactSummary,
@@ -338,6 +350,15 @@ async def analyze_impact(state: dict[str, Any], ctx: RunContext) -> dict[str, An
         "impacted_entities": impacted,
         "conditions": conditions,
         "_detail": f"영향 엔티티 {len(summary.impacted)}개, 위험 {len(summary.risks)}개, 계약서 {', '.join(contract_ids)}",
+        "_thought": thought_of(
+            summary,
+            {
+                "observation": f"영향 엔티티 {len(summary.impacted)}개, 위험: {'; '.join(summary.risks) or '없음'}",
+                "decision": "이 범위로 하드 제약 근거를 모읍니다",
+                "reason": "온톨로지, 날씨, 재난 문자, 가용 자원 조회 결과를 묶었습니다",
+            },
+        ),
+        "_revisable": True,
     }
 
 
@@ -355,7 +376,7 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         risks="\n".join(impacted["risks"]) or "없음",
         alerts=_json(state["conditions"]["disaster_alerts"]),
         missing=", ".join(state.get("missing_info") or []) or "없음",
-    )
+    ) + feedback_block(state)
     outcomes, _ = await run_tool_loop(ctx, _system(), user, CONSTRAINT_TOOLS, ctx.settings.limits.max_node_tool_rounds)
 
     evidence = dict(state.get("evidence") or {})
@@ -378,6 +399,7 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
             SystemMessage(_system()),
             HumanMessage(
                 render("constraint_summary", places=", ".join(places) or "알 수 없음", evidence=_evidence_lines(evidence))
+                + feedback_block(state)
             ),
         ],
         ConstraintSet,
@@ -404,6 +426,15 @@ async def collect_constraints(state: dict[str, Any], ctx: RunContext) -> dict[st
         "missing_info": missing,
         "info_retries": state.get("info_retries", 0) + 1,
         "_detail": f"근거 {len(evidence)}건, 대상 밖 조항 {len(excluded)}건 제외, 근거 부족 범주 {', '.join(missing) or '없음'}",
+        "_thought": thought_of(
+            found,
+            {
+                "observation": f"근거 조항 {len(evidence)}건, 대상 밖 조항 {len(excluded)}건 제외",
+                "decision": f"근거 부족 범주: {', '.join(missing) or '없음'}",
+                "reason": "범주마다 맞는 문서 종류와 후보 장소에 적용되는 조항만 근거로 셉니다",
+            },
+        ),
+        "_revisable": True,
     }
 
 
@@ -413,14 +444,28 @@ async def reevaluate_plans(state: dict[str, Any], ctx: RunContext) -> dict[str, 
     weights = dict(state.get("weights") or DEFAULT_WEIGHTS)
     rationale = state.get("weight_rationale", "")
     instruction = (state["event"].get("instruction") or "").strip()
-    if instruction and not rationale:
+    feedback = state.get("user_feedback") or []
+    # 사용자 수정 요청이 새로 들어오면 이미 조정한 가중치라도 요청을 반영해 다시 조정한다.
+    new_feedback = len(feedback) > state.get("weights_feedback_count", 0)
+    thought = None
+    if (instruction and not rationale) or new_feedback:
         adjusted = await ctx.model.structured(
             ctx,
             [
                 SystemMessage(_system()),
-                HumanMessage(render("weight_adjust", instruction=instruction, weights=_json(weights))),
+                HumanMessage(
+                    render("weight_adjust", instruction=instruction or "없음", weights=_json(weights)) + feedback_block(state)
+                ),
             ],
             WeightAdjustment,
+        )
+        thought = thought_of(
+            adjusted,
+            {
+                "observation": f"감독 지시: {instruction or '없음'}",
+                "decision": "가중치를 다시 정했습니다",
+                "reason": adjusted.rationale,
+            },
         )
         raw = {key: min(max(getattr(adjusted, key), MIN_WEIGHT), MAX_WEIGHT) for key in DEFAULT_WEIGHTS}
         total = sum(raw.values())
@@ -447,7 +492,10 @@ async def reevaluate_plans(state: dict[str, Any], ctx: RunContext) -> dict[str, 
         "candidates": result["candidates"],
         "feasible_count": result["feasibleCount"],
         "data_version": result["dataVersion"],
+        "weights_feedback_count": len(feedback),
         "_detail": detail,
+        "_thought": thought,
+        "_revisable": True,
     }
 
 
@@ -461,6 +509,37 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
     repeats = [c["hash"] for c in feasible if repeats_rejection(c, state.get("rejected_plans") or [])]
     feasible = [c for c in feasible if c["hash"] not in repeats]
     choice = pick_after_rejection(feasible, state.get("last_rejection"))
+    chose_thought = None
+    if choice is not None and state.get("user_feedback"):
+        # 사용자 수정 요청이 있을 때만 엔진 상위 5개 가운데 LLM이 고를 수 있다. 실행 가능 여부는 엔진이 이미 판정했고,
+        # 고른 안도 검증 게이트를 다시 거친다.
+        top = feasible[:5]
+        picked = await ctx.model.structured(
+            ctx,
+            [
+                SystemMessage(_system()),
+                HumanMessage(
+                    render(
+                        "candidate_choice",
+                        default=f"{choice['hash']} / {describe(choice)}",
+                        candidates="\n".join(f"{c['hash']} / {describe(c)} / 추가 비용 {c['extraCost']}원" for c in top),
+                    )
+                    + feedback_block(state)
+                ),
+            ],
+            CandidateChoice,
+        )
+        chosen = next((c for c in top if c["hash"] == picked.chosen_hash), None)
+        if chosen is not None:
+            choice = chosen
+            chose_thought = thought_of(
+                picked,
+                {
+                    "observation": f"실행 가능 상위 후보 {len(top)}개",
+                    "decision": describe(chosen),
+                    "reason": "사용자 수정 요청에 가장 맞는 후보로 바꿨습니다",
+                },
+            )
     if choice is None:
         if repeats:
             # 엔진은 상위 후보만 돌려주므로, 거른 후보를 빼고 다시 평가해야 뒤에 있던 후보가 올라온다.
@@ -485,6 +564,7 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         Section("변경 이벤트", _json(state["event"]), 0),
         Section("직전 거절", _rejection_line(state.get("last_rejection")), 0),
         Section("자체 검토 피드백 (반드시 반영)", "\n".join(state.get("review_feedback") or []) or "없음", 0),
+        Section("사용자 수정 요청 (반드시 반영)", "\n".join(state.get("user_feedback") or []) or "없음", 0),
         Section("하드 제약과 근거 요약", _json(state.get("hard_constraints") or []), 1),
         Section("가중치", f"{_json(state['weights'])} {state.get('weight_rationale', '')}", 1),
         Section("이전 루프", summarize_loops(state.get("loop_summaries") or []), 1),
@@ -559,6 +639,13 @@ async def compose_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]
         "missing_info": missing,
         "repeat_filtered": False,
         "_detail": describe(choice) + (f" (거절된 안과 겹치는 후보 {len(repeats)}개 제외)" if repeats else ""),
+        # 사용자 요청으로 후보를 바꿨으면 그 판단을, 아니면 설명을 쓴 판단을 생각 기록에 남긴다.
+        "_thought": chose_thought
+        or thought_of(
+            explained,
+            {"observation": describe(choice), "decision": "이 후보로 변경안을 씁니다", "reason": explained.explanation[:200]},
+        ),
+        "_revisable": True,
     }
 
 
@@ -918,6 +1005,15 @@ async def self_review(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         best = {"score": score, "round": round_no, "plan": plan, "blocking": blocking}
 
     update: dict[str, Any] = {"review_round": round_no, "review_history": history, "best_review": best}
+    # 점수는 코드가 계산하므로 생각 기록도 코드가 쓴다. 수정 요청 대상은 아니다(판단 근거가 규칙이라 고칠 곳이 설명 단계다).
+    update["_thought"] = {
+        "observation": f"{round_no}회차 {score}점 (근거 {breakdown['evidence']}, 거절과 사건 대응 {breakdown['rejection']}, "
+        f"비용 이유 {breakdown['optimization']}, 설명 {breakdown['explanation']}, 미확정 관리 {breakdown['risk']})",
+        "decision": "승인 요청"
+        if passed
+        else ("가장 나은 안으로 승인 요청" if round_no >= limits.max_review_rounds else "다시 고치기"),
+        "reason": "; ".join(blocking + scored["feedback"][:2]) or "통과 기준을 모두 넘었습니다",
+    }
     if passed or round_no >= limits.max_review_rounds:
         chosen = plan if passed else best["plan"]
         final_score = score if passed else best["score"]
@@ -1053,6 +1149,8 @@ async def request_approval(state: dict[str, Any], ctx: RunContext) -> dict[str, 
             "decision": None,
         },
         "_detail": f"변경안 {created['versionNo']} 승인 요청: {', '.join(created['requiredApprovers'])}",
+        # 계획 Agent 카드를 승인 대기로 바꾼다. APPROVAL_REQUIRED보다 먼저 나가야 backend 상태가 승인 대기로 남는다.
+        "_agent_status": "waiting",
         "_events": [
             (
                 "APPROVAL_REQUIRED",
@@ -1145,6 +1243,15 @@ async def await_approval(state: dict[str, Any], ctx: RunContext) -> dict[str, An
                 ],
                 **REVIEW_RESET,
                 "selected_plan": None,
+                "_thought": thought_of(
+                    rejection,
+                    {
+                        "observation": f"{decision.get('role')} 거절: {decision.get('reason', '')}",
+                        "decision": rejection.summary,
+                        "reason": "거절 사유를 다음 루프의 추가 제약으로 바꿉니다",
+                    },
+                ),
+                "_revisable": False,
                 "_detail": f"{decision.get('role')} 거절, 보완 방향: {rejection.summary}"
                 + (f" (문제로 고르지 않은 요소의 제약 {len(dropped)}개 제외)" if dropped else ""),
             }
@@ -1181,16 +1288,79 @@ async def commit_plan(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     }
 
 
+_EXEC_GRAPH: list[Any] = []
+
+
+def _exec_graph():
+    """실행팀 subgraph를 한 번만 컴파일합니다. checkpointer 없이 컴파일하면 부모 그래프의 체크포인터를 이어 씁니다."""
+    if not _EXEC_GRAPH:
+        _EXEC_GRAPH.append(build_execution_graph().compile())
+    return _EXEC_GRAPH[0]
+
+
+@harnessed("execute", "실행팀", agent=None)
+async def execute(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
+    """확정된 안을 실행팀 subgraph에 넘깁니다. 실행 수정 요청이면 이전 보고와 함께 넘겨 지목한 Agent만 다시 돌게 합니다."""
+    order = state.get("revise_order")
+    prior = state.get("exec_reports") or []
+    # 실행팀은 도구 한도와 시간을 계획 단계와 따로 센다. 계획 단계에서 이미 쓴 호출 수 때문에 실행이 중간에 멈추지 않게 한다.
+    sub_ctx = dataclasses.replace(ctx, counter=new_counter())
+    exec_graph = ctx.exec_graph or _exec_graph()
+    result = await exec_graph.ainvoke(
+        {
+            "facts": execution_facts(state),
+            "prior_reports": prior if order else [],
+            "revise_order": order,
+            "step_seq": int(state.get("step_seq") or 0) + 1,
+            "loop_counter": new_counter(),
+            "rounds": 0,
+            "stage": 0,
+            "retries": {},
+            "skipped": [],
+        },
+        {"recursion_limit": 40},
+        context=sub_ctx,
+    )
+    add_usage_to(ctx.counter, result.get("loop_counter") or {})
+    new_reports = result.get("exec_reports") or []
+    latest = latest_reports({"prior_reports": prior if order else [], "exec_reports": new_reports})
+    reports = [{k: latest[a][k] for k in ("agent", "status", "summary", "artifacts")} for a in AGENTS if a in latest]
+    budget = (latest.get("ledger") or {}).get("artifacts", {}).get("budget")
+    outcome = result.get("outcome") or DONE
+    execution = {
+        "status": outcome,
+        "reason": result.get("reason", ""),
+        "reports": reports,
+        "skipped": [a for a in result.get("skipped") or [] if a not in latest],
+        "budget": budget,
+    }
+    done = [AGENT_LABELS[r["agent"]] for r in reports if r["status"] == DONE]
+    return {
+        "exec_reports": [*prior, *new_reports],
+        "execution": execution,
+        "revise_order": None,
+        "stop_condition": None if outcome == DONE else EXEC_NEEDS_HUMAN,
+        "step_seq": int(result.get("step_seq") or 0),
+        "_detail": f"실행 {outcome}: {', '.join(done) or '완료한 Agent 없음'}",
+    }
+
+
 @harnessed("publish", "공지와 알림")
 async def publish(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
-    """확정 결과를 완료 이벤트로 알립니다. 콜시트 배포와 알림 발송은 backend Outbox와 Worker가 맡습니다."""
+    """확정과 실행 결과를 완료 이벤트로 알립니다. 콜시트 배포와 알림 발송은 backend Outbox와 Worker가 맡습니다."""
     plan = state["selected_plan"]
     evidence = state.get("evidence") or {}
     cited = sorted({cid for item in plan["checklist"] for cid in item["evidenceIds"]})
+    execution = state.get("execution") or {}
     answer = (
         f"변경안 {state['approvals']['version_no']}이 전원 승인되어 확정되었습니다. "
         f"{describe(plan['candidate'])}. 콜시트 v{state['callsheet_version_no']} 배포를 요청했습니다."
     )
+    if execution:
+        done = [AGENT_LABELS[r["agent"]] for r in execution.get("reports") or [] if r["status"] == DONE]
+        answer += f" 실행팀 처리: {', '.join(done) or '없음'}."
+        if execution.get("status") != DONE:
+            answer += f" {execution.get('reason', '')}"
     result = {
         "answer": answer,
         "sources": [
@@ -1198,7 +1368,11 @@ async def publish(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
         ],
         "proposalId": state["approvals"]["proposal_id"],
         "callsheetVersionNo": state["callsheet_version_no"],
+        "execution": execution or None,
     }
+    if state.get("stop_condition") == EXEC_NEEDS_HUMAN:
+        # 확정은 되돌리지 않는다. 남은 일을 사람에게 넘기는 결과로 끝낸다.
+        result.update({"reason": STOP_MESSAGES[EXEC_NEEDS_HUMAN], "stopCondition": EXEC_NEEDS_HUMAN})
     return {"result": result, "_detail": answer}
 
 
@@ -1228,6 +1402,7 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
                     rejections="\n".join(state.get("loop_summaries") or []) or "없음",
                     extra=_json(state.get("extra_constraints") or []),
                 )
+                + feedback_block(state)
             ),
         ],
         AlternativeKeywords,
@@ -1257,6 +1432,15 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
         "alternatives": registered,
         "suggestions": suggestions,
         "stop_condition": None if registered or early else NO_FEASIBLE_PLAN,
+        "_thought": thought_of(
+            keywords,
+            {
+                "observation": situation,
+                "decision": f"검색 키워드 {', '.join(keywords.keywords)}",
+                "reason": "세 안의 장소 특징과 씬 의도에서 뽑았습니다",
+            },
+        ),
+        "_revisable": True,
         "_detail": ("장소 거절로 후보를 넓힘, " if early else "")
         + f"키워드 {', '.join(keywords.keywords)}로 4안 장소 {len(registered)}곳 등록: {names}",
     }

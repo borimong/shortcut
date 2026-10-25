@@ -175,3 +175,32 @@ def test_all_models_failing_raises_model_unavailable():
 
     with pytest.raises(ModelUnavailableError):
         run(call_with_recovery(failing, failing, sleep=no_sleep))
+
+
+def test_tool_specs_load_once_when_parallel_agents_ask_at_the_same_time():
+    """실행팀 Agent가 Send로 동시에 처음 도구 목록을 읽어도 빈 목록을 보지 않아야 한다."""
+    import asyncio as _asyncio
+    from types import SimpleNamespace as _NS
+
+    from app.harness.tools import ToolGateway as _Gateway
+
+    class SlowClient:
+        calls = 0
+
+        async def list_tools(self):
+            SlowClient.calls += 1
+            await _asyncio.sleep(0.05)
+            return [
+                _NS(name="venue_check", description="", input_schema={}),
+                _NS(name="rental_quote", description="", input_schema={}),
+            ]
+
+    gateway = _Gateway({"ops": SlowClient()}, timeout_seconds=1, max_chars=1000, max_same_calls=3)
+
+    async def scenario():
+        return await _asyncio.gather(gateway.specs(["ops_venue_check"]), gateway.specs(["ops_rental_quote"]))
+
+    first, second = _asyncio.run(scenario())
+    assert first[0]["function"]["name"] == "ops_venue_check"
+    assert second[0]["function"]["name"] == "ops_rental_quote"
+    assert SlowClient.calls == 1
