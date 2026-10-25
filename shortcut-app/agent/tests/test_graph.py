@@ -9,10 +9,25 @@ from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
-from app.graph.nodes import by_setting_fit, constraints_for_issues, pick_after_rejection
+from app.graph.nodes import (
+    NO_DISASTER_ALERT_ID,
+    applies_to_places,
+    by_setting_fit,
+    candidate_places,
+    constraints_for_issues,
+    counts_as_evidence,
+    data_evidence,
+    evidence_score,
+    fact_problems,
+    mentions,
+    pick_after_rejection,
+    quoted,
+)
 from app.graph.qa import build_qa_graph
+from app.graph.schemas import ConstraintFinding, ConstraintSet, PlanExplanation, QuotedCheck
+from app.graph.state import HARD_CONSTRAINTS
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
-from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
+from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, THOUGHT, FakeBackendState, FakeModel, _task_line, make_context
 
 CONFIG = {"configurable": {"thread_id": "event-1"}}
 
@@ -70,7 +85,9 @@ def test_first_loop_stops_at_approval_and_commits_after_all_approve():
         "compose_plan",
         "validation_gate",
     ]
-    assert nodes[-2:] == ["commit_plan", "publish"]
+    # 확정 뒤 실행팀이 돌고 공지로 끝난다.
+    assert nodes[-2:] == ["execute", "publish"]
+    assert nodes[nodes.index("commit_plan") + 1] == "supervisor"
 
 
 def test_impact_analysis_names_the_block_node_to_start_from():
@@ -175,9 +192,30 @@ def test_pass_without_evidence_is_downgraded_to_warning():
         return await graph.aget_state(CONFIG)
 
     run(scenario())
-    checklist = backend.proposals[0]["checklist"]
-    assert all(item["status"] == "WARN" for item in checklist)
+    checklist = {item["constraint"]: item for item in backend.proposals[0]["checklist"]}
+    # 재난 문자는 조회 결과(0건)가 근거라 모델이 인용하지 않아도 통과다.
+    assert checklist.pop("DISASTER")["status"] == "PASS"
+    assert all(item["status"] == "WARN" for item in checklist.values())
     assert any("근거 조항 확인 필요" in u for u in backend.proposals[0]["unresolved"])
+
+
+def test_no_disaster_alert_is_evidence_for_the_disaster_category():
+    ctx, backend, _, _ = make_context()
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    disaster = next(item for item in proposal["checklist"] if item["constraint"] == "DISASTER")
+    assert disaster["status"] == "PASS" and NO_DISASTER_ALERT_ID in disaster["evidence_ids"]
+    # 조회 결과는 rag 원문 대조 없이 근거 패널에 실린다.
+    assert any(e["id"] == NO_DISASTER_ALERT_ID and e["doc_type"] == "DATA" for e in proposal["evidence"])
+
+
+def test_disaster_alert_data_counts_only_when_no_alert_was_issued():
+    assert NO_DISASTER_ALERT_ID in data_evidence({"disaster_alerts": {"alerts": []}})
+    assert data_evidence({"disaster_alerts": {"alerts": [{"type": "HEAVY_RAIN"}]}}) == {}
+    assert data_evidence({}) == {}
+    fact = data_evidence({"disaster_alerts": {"alerts": []}})[NO_DISASTER_ALERT_ID]
+    assert counts_as_evidence("DISASTER", fact) and not counts_as_evidence("WEATHER", fact)
 
 
 def test_cited_evidence_is_checked_against_original_resource():
@@ -306,20 +344,27 @@ def _validate_calls(clients):
     return sum(1 for name, _ in clients["business"].calls if name == "validate_plan")
 
 
+# 가짜 검토 모델이 아니오로 답할 점검 질문 묶음이다. 가짜 설명에는 숫자가 한 종류뿐이고 비용 이유가 없어 모두 맞혀도 86점이다.
+BAD = ("change", "reason")  # 73점
+MID = ("reason",)  # 79점
+
+
 def test_review_below_threshold_rewrites_until_it_passes():
-    ctx, backend, clients, _ = make_context(model=FakeModel(review_scores=[60, 70, 85], review_actions=["REWRITE"]))
+    # 설명에 빠진 거리와 추가 비용은 compose_plan이 엔진 값으로 채우므로 숫자 점수는 처음부터 찬다.
+    ctx, backend, clients, _ = make_context(model=FakeModel(review_misses=[BAD, ()]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
     review = backend.proposals[0]["review"]
-    assert review["passed"] is True and review["score"] == 85 and review["rounds"] == 3
-    assert [h["score"] for h in review["history"]] == [60, 70, 85]
+    assert review["passed"] is True and review["score"] == 90 and review["rounds"] == 2
+    assert [h["score"] for h in review["history"]] == [77, 90]
     # 설명만 고친 회차는 같은 후보라 검증 게이트를 다시 부르지 않는다.
     assert _validate_calls(clients) == 1
-    assert ctx.model.structured_calls.count("PlanExplanation") == 3
+    assert ctx.model.structured_calls.count("PlanExplanation") == 2
 
 
 def test_review_stops_after_five_rounds_and_submits_the_best_round():
-    ctx, backend, _, _ = make_context(model=FakeModel(review_scores=[50, 65, 40, 55, 30], review_actions=["REWRITE"]))
+    # 같은 점수가 세 번 이어지면 정체로 일찍 멈추므로, 통과하지 못하는 두 가지 답을 번갈아 낸다.
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[BAD, ("responds",), BAD, ("responds",), BAD]))
     graph, _ = compile_graph(ctx)
 
     async def scenario():
@@ -330,20 +375,22 @@ def test_review_stops_after_five_rounds_and_submits_the_best_round():
     assert state.next == ("await_approval",)
     review = backend.proposals[0]["review"]
     assert review["passed"] is False and review["rounds"] == 5
-    assert review["score"] == 65 and review["chosenRound"] == 2
+    assert review["score"] == 77 and review["chosenRound"] == 1 and review["stalled"] is False
 
 
-def test_review_can_switch_to_the_next_candidate():
-    ctx, backend, clients, _ = make_context(model=FakeModel(review_scores=[50, 90], review_actions=["NEXT_CANDIDATE", "REWRITE"]))
+def test_blocking_reason_stops_a_plan_even_at_the_pass_score():
+    # 숫자 두 종류와 비용 이유를 넣으면 변경 이벤트에 대응하지 않아도 80점이 되지만 통과시키지 않는다.
+    extra = "촬영은 14:00~16:00, 추가 비용 150,000원은 대관료입니다."
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[("responds",), ()], explanation_extras=[extra]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
-    assert backend.proposals[0]["candidate"]["location_id"] == 3
-    assert backend.proposals[0]["review"]["history"][0]["action"] == "NEXT_CANDIDATE"
-    assert _validate_calls(clients) == 2
+    first, second = backend.proposals[0]["review"]["history"]
+    assert first["score"] == 80 and first["passed"] is False and first["blocking"] == ["변경 이벤트 미대응"]
+    assert second["passed"] is True
 
 
 def test_review_switches_method_when_the_score_does_not_improve():
-    ctx, backend, _, _ = make_context(model=FakeModel(review_scores=[60, 60, 85], review_actions=["REWRITE"]))
+    ctx, backend, _, _ = make_context(model=FakeModel(review_misses=[BAD, BAD, ()]))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
     history = backend.proposals[0]["review"]["history"]
@@ -354,10 +401,8 @@ def test_review_switches_method_when_the_score_does_not_improve():
 def test_review_stops_when_the_score_stays_the_same_twice():
     # 미리보기에서 1회차 비 이벤트(한강 공원 12~16시 시간당 12mm)에 "배우 대기 시간을 줄여 줘"를 주자 76점이 다섯 번 반복됐다.
     # 피드백은 SCRIPT WARN 감점, 이동 거리와 추가 비용 설명 부족, 연출 확인 담당 누락이었다.
-    model = FakeModel(
-        review_scores=[76],
-        review_actions=["REWRITE", "NEXT_CANDIDATE", "REWRITE", "NEXT_CANDIDATE", "REWRITE"],
-    )
+    # 점수는 코드가 계산하므로, 모델이 '왜 이 조합인지' 점검에 매번 아니오로 답해 고쳐도 점수가 그대로인 경우로 흉내 낸다.
+    model = FakeModel(review_misses=[{"reason"}])
     ctx, backend, _, _ = make_context(model=model)
     backend.script_warnings = True
     state = initial_state()
@@ -375,8 +420,11 @@ def test_review_stops_when_the_score_stays_the_same_twice():
     proposal = backend.proposals[0]
     review = proposal["review"]
     assert review["rounds"] == 3 and review["passed"] is False and review["stalled"] is True
-    assert review["score"] == 76 and review["chosenRound"] == 1
-    assert ctx.model.structured_calls.count("PlanReview") == 3
+    assert review["chosenRound"] == 1 and review["score"] < review["threshold"]
+    assert len({h["score"] for h in review["history"]}) == 1
+    assert ctx.model.structured_calls.count("ReviewChecks") == 3
+    # 엔진 경고로 둔 SCRIPT WARN은 감점 사유가 아니다.
+    assert all("SCRIPT" not in " ".join(h["feedback"]) for h in review["history"])
     # 모델이 SCRIPT를 PASS로 적어도 엔진 대본 경고가 있으면 승인자에게 보이도록 WARN으로 싣는다(근거는 그대로).
     script = next(c for c in proposal["checklist"] if c["constraint"] == "SCRIPT")
     assert script["status"] == "WARN" and script["evidence_ids"]
@@ -462,6 +510,74 @@ def test_engine_facts_are_not_added_twice():
     assert align_follow_ups(changed, same_time, []) == ["조감독, 바뀐 씬 순서로 배우 콜타임 다시 공지, 승인 즉시"]
 
 
+def test_missing_citation_with_collected_evidence_is_rewritten_not_searched_again():
+    from app.graph.nodes import score_review
+    from app.graph.schemas import ReviewChecks
+
+    checklist = [{"constraint": c, "status": "PASS", "evidenceIds": ["x#1"]} for c in HARD_CONSTRAINTS]
+    checklist[HARD_CONSTRAINTS.index("WEATHER")] = {"constraint": "WEATHER", "status": "WARN", "evidenceIds": []}
+    text = "우천으로 성수 스튜디오로 옮깁니다(13시 이후 비 80%)."
+    plan = {"candidate": SEONGSU, "explanation": text, "checklist": checklist, "unresolved": []}
+    yes = QuotedCheck(found=True, quote=text)
+    checks = ReviewChecks(change=yes, reason=yes, responds=yes, rejected_element=yes, cost_reason=yes)
+    state = {"candidates": [SEONGSU], "event": {"detail": "13시 이후 비 80%"}, "info_retries": 0}
+    assert score_review(checks, plan, state)["action"] == "MORE_EVIDENCE"
+    state["hard_constraints"] = [{"constraint": "WEATHER", "evidence_ids": ["safety-disaster-weather#2"]}]
+    scored = score_review(checks, plan, state)
+    assert scored["action"] == "REWRITE" and "safety-disaster-weather#2" in " ".join(scored["feedback"])
+
+
+def test_evidence_score_caps_categories_without_evidence():
+    checklist = [{"constraint": c, "status": "PASS", "evidenceIds": ["x#1"]} for c in HARD_CONSTRAINTS]
+    assert evidence_score(checklist) == (20, [], [])
+    checklist[0] = {"constraint": "CONTRACT", "status": "WARN", "evidenceIds": []}
+    checklist[1] = {"constraint": "SCHEDULE", "status": "WARN", "evidenceIds": ["x#2"]}
+    assert evidence_score(checklist) == (12, ["SCHEDULE"], ["CONTRACT"])
+
+
+def test_fact_problems_catch_wrong_numbers_and_cost_claims():
+    state = {"candidates": [SEONGSU, PAJU], "plan_set": {"current": {"cost": 300000}}, "event": {"detail": "13시 이후 비"}}
+    good = "성수 스튜디오, 14:00~16:00, 14km, 추가 비용 150,000원(450,000원)"
+    assert fact_problems(good, SEONGSU, state) == []
+    wrong = "성수 스튜디오, 15:30 시작, 5km, 추가 비용이 없습니다."
+    problems = fact_problems(wrong, SEONGSU, state)
+    assert len(problems) == 3 and any("추가 비용이 없다고" in p for p in problems)
+
+
+def test_rejected_place_named_in_the_rejection_reason_is_not_a_fact_error():
+    # 거절 사유를 풀어 쓰며 거절된 파주의 이름을 적어도 사실 오류가 아니다.
+    state = {
+        "candidates": [SEONGSU, PAJU],
+        "plan_set": {"current": {"cost": 300000}, "options": [{"location": {"id": 3, "name": "파주 세트장"}}]},
+        "event": {"detail": "13시 이후 비"},
+        "last_rejection": {"reason": "파주 세트장은 장면 의도와 맞지 않음", "location_id": 3},
+    }
+    text = "파주 세트장이 장면 의도에 맞지 않는다는 거절을 반영해 성수 스튜디오로 옮깁니다."
+    assert fact_problems(text, SEONGSU, state) == []
+    # 거절된 안이 다른 장소였어도, 승인자가 사유에 적은 장소 이름은 설명에 쓸 수 있다.
+    state["last_rejection"]["location_id"] = 102
+    assert fact_problems(text, SEONGSU, state) == []
+    assert fact_problems(text + " 짐벌 세트도 씁니다.", SEONGSU, state) != []
+
+
+def test_mentions_checks_the_explanation_when_the_model_copies_the_event():
+    state = {"candidates": [SEONGSU, PAJU], "event": {"detail": "13시 이후 한강 강수확률 80%"}}
+    text = "성수 스튜디오 실내 촬영으로 강수확률 80%의 우천을 피했습니다."
+    copied = QuotedCheck(found=True, quote="13시 이후 한강 강수확률 80%")
+    assert mentions(copied, text, state["event"]["detail"], state)
+    assert not mentions(copied, "성수 스튜디오로 옮깁니다.", state["event"]["detail"], state)
+    # 사유를 밝히지 않은 거절 언급은 인용이 설명에 있어도 사유의 낱말이 없어 아니오다.
+    vague = QuotedCheck(found=True, quote="직전 의견도 반영했습니다")
+    assert not mentions(vague, "직전 의견도 반영했습니다. 파주 세트장으로 옮깁니다.", "성수 스튜디오 공사 소음", state)
+
+
+def test_quoted_rejects_quotes_not_in_the_explanation():
+    text = "우천으로 성수 스튜디오로 옮깁니다."
+    assert quoted(QuotedCheck(found=True, quote="성수 스튜디오로 옮깁니다"), text)
+    assert not quoted(QuotedCheck(found=True, quote="직전 거절 사유인 소음을 해결했습니다"), text)
+    assert not quoted(QuotedCheck(found=False, quote=""), text)
+
+
 def test_explanation_naming_another_candidate_is_rewritten_once():
     ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."]))
     graph, _ = compile_graph(ctx)
@@ -472,11 +588,14 @@ def test_explanation_naming_another_candidate_is_rewritten_once():
     assert not any(u.startswith("설명 확인 필요") for u in proposal["unresolved"])
 
 
-def test_explanation_still_wrong_after_rewrite_goes_to_unresolved():
+def test_explanation_still_wrong_after_rewrite_is_blocked_by_review():
+    # 다시 써도 다른 후보의 장비를 적으면 미확정 항목에 올리고, 자체 검토가 사실 오류로 통과를 막아 다시 쓰게 한다.
     ctx, backend, _, _ = make_context(model=FakeModel(explanation_extras=["짐벌 세트도 챙깁니다."] * 2))
     graph, _ = compile_graph(ctx)
     run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
-    assert any("짐벌 세트" in u for u in backend.proposals[0]["unresolved"] if u.startswith("설명 확인 필요"))
+    history = backend.proposals[0]["review"]["history"]
+    assert history[0]["blocking"] == ["설명의 사실 오류"] and history[-1]["passed"] is True
+    assert "짐벌 세트" not in backend.proposals[0]["explanation"]
 
 
 def test_explanation_may_name_the_original_plan():
@@ -685,3 +804,181 @@ def test_alternatives_follow_the_scene_setting_unless_weather_blocks_outdoors():
     assert [p["id"] for p in by_setting_fit(places, rain)] == [1, 5]
     interior = {**night_exterior, "plan_set": {"block": {"scenes": [{"code": "S18", "intExt": "INT", "timeOfDay": "DAY"}]}}}
     assert [p["id"] for p in by_setting_fit(places, interior)] == [1, 5]
+
+
+def test_candidate_places_come_from_current_plan_and_options():
+    plan_set = {
+        "current": {"location": {"name": "한강 공원"}},
+        "options": [{"location": {"name": "한강 공원"}}, {"location": {"name": "파주 세트장"}}, {"optionNo": 3}],
+    }
+    assert candidate_places(plan_set) == ["한강 공원", "파주 세트장"]
+
+
+def test_clauses_for_other_places_are_not_evidence():
+    places = ["한강 공원", "파주 세트장"]
+    # 북촌, 광화문, 남산의 비행금지구역 조항은 한강과 파주 재계획의 근거가 아니다.
+    assert not applies_to_places({"locations": ["북촌", "광화문", "남산"]}, places)
+    assert applies_to_places({"locations": ["파주"]}, places)
+    assert applies_to_places({"locations": ["한강공원"]}, places)
+    # 적용 장소가 없는 법령이나 사내 규정, 후보 장소를 모르는 경우는 그대로 둔다.
+    assert applies_to_places({"locations": []}, places)
+    assert applies_to_places({"locations": ["북촌"]}, [])
+
+
+def test_citation_must_match_document_type_and_not_be_an_intro():
+    law = {"doc_type": "LAW", "heading": "제53조 연장 근로의 제한"}
+    permit_hours = {"doc_type": "PERMIT", "heading": "허가 시간"}
+    assert counts_as_evidence("LAW", law)
+    assert not counts_as_evidence("SCHEDULE", law)
+    assert counts_as_evidence("SCHEDULE", permit_hours)
+    assert not counts_as_evidence("NO_FLY_ZONE", {"doc_type": "NO_FLY", "heading": "개요"})
+
+
+class OmittingModel(FakeModel):
+    """제약 정리에서 정해 둔 범주를 비워 두는 가짜 모델입니다. 실제 로그에서 본 누락(재난 조항, 재수집 때 날씨 조항)을 흉내 낸다."""
+
+    def __init__(self, omit_rounds, *, recheck=True, explain_omit=(), **kwargs):
+        super().__init__(**kwargs)
+        self.omit_rounds = [set(o) for o in omit_rounds]
+        self.recheck = recheck
+        self.explain_omit = set(explain_omit)
+        self.summaries = 0
+        self.rechecks = 0
+
+    async def structured(self, ctx, messages, schema):
+        result = await super().structured(ctx, messages, schema)
+        if schema is ConstraintSet and "재확인" in _task_line(messages):
+            self.rechecks += 1
+            return result if self.recheck else ConstraintSet(findings=[], thought=THOUGHT)
+        if schema is ConstraintSet:
+            omit = self.omit_rounds[min(self.summaries, len(self.omit_rounds) - 1)]
+            self.summaries += 1
+            findings = [
+                ConstraintFinding(constraint=f.constraint, summary="", evidence_ids=[]) if f.constraint in omit else f
+                for f in result.findings
+            ]
+            return ConstraintSet(findings=findings, thought=THOUGHT)
+        if schema is PlanExplanation and self.explain_omit:
+            for item in result.checklist:
+                if item.constraint in self.explain_omit:
+                    item.evidence_ids = []
+        return result
+
+
+ALERT = {"type": "HEAVY_RAIN", "region": "서울", "message": "호우 경보"}
+
+
+def test_empty_category_is_rechecked_from_collected_clauses_without_searching_again():
+    backend = FakeBackendState(disaster_alerts=[ALERT])
+    model = OmittingModel([{"DISASTER"}])
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        return (await graph.aget_state(CONFIG)).values
+
+    values = run(scenario())
+    disaster = next(h for h in values["hard_constraints"] if h["constraint"] == "DISASTER")
+    assert disaster["evidence_ids"] == ["safety-disaster-weather#1"]
+    # 다시 검색하지 않고(제약 정리 1번) 받은 조항에서 고르기만 한다.
+    assert model.rechecks == 1 and model.summaries == 1
+
+
+def test_recollection_keeps_earlier_citations_and_stops_when_nothing_new_is_found():
+    backend = FakeBackendState(disaster_alerts=[ALERT])
+    # 근거 말고는 고칠 곳이 없도록 비용 이유를 설명에 넣는다.
+    cost = ["추가 비용 150,000원은 실내 스튜디오 대관료 때문에 듭니다."] * 5
+    model = OmittingModel(
+        [{"DISASTER"}, {"DISASTER", "WEATHER"}], recheck=False, explain_omit={"DISASTER"}, explanation_extras=cost
+    )
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        return (await graph.aget_state(CONFIG)).values
+
+    values = run(scenario())
+    weather = next(h for h in values["hard_constraints"] if h["constraint"] == "WEATHER")
+    # 두 번째 정리에서 날씨 조항을 빠뜨려도 첫 번째에서 찾은 근거가 남는다.
+    assert weather["evidence_ids"] == ["safety-disaster-weather#2"]
+    assert values["evidence_stalled"] is True
+    assert model.summaries == 2
+    # 남은 사유가 더 구할 수 없는 근거뿐이라 1회차에서 승인 요청으로 넘어가고, 빈 범주는 미확정 항목에 남는다.
+    proposal = backend.proposals[0]
+    assert proposal["review"]["rounds"] == 1 and proposal["review"]["passed"] is False
+    assert "DISASTER 근거 조항 확인 필요" in proposal["unresolved"]
+
+
+def test_permit_for_another_place_is_not_evidence_for_the_chosen_plan():
+    # 한강에만 적용되는 허가 조항은 후보 장소(한강 현재안)로는 수집되지만, 성수 안의 근거는 아니다.
+    backend = FakeBackendState(hit_overrides={"contract-actor-a-v3#1": {"doc_type": "PERMIT", "locations": ["한강"]}})
+    model = OmittingModel([set()])
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    assert proposal["candidate"]["location_id"] == SEONGSU["location"]["id"]
+    schedule = next(item for item in proposal["checklist"] if item["constraint"] == "SCHEDULE")
+    assert "contract-actor-a-v3#1" not in schedule["evidence_ids"]
+    # 그 조항이 유일한 근거였던 범주는 성수에 맞는 조항에서 다시 고르게 한 번 묻는다.
+    assert model.rechecks >= 1
+
+
+def test_no_fly_list_for_another_place_still_counts_for_the_chosen_plan():
+    # 비행금지 안내는 피해야 할 장소 목록이라, 다른 후보 장소(한강)를 적은 조항도 성수 안의 비행금지 근거가 된다.
+    backend = FakeBackendState(hit_overrides={"no-fly-zone-notice#2": {"locations": ["한강"]}})
+    ctx, _, _, _ = make_context(backend)
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    no_fly = next(item for item in backend.proposals[0]["checklist"] if item["constraint"] == "NO_FLY_ZONE")
+    assert no_fly["evidence_ids"] == ["no-fly-zone-notice#2"]
+
+
+def test_recheck_files_clauses_under_their_own_category_when_the_model_mislabels_it():
+    from app.graph.nodes import recheck_empty_categories
+
+    class MislabelingModel(FakeModel):
+        async def structured(self, ctx, messages, schema):
+            # 일정 칸의 계약 조항을 고르고 범주 이름은 사건 종류(DISASTER)로 적는다.
+            return ConstraintSet(
+                findings=[ConstraintFinding(constraint="DISASTER", summary="호우 경보로 촬영 불가", evidence_ids=["c#1"])],
+                thought=THOUGHT,
+            )
+
+    ctx, _, _, _ = make_context(model=MislabelingModel())
+    evidence = {"c#1": {"doc_type": "CONTRACT", "heading": "제5조 촬영 시간", "title": "계약서", "text": "09시부터 16시까지"}}
+    findings = {"SCHEDULE": {"constraint": "SCHEDULE", "summary": "", "evidence_ids": []}}
+    filled = run(recheck_empty_categories(ctx, {"event": {}}, findings, evidence, only={"SCHEDULE"}))
+    assert filled == ["SCHEDULE"]
+    assert findings["SCHEDULE"]["evidence_ids"] == ["c#1"]
+    assert "호우" not in findings["SCHEDULE"]["summary"]
+
+
+def test_recheck_offers_only_the_main_document_type_of_each_category():
+    from app.graph.nodes import recheck_empty_categories
+
+    class GreedyModel(FakeModel):
+        async def structured(self, ctx, messages, schema):
+            # 후보 목록에 무엇이 있든 근로기준법 조항을 비행금지 근거로 고른다.
+            return ConstraintSet(
+                findings=[ConstraintFinding(constraint="NO_FLY_ZONE", summary="적용", evidence_ids=["law#1"])],
+                thought=THOUGHT,
+            )
+
+    ctx, _, _, _ = make_context(model=GreedyModel())
+    evidence = {"law#1": {"doc_type": "LAW", "heading": "제53조", "title": "근로기준법", "text": "주 52시간"}}
+    findings = {"NO_FLY_ZONE": {"constraint": "NO_FLY_ZONE", "summary": "", "evidence_ids": []}}
+    # 비행금지 범주의 후보는 비행금지 안내뿐이라, 법령만 있으면 모델을 부르지 않고 빈칸으로 둔다.
+    assert run(recheck_empty_categories(ctx, {"event": {}}, findings, evidence, only={"NO_FLY_ZONE"})) == []
+    assert findings["NO_FLY_ZONE"]["evidence_ids"] == []
+
+
+def test_partial_thought_is_accepted_and_filled_from_the_node_default():
+    from app.graph.common import thought_of
+    from app.graph.schemas import Thought
+
+    found = ConstraintSet(findings=[], thought=Thought(observation="배우 C 일정 확인"))
+    filled = thought_of(found, {"observation": "기본", "decision": "기본 결정", "reason": "기본 이유"})
+    assert filled == {"observation": "배우 C 일정 확인", "decision": "기본 결정", "reason": "기본 이유"}

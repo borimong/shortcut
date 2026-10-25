@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 class PlanDataServiceWeatherTest {
 
     private static final AppSettings LIVE = AppSettings.DEFAULT;
-    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, null, null);
+    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, false, false, null, null);
     private static final OffsetDateTime FETCHED = OffsetDateTime.parse("2026-10-22T09:00:00+09:00");
 
     private final PlanRepository plans = mock(PlanRepository.class);

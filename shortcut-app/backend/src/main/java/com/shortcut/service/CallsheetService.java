@@ -3,6 +3,7 @@ package com.shortcut.service;
 import com.shortcut.common.ApiException;
 import com.shortcut.common.Josa;
 import com.shortcut.domain.Callsheet;
+import com.shortcut.domain.Role;
 import com.shortcut.dto.BoardDtos.RestoreResult;
 import com.shortcut.engine.CheckResult;
 import com.shortcut.engine.Finding;
@@ -58,7 +59,7 @@ public class CallsheetService {
      */
     @Transactional
     public RestoreResult restore(CurrentUser user, long shootDayId, int versionNo, String reason) {
-        if (!EventService.CHANGE_ROLES.contains(user.role())) {
+        if (!Role.CHANGERS.contains(user.role())) {
             throw ApiException.forbidden("콜시트 되돌리기는 제작 PD와 연출감독만 할 수 있습니다.");
         }
         plans.lockDataVersion(shootDayId)

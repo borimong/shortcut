@@ -177,3 +177,32 @@ def test_script_search_returns_requested_scenes_in_order(indexed_server):
     assert all(hit["doc_type"] == "SCRIPT" for hit in hits)
     free = data(tool_call(server, "search_script", {"query": "한강 산책", "k": 3}))
     assert len(free) == 3 and {hit["doc_type"] for hit in free} == {"SCRIPT"}
+
+
+def test_place_scope_is_carried_from_front_matter_to_search_results(indexed_server):
+    server, _ = indexed_server
+    notice = split_into_chunks(parse_markdown((CORPUS_DIR / "no-fly-zone-notice.md").read_text(encoding="utf-8")))
+    by_heading = {c.heading: c.locations for c in notice}
+    # 문서 일부 조항만 특정 장소에 적용되고, 나머지 조항은 어디에나 적용된다.
+    assert by_heading["휴전선 인근 비행금지구역"] == ("파주",)
+    assert by_heading["비행 승인 원칙"] == ()
+
+    hits = data(tool_call(server, "search_regulation", {"query": "한강 촬영 허가 시간", "k": 8, "doc_types": ["PERMIT"]}))
+    # 허가서는 장소마다 하나씩 있고, 조각마다 자기 허가서 머리말의 장소가 붙는다.
+    scope = {"permit-hangang-filming": ["한강"], "permit-hapjeong-rooftop": ["합정"]}
+    assert hits and all(hit["locations"] == scope[hit["doc_id"]] for hit in hits)
+
+
+def test_indexer_reindexes_when_place_scope_changes(indexed_server, tmp_path):
+    server, store = indexed_server
+    source = (CORPUS_DIR / "permit-hangang-filming.md").read_text(encoding="utf-8")
+    changed = source.replace("locations: 한강", "locations: 한강, 여의도")
+    (tmp_path / "permit-hangang-filming.md").write_text(changed, encoding="utf-8")
+
+    async def again():
+        async with Client(server) as client:
+            return await index_corpus(client, tmp_path)
+
+    assert not run(again())[0].get("skipped")
+    hits = store.search([1.0] * 64, 50, doc_id="permit-hangang-filming")
+    assert {tuple(hit["locations"]) for hit in hits} == {("한강", "여의도")}

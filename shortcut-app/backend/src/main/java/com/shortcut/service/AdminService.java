@@ -2,6 +2,7 @@ package com.shortcut.service;
 
 import com.shortcut.common.ApiException;
 import com.shortcut.domain.AppSettings;
+import com.shortcut.domain.Role;
 import com.shortcut.domain.UserAccount;
 import com.shortcut.dto.AdminDtos.ApproverRulesView;
 import com.shortcut.dto.AdminDtos.MemberView;
@@ -25,15 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AdminService {
 
-    // 승인자로 지정할 수 있는 역할이다. 열람 전용 연출부원은 넣지 않는다.
-    private static final List<RoleOption> ROLES = List.of(
-            new RoleOption("PRODUCER", "제작 PD"),
-            new RoleOption("PRODUCTION_MANAGER", "제작실장"),
-            new RoleOption("DIRECTOR", "연출 PD (연출감독)"),
-            new RoleOption("AD1", "1조감독"),
-            new RoleOption("AD2", "2조감독"),
-            new RoleOption("DOP", "촬영감독"),
-            new RoleOption("SOUND", "동시녹음팀장"));
+    // 승인자로 지정할 수 있는 역할이다.
+    private static final List<RoleOption> ROLES = Role.APPROVER_CANDIDATES.stream()
+            .map(r -> new RoleOption(r.name(), r.label()))
+            .toList();
 
     private final UserRepository users;
     private final SettingsRepository settings;
@@ -61,10 +57,13 @@ public class AdminService {
         if (request.rainWarnMm() > request.rainBlockMm()) {
             throw ApiException.badRequest("INVALID_RAIN_RULE", "경고 강수량은 촬영 불가 강수량보다 클 수 없습니다.");
         }
-        String weatherSource = request.weatherSource() == null
-                ? settings.settings().weatherSource() : request.weatherSource();
+        // 예보 선택과 실패 시연 스위치는 화면이 보내지 않으면 지금 값을 그대로 둔다.
+        AppSettings current = settings.settings();
+        String weatherSource = request.weatherSource() != null ? request.weatherSource() : current.weatherSource();
+        boolean venueConflict = request.mockVenueConflict() != null ? request.mockVenueConflict() : current.mockVenueConflict();
+        boolean permitDenied = request.mockPermitDenied() != null ? request.mockPermitDenied() : current.mockPermitDenied();
         settings.updateSettings(new AppSettings(request.maxLoops(), request.rainBlockMm(), request.rainWarnMm(),
-                request.rainAlertLeadHours(), weatherSource, null, null), username);
+                request.rainAlertLeadHours(), weatherSource, venueConflict, permitDenied, null, null), username);
         return SettingsView.of(settings.settings());
     }
 

@@ -1,0 +1,266 @@
+{
+  "budget-approval-policy": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "블록 예산 상한": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": []
+      },
+      "필수 승인자": {
+        "cats": [
+          "BUDGET"
+        ],
+        "topics": [
+          "equipment",
+          "location_fee",
+          "overtime",
+          "cancel"
+        ]
+      },
+      "승인과 거절": {
+        "cats": [],
+        "topics": []
+      }
+    }
+  },
+  "contract-actor-a-v3": {
+    "scope": {
+      "actor": "actor-a",
+      "current": true
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "제5조 촬영 시간": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "제6조 야간 촬영": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": [
+          "night"
+        ]
+      },
+      "제7조 초과 촬영과 휴게": {
+        "cats": [
+          "CONTRACT"
+        ],
+        "topics": []
+      },
+      "제9조 일정 변경 통보": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "제11조 위약": {
+        "cats": [
+          "CONTRACT"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "contract-actor-b-v1": {
+    "scope": {
+      "actor": "actor-b",
+      "current": true
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "제4조 촬영 시간": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "제8조 일정 변경 통보": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "contract-actor-c-v2": {
+    "scope": {
+      "actor": "actor-c",
+      "current": true
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "제4조 촬영 시간": {
+        "cats": [
+          "CONTRACT",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "제6조 휴게": {
+        "cats": [
+          "CONTRACT"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "law-labor-standards": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "제50조 근로시간": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": []
+      },
+      "제53조 연장 근로의 제한": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": []
+      },
+      "근로시간 특례 업종 여부": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": []
+      },
+      "제54조 휴게": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": []
+      },
+      "제56조 연장, 야간 및 휴일 근로": {
+        "cats": [
+          "LAW"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "no-fly-zone-notice": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "비행 승인 원칙": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      },
+      "휴전선 인근 비행금지구역": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": [],
+        "locations": [
+          "paju-set"
+        ]
+      },
+      "실내 촬영": {
+        "cats": [
+          "NO_FLY_ZONE"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "permit-hangang-filming": {
+    "scope": {
+      "locations": [
+        "hangang"
+      ]
+    },
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "허가 시간": {
+        "cats": [
+          "LAW",
+          "SCHEDULE"
+        ],
+        "topics": []
+      },
+      "기상 악화 시 안전 조치": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "wind",
+          "typhoon"
+        ]
+      },
+      "드론과 소음": {
+        "cats": [
+          "NO_FLY_ZONE",
+          "LAW"
+        ],
+        "topics": []
+      }
+    }
+  },
+  "safety-disaster-weather": {
+    "scope": {},
+    "sections": {
+      "개요": {
+        "cats": [],
+        "topics": []
+      },
+      "긴급재난문자 수신 시 원칙": {
+        "cats": [
+          "DISASTER"
+        ],
+        "topics": []
+      },
+      "강수량에 따른 야외 촬영 판단": {
+        "cats": [
+          "WEATHER"
+        ],
+        "topics": [
+          "rain",
+          "typhoon"
+        ]
+      },
+      "안전 담당": {
+        "cats": [
+          "DISASTER"
+        ],
+        "topics": []
+      }
+    }
+  }
+}

@@ -29,7 +29,7 @@ public class TestSupportService {
             throw ApiException.badRequest("INVALID_TIME", "시작 시각은 종료 시각보다 빨라야 합니다.");
         }
         LocalDate date = request.date() != null ? request.date() : plans.findShootDay(shootDayId)
-                .orElseThrow(() -> ApiException.notFound("SHOOT_DAY_NOT_FOUND", "촬영일이 없습니다: " + shootDayId))
+                .orElseThrow(() -> PlanDataService.shootDayNotFound(shootDayId))
                 .shootDate();
         String message = request.message() == null ? request.region() + " " + request.kind() : request.message();
         return plans.insertAlert(date, request.region(), request.kind(), request.startsAt(), request.endsAt(), message);

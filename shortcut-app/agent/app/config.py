@@ -29,6 +29,10 @@ class Limits:
     review_pass_score: int = 80
     # 자체 검토 반복 상한이다. 다섯 번 고쳐도 80점에 못 미치면 가장 점수가 높았던 안으로 승인을 요청한다.
     max_review_rounds: int = 5
+    # 실행팀 supervisor의 판단 횟수 상한이다. 3단계와 단계마다 재지시 1회, 수정 요청 재실행을 더해도 8회면 충분하다.
+    max_exec_rounds: int = 8
+    # 실행 Agent 하나의 도구 선택 반복 상한이다. 장소는 확인, 가예약, 확정, 이전 예약 취소로 4회가 필요하다.
+    max_exec_tool_rounds: int = 6
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,7 @@ class Settings:
     internal_token: str
     business_mcp_url: str
     rag_mcp_url: str
+    ops_mcp_url: str
     rabbitmq_url: str
     checkpoint_dsn: str
     openai_model: str
@@ -56,6 +61,7 @@ class Settings:
             internal_token=os.getenv("INTERNAL_TOKEN", "local-internal-token"),
             business_mcp_url=os.getenv("BUSINESS_MCP_URL", "http://localhost:9101/mcp"),
             rag_mcp_url=os.getenv("RAG_MCP_URL", "http://localhost:9102/mcp"),
+            ops_mcp_url=os.getenv("OPS_MCP_URL", "http://localhost:9103/mcp"),
             rabbitmq_url=os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/"),
             # checkpointer 테이블을 업무 테이블과 섞지 않으려고 agent 스키마를 search_path로 지정한다.
             checkpoint_dsn=os.getenv(
@@ -70,6 +76,8 @@ class Settings:
                 max_same_tool_calls=_int("MAX_SAME_TOOL_CALLS", 3),
                 review_pass_score=_int("REVIEW_PASS_SCORE", 80),
                 max_review_rounds=_int("MAX_REVIEW_ROUNDS", 5),
+                max_exec_rounds=_int("MAX_EXEC_ROUNDS", 8),
+                max_exec_tool_rounds=_int("MAX_EXEC_TOOL_ROUNDS", 6),
             ),
             tool_timeout_seconds=float(os.getenv("TOOL_TIMEOUT_SECONDS", "15")),
             # 도구 결과를 그대로 넘기면 27개 후보 평가 결과만으로 수천 토큰이 되므로 4000자에서 자른다.

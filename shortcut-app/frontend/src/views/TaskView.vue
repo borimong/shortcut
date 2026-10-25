@@ -2,7 +2,9 @@
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Check, ExternalLink, X } from '@lucide/vue'
+import AgentBoard from '../components/AgentBoard.vue'
 import StatusBadge from '../components/StatusBadge.vue'
+import ThoughtLog from '../components/ThoughtLog.vue'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -17,7 +19,7 @@ import { TERMINAL_EVENTS, openStream } from '../sse.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useToastStore } from '../stores/toast.js'
 import { dateTime, won, ver } from '../format.js'
-import { METRIC_LABELS, NODE_LABELS, NODE_ORDER, ROLE_TITLES } from '../labels.js'
+import { AGENTS, ARTIFACT_LABELS, METRIC_LABELS, NODE_LABELS, NODE_ORDER, ROLE_TITLES, TOOL_LABELS } from '../labels.js'
 
 const route = useRoute()
 const toast = useToastStore()
@@ -57,6 +59,11 @@ async function cancelTask() {
     cancelling.value = false
   }
 }
+
+// Agent 카드 상태와 생각 기록이다. 수정 요청 뒤 스트림을 이어 열려고 마지막으로 받은 이벤트 id를 기억한다.
+const agents = reactive({})
+const thoughts = ref([])
+const lastEventId = ref(-1)
 // 저장된 이벤트를 다시 받는 동안 카드가 하나씩 끼어들며 화면이 밀리지 않게, 이벤트가 잠시 멈출 때까지 뼈대만 보여 준다.
 const settled = ref(false)
 let settleTimer = null
@@ -90,12 +97,44 @@ function reset() {
   approval.value = null
   result.value = null
   connection.value = ''
+  for (const key of Object.keys(agents)) delete agents[key]
+  Object.keys(AGENTS).forEach((name) => (agents[name] = { status: 'idle', action: '', startedAt: null, elapsedMs: 0, thought: '' }))
+  thoughts.value = []
+  lastEventId.value = -1
   settled.value = false
   clearTimeout(settleTimer)
   clearTimeout(fallbackTimer)
 }
 
+const PLAN_NODES = new Set([...NODE_ORDER, 'report_human', 'suggest_alternatives'])
+
+function setAgent(name, status, action) {
+  const a = agents[name]
+  if (!a) return
+  if (status === 'running' && a.status !== 'running') {
+    a.startedAt = Date.now()
+    a.elapsedMs = 0
+  } else if (status !== 'running' && a.status === 'running' && a.startedAt) {
+    a.elapsedMs = Date.now() - a.startedAt
+  }
+  a.status = status
+  if (action !== undefined) a.action = action
+}
+
 const handlers = {
+  // Agent 시작, 끝, 대기, 건너뜀. action은 카드에 보여 줄 현재 행동이다.
+  AGENT(p) {
+    setAgent(p.agent, p.status, p.action ?? (p.node ? NODE_LABELS[p.node] ?? p.node : undefined))
+    if (p.agent !== 'planner' && p.status === 'running' && agents.planner?.status === 'running') setAgent('planner', 'done')
+  },
+  THOUGHT(p, id) {
+    thoughts.value.push({ kind: 'thought', id, ...p })
+    if (agents[p.agent]) agents[p.agent].thought = p.decision
+  },
+  REVISION(p, id) {
+    thoughts.value.push({ kind: 'revision', id, ...p })
+    log.value.push({ kind: 'mark', tone: 'warning', text: `수정 요청: ${AGENTS[p.agent]?.label ?? p.agent ?? ''}` })
+  },
   NODE(p) {
     if (!nodes[p.node]) {
       nodes[p.node] = { status: 'pending', loop: 0, detail: '' }
@@ -109,9 +148,15 @@ const handlers = {
     log.value.push({ kind: 'node', end: p.phase === 'end', label: NODE_LABELS[p.node] ?? p.label ?? p.node, loop: p.loop, detail: p.phase === 'end' ? n.detail : '' })
     if ((p.loop ?? 0) > loop.value) loop.value = p.loop
     if (!result.value) status.value = 'RUNNING'
+    // AGENT 이벤트가 없는 예전 작업도 계획 Agent 카드가 움직이도록 계획 노드로 상태를 채운다.
+    if (PLAN_NODES.has(p.node) && agents.planner && agents.planner.status !== 'done') {
+      if (p.phase !== 'end') setAgent('planner', 'running', NODE_LABELS[p.node] ?? p.label)
+      else if (p.node === 'publish' || p.node === 'report_human') setAgent('planner', 'done')
+    }
   },
   TOOL_START(p) {
-    const entry = reactive({ kind: 'tool', tool: p.tool, server: p.server, args: p.args, done: false })
+    const entry = reactive({ kind: 'tool', tool: p.tool, server: p.server, agent: p.agent, args: p.args, done: false })
+    if (p.agent && agents[p.agent]) agents[p.agent].action = `${TOOL_LABELS[p.tool] ?? p.tool} 중`
     tools.value.push(entry)
     log.value.push(entry)
   },
@@ -119,6 +164,9 @@ const handlers = {
     const open = [...tools.value].reverse().find((t) => t.tool === p.tool && !t.done)
     const entry = open ?? { tool: p.tool, server: '', args: null }
     Object.assign(entry, { done: true, ok: p.ok, ms: p.ms, preview: p.preview })
+    if (p.agent && agents[p.agent] && agents[p.agent].status === 'running') {
+      agents[p.agent].action = `${TOOL_LABELS[p.tool] ?? p.tool} ${p.ok === false ? '실패' : '완료'}`
+    }
     if (!open) {
       entry.kind = 'tool'
       tools.value.push(entry)
@@ -132,11 +180,13 @@ const handlers = {
     approval.value = p
     log.value.push({ kind: 'mark', tone: 'info', text: `변경안 ${ver(p.versionNo)} 승인 요청` })
     status.value = 'WAITING_APPROVAL'
+    setAgent('planner', 'waiting', `변경안 ${ver(p.versionNo)} 승인 대기`)
   },
   DONE(p) {
     result.value = { type: 'DONE', ...p }
     log.value.push({ kind: 'mark', tone: 'success', text: '작업 완료' })
     status.value = 'DONE'
+    settleAgents()
   },
   FAILED(p) {
     result.value = { type: 'FAILED', ...p }
@@ -148,6 +198,7 @@ const handlers = {
     result.value = { type: 'NEEDS_HUMAN', ...p }
     log.value.push({ kind: 'mark', tone: 'warning', text: '사람 확인 필요' })
     status.value = 'NEEDS_HUMAN'
+    settleAgents()
   },
   // 제작 PD나 연출감독이 재계획을 중단했다. 승인을 기다리던 변경안이 있었으면 함께 철회됐다.
   CANCELLED(p) {
@@ -179,25 +230,54 @@ async function start(id) {
   }
   // 응답을 기다리는 사이 다른 작업으로 이동했다면 이전 작업의 스트림을 열지 않는다.
   if (route.params.id !== id) return
+  // 이벤트가 하나도 오지 않는 작업도 있으므로 오래 기다리지 않는다.
+  fallbackTimer = setTimeout(settle, 2000)
+  connect(id)
+}
+
+// after를 주면 그 이벤트 다음부터만 받는다. 끝난 작업에 수정 요청을 보낸 뒤 이어 받을 때 쓴다.
+function connect(id, after) {
   const tracked = Object.fromEntries(
     Object.entries(handlers).map(([type, handle]) => [
       type,
-      (payload) => {
-        handle(payload)
+      (payload, eventId) => {
+        if (eventId !== null && eventId > lastEventId.value) lastEventId.value = eventId
+        handle(payload, eventId)
         if (TERMINAL_EVENTS.includes(type)) settle()
         else settleSoon()
       }
     ])
   )
-  // 이벤트가 하나도 오지 않는 작업도 있으므로 오래 기다리지 않는다.
-  fallbackTimer = setTimeout(settle, 2000)
+  source?.close()
   source = openStream(`/ai/tasks/${id}/stream`, tracked, {
+    after,
     onStateChange: (s) => {
       connection.value = s
       if (s === 'open') settleSoon()
       else if (s === 'closed') settle()
     }
   })
+}
+
+// 끝난 작업에서 돌던 카드는 마지막 상태로 멈춘다.
+function settleAgents() {
+  for (const [name, a] of Object.entries(agents)) {
+    if (a.status === 'running') setAgent(name, 'done')
+    if (name === 'planner' && a.status === 'waiting') setAgent(name, 'done')
+  }
+}
+
+// 수정 요청이 받아들여지면 작업이 다시 돌기 시작하므로 결과와 승인 카드를 치우고 스트림을 이어 연다.
+function onRevised({ phase } = {}) {
+  status.value = 'RUNNING'
+  result.value = null
+  approval.value = null
+  if (phase === 'exec') {
+    setAgent('supervisor', 'running', '수정 요청 반영')
+  } else {
+    setAgent('planner', 'running', '수정 요청 반영')
+  }
+  connect(route.params.id, lastEventId.value)
 }
 
 watch(() => route.params.id, (id) => id && start(id), { immediate: true })
@@ -217,13 +297,34 @@ const timeline = computed(() =>
 
 const activity = computed(() => {
   const running = tools.value.findLast((t) => !t.done)
-  if (running) return `${running.tool} 도구 호출 중`
+  if (running) {
+    const who = running.agent ? `${AGENTS[running.agent]?.label ?? running.agent}: ` : ''
+    return `${who}${TOOL_LABELS[running.tool] ?? running.tool} 도구 호출 중`
+  }
   const node = timeline.value.findLast((n) => n.status === 'running')
   if (node) return `${node.label} 단계 진행 중`
   return ''
 })
 
 const isLive = computed(() => !result.value && connection.value !== 'closed')
+
+const isReplan = computed(() => task.value?.kind !== 'ASK')
+const executionStarted = computed(() =>
+  Object.entries(agents).some(([name, a]) => name !== 'planner' && a.status !== 'idle')
+)
+const execution = computed(() => result.value?.execution ?? null)
+
+function artifactValue(key, v) {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'boolean') return v ? '예' : '아니오'
+  if (/Krw$/.test(key) && typeof v === 'number') return won(v)
+  if (Array.isArray(v)) return v.map((x) => (typeof x === 'object' ? short(x) : x)).join(', ')
+  return short(v)
+}
+
+function artifactRows(artifacts) {
+  return Object.entries(artifacts ?? {}).map(([k, v]) => ({ key: k, label: ARTIFACT_LABELS[k] ?? k, value: artifactValue(k, v) }))
+}
 
 function short(value) {
   if (value === null || value === undefined) return ''
@@ -465,6 +566,69 @@ function describeViolation(v) {
         </template>
       </Card>
 
+      <Card v-if="execution">
+        <CardHeader>
+          <CardTitle>실행 결과</CardTitle>
+          <CardDescription>확정 뒤 실행팀이 처리한 예약, 렌탈, 허가, 차량, 연락, 장부입니다.</CardDescription>
+          <CardAction>
+            <Badge :variant="execution.status === 'DONE' ? 'success' : 'warning'">
+              {{ execution.status === 'DONE' ? '모두 처리' : '사람 확인 필요' }}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-4">
+          <ul v-if="execution.reports?.length" class="flex flex-col divide-y divide-border rounded-lg border border-border">
+            <li v-for="r in execution.reports" :key="r.agent" class="flex flex-col gap-1.5 px-3 py-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-medium">{{ AGENTS[r.agent]?.label ?? r.agent }}</span>
+                <Badge :variant="r.status === 'DONE' ? 'success' : r.status === 'FAILED' ? 'destructive' : 'warning'">
+                  {{ r.status === 'DONE' ? '완료' : r.status === 'FAILED' ? '실패' : '사람 확인' }}
+                </Badge>
+              </div>
+              <p v-if="r.summary" class="text-sm break-words">{{ r.summary }}</p>
+              <dl v-if="artifactRows(r.artifacts).length" class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <div v-for="a in artifactRows(r.artifacts)" :key="a.key" class="flex gap-1">
+                  <dt class="text-muted-foreground">{{ a.label }}</dt>
+                  <dd class="mono break-all">{{ a.value }}</dd>
+                </div>
+              </dl>
+            </li>
+          </ul>
+          <div v-if="execution.skipped?.length" class="flex flex-wrap items-center gap-2 text-sm">
+            <span class="text-muted-foreground">이번 변경에 필요 없어 건너뜀</span>
+            <Badge v-for="a in execution.skipped" :key="a" variant="outline">{{ AGENTS[a]?.label ?? a }}</Badge>
+          </div>
+          <dl v-if="execution.budget" class="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+            <div class="flex flex-col gap-0.5">
+              <dt class="text-xs text-muted-foreground">블록 예산</dt>
+              <dd class="mono">{{ won(execution.budget.capKrw) }}</dd>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <dt class="text-xs text-muted-foreground">집행액</dt>
+              <dd class="mono">{{ won(execution.budget.spentKrw) }}</dd>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <dt class="text-xs text-muted-foreground">잔액</dt>
+              <dd class="mono" :class="{ 'text-destructive': execution.budget.over }">{{ won(execution.budget.remainingKrw) }}</dd>
+            </div>
+            <div class="flex flex-col gap-0.5">
+              <dt class="text-xs text-muted-foreground">예산 초과</dt>
+              <dd><Badge :variant="execution.budget.over ? 'destructive' : 'success'">{{ execution.budget.over ? '초과' : '범위 안' }}</Badge></dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card v-if="isReplan">
+        <CardHeader>
+          <CardTitle>Agent 현황</CardTitle>
+          <CardDescription>계획 Agent가 확정하면 실행팀 팀장이 필요한 Agent를 단계 순서대로 보냅니다.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AgentBoard :agents="agents" :execution-started="executionStarted" />
+        </CardContent>
+      </Card>
+
       <Card v-if="tokenText">
         <CardHeader>
           <CardTitle>Agent 설명</CardTitle>
@@ -491,7 +655,12 @@ function describeViolation(v) {
             <TabsList>
               <TabsTrigger value="steps">주요 단계</TabsTrigger>
               <TabsTrigger value="all">전체 기록 {{ log.length }}건</TabsTrigger>
+              <TabsTrigger v-if="isReplan" value="thoughts">생각 기록 {{ thoughts.filter((t) => t.kind === 'thought').length }}건</TabsTrigger>
             </TabsList>
+
+            <TabsContent v-if="isReplan" value="thoughts">
+              <ThoughtLog :task-id="route.params.id" :status="status" :entries="thoughts" @revised="onRevised" />
+            </TabsContent>
 
             <TabsContent value="steps">
               <ol class="flex flex-col">
@@ -552,7 +721,9 @@ function describeViolation(v) {
                         {{ !e.done ? '호출 중' : e.ok === false ? '실패' : '도구' }}
                       </Badge>
                       <span class="mono min-w-0 text-sm break-all">{{ e.tool }}</span>
-                      <span v-if="e.server" class="text-xs text-muted-foreground">{{ e.server === 'rag' ? 'RAG' : '업무' }} MCP</span>
+                      <span v-if="TOOL_LABELS[e.tool]" class="text-xs">{{ TOOL_LABELS[e.tool] }}</span>
+                      <span v-if="e.server" class="text-xs text-muted-foreground">{{ e.server === 'rag' ? 'RAG' : e.server === 'ops' ? '실행' : '업무' }} MCP</span>
+                      <Badge v-if="e.agent" variant="secondary">{{ AGENTS[e.agent]?.label ?? e.agent }}</Badge>
                       <span v-if="e.ms !== undefined" class="mono text-xs text-muted-foreground">{{ e.ms }}ms</span>
                     </div>
                     <p v-if="e.args" class="mono truncate text-xs" :title="short(e.args)">{{ short(e.args) }}</p>

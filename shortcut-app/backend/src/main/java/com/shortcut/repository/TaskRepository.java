@@ -140,6 +140,26 @@ public class TaskRepository {
                 .update();
     }
 
+    /**
+     * 수정 요청을 받은 작업을 다시 실행 중으로 돌린다. 승인 대기, 완료, 사람 확인 상태에서만 바뀐다.
+     */
+    public int markRevising(long id) {
+        return jdbc.sql("""
+                        UPDATE ai_tasks SET status = 'RUNNING', updated_at = now()
+                        WHERE id = :id AND status IN ('WAITING_APPROVAL', 'DONE', 'NEEDS_HUMAN')
+                        """)
+                .param("id", id)
+                .update();
+    }
+
+    public Optional<TaskEvent> findTaskEvent(long taskId, long eventId) {
+        return jdbc.sql("SELECT *, payload::text AS payload_json FROM ai_task_events WHERE task_id = :taskId AND id = :id")
+                .param("taskId", taskId)
+                .param("id", eventId)
+                .query(TaskRepository::mapTaskEvent)
+                .optional();
+    }
+
     public void markWaitingApproval(long id, Long proposalId) {
         jdbc.sql("""
                         UPDATE ai_tasks SET status = 'WAITING_APPROVAL', proposal_id = COALESCE(:proposalId, proposal_id),

@@ -175,3 +175,89 @@ export const REVIEW_ACTIONS = {
   NEXT_CANDIDATE: '다른 조합으로 교체',
   MORE_EVIDENCE: '규정 근거 추가 검색'
 }
+
+// 실행 단계 노드다. 계획 Agent의 13노드 뒤에 실행팀이 붙는다.
+Object.assign(NODE_LABELS, {
+  execute: '실행팀',
+  supervisor: '실행팀 팀장',
+  venue: '장소 예약',
+  rental: '장비 렌탈',
+  permit: '촬영 허가',
+  transport: '이동 수단',
+  contact: '출연진/스태프 연락',
+  ledger: '제작비 장부'
+})
+
+// Agent 카드에 쓰는 이름과 역할이다. stage는 실행팀 안에서의 단계(의존 순서)다.
+export const AGENTS = {
+  planner: { label: '계획 Agent', role: '변경 감지부터 승인과 확정까지' },
+  supervisor: { label: '실행팀 팀장', role: '누구를 언제 보낼지 결정' },
+  venue: { label: '장소 예약', role: '가용 확인, 가예약, 확정', stage: 1 },
+  rental: { label: '장비 렌탈', role: '견적과 렌탈 예약', stage: 1 },
+  permit: { label: '촬영 허가', role: '관할 기관 허가 신청', stage: 2 },
+  transport: { label: '이동 수단', role: '차량 예약과 집결 안내', stage: 2 },
+  contact: { label: '출연진/스태프 연락', role: '사람마다 맞춤 안내', stage: 3 },
+  ledger: { label: '제작비 장부', role: '집행 기록과 예산 대비', stage: 3 }
+}
+
+export const AGENT_STAGES = [
+  { stage: 1, title: '1단계', hint: '서로 독립, 동시에', agents: ['venue', 'rental'] },
+  { stage: 2, title: '2단계', hint: '장소 확정 뒤', agents: ['permit', 'transport'] },
+  { stage: 3, title: '3단계', hint: '앞 단계 모두 끝난 뒤', agents: ['contact', 'ledger'] }
+]
+
+// Agent 상태 점의 이름과 배지 모양이다.
+export const AGENT_STATUS = {
+  idle: ['대기', 'secondary'],
+  running: ['진행', 'info'],
+  done: ['완료', 'success'],
+  failed: ['실패', 'destructive'],
+  waiting: ['사람 대기', 'warning'],
+  needs_human: ['사람 대기', 'warning'],
+  skipped: ['건너뜀', 'outline']
+}
+
+// 도구 이름의 한국어 표기다. 카드의 현재 행동과 전체 기록에 쓴다.
+export const TOOL_LABELS = {
+  venue_check: '가용 확인',
+  venue_hold: '가예약',
+  venue_confirm: '예약 확정',
+  venue_cancel: '예약 취소',
+  rental_quote: '견적',
+  rental_book: '렌탈 예약',
+  rental_cancel: '렌탈 취소',
+  permit_check_requirement: '허가 필요 확인',
+  permit_apply: '허가 신청',
+  permit_status: '허가 결과',
+  transport_quote: '차량 견적',
+  transport_book: '차량 예약',
+  transport_cancel: '차량 취소',
+  contacts_for_change: '연락 대상 조회',
+  send_message: '안내 발송',
+  get_replies: '응답 확인',
+  ledger_record: '장부 기록',
+  ledger_budget_status: '예산 확인'
+}
+
+export const ARTIFACT_LABELS = {
+  reservationId: '예약 번호',
+  bookingId: '예약 번호',
+  rentalBookingId: '렌탈 번호',
+  transportBookingId: '차량 예약 번호',
+  permitId: '허가 번호',
+  permitIds: '허가 번호',
+  status: '상태',
+  totalKrw: '금액',
+  costKrw: '금액',
+  feeKrw: '수수료',
+  cancelFeeKrw: '취소 수수료',
+  deliveryAt: '장비 도착',
+  departAt: '출발 시각',
+  pickup: '집결 장소',
+  sent: '발송',
+  acked: '확인',
+  questions: '질문',
+  remainingKrw: '예산 잔액',
+  spentKrw: '집행액',
+  over: '예산 초과'
+}

@@ -504,7 +504,7 @@ onBeforeUnmount(() => {
       <Card v-if="review">
         <CardHeader>
           <CardTitle>자체 검토</CardTitle>
-          <CardDescription>승인을 요청하기 전에 Agent가 승인자 입장에서 100점 만점으로 채점합니다. {{ review.threshold }}점이 안 되면 고쳐서 다시 검토합니다.</CardDescription>
+          <CardDescription>승인을 요청하기 전에 근거 개수, 엔진 값 대조, 설명 점검 질문으로 100점 만점 점수를 계산합니다. {{ review.threshold }}점이 안 되거나 통과를 막는 사유가 있으면 고쳐서 다시 검토합니다.</CardDescription>
         </CardHeader>
         <CardContent class="flex flex-col gap-5">
           <div class="flex flex-wrap items-baseline gap-1.5">
@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
             >
               <span class="mono text-muted-foreground">{{ h.round }}회차</span>
               <span class="mono">{{ h.score }}점</span>
-              <span v-if="h.score < review.threshold" class="text-muted-foreground">{{ REVIEW_ACTIONS[h.action] ?? h.action }}</span>
+              <span v-if="h.passed === false || h.score < review.threshold" class="text-muted-foreground">{{ REVIEW_ACTIONS[h.action] ?? h.action }}</span>
               <span class="basis-full">{{ (h.feedback ?? []).join(' ') }}</span>
             </li>
           </ol>

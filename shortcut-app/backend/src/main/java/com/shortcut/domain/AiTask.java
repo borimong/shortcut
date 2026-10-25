@@ -21,9 +21,7 @@ public record AiTask(
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt) {
 
-    // SUPERSEDED: 승인을 기다리던 중 촬영 데이터가 바뀌어 다른 변경으로 대체된 작업이다(SupersedeService).
-    // CANCELLED: 제작 PD나 연출감독, 요청한 사람이 재계획을 중단한 작업이다(CancelService). Agent가 더 이어 가지 못한다.
-    public static final Set<String> TERMINAL = Set.of("DONE", "FAILED", "NEEDS_HUMAN", "SUPERSEDED", "CANCELLED");
+    public static final Set<String> TERMINAL = TaskStatus.TERMINAL;
 
     public boolean finished() {
         return TERMINAL.contains(status);

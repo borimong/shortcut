@@ -10,14 +10,17 @@ import java.time.OffsetDateTime;
  * @param rainWarnMm 우천 대비 경고를 남기는 시간당 강수량(mm)
  * @param rainAlertLeadHours 비 때문에 촬영이 어려운 시각보다 몇 시간 전에 알릴지
  * @param weatherSource 엔진과 화면이 읽을 예보. LIVE(기본)는 날씨 API(Open-Meteo) 예보, SEED는 시연용 시드 예보다
+ * @param mockVenueConflict 켜면 가상 아워플레이스의 가예약이 실패한다(실행팀 실패 대응 시연용)
+ * @param mockPermitDenied 켜면 가상 허가 기관이 촬영 허가를 반려한다(실행팀 실패 대응 시연용)
  */
 public record AppSettings(int maxLoops, double rainBlockMm, double rainWarnMm, int rainAlertLeadHours,
-                          String weatherSource, String updatedBy, OffsetDateTime updatedAt) {
+                          String weatherSource, boolean mockVenueConflict, boolean mockPermitDenied,
+                          String updatedBy, OffsetDateTime updatedAt) {
 
     public static final String SEED = "SEED";
     public static final String LIVE = "LIVE";
 
-    public static final AppSettings DEFAULT = new AppSettings(5, 5.0, 1.0, 3, LIVE, null, null);
+    public static final AppSettings DEFAULT = new AppSettings(5, 5.0, 1.0, 3, LIVE, false, false, null, null);
 
     public boolean liveWeather() {
         return LIVE.equals(weatherSource);

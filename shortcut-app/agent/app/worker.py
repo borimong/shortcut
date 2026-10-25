@@ -19,6 +19,7 @@ from app.harness.instructions import prompt_versions
 from app.harness.limits import new_counter
 from app.harness.model import ModelGateway
 from app.harness.observability import BackendEventPublisher, TaskCancelled, log_event, run_config, trace_url_for
+from app.harness.recovery import PermanentError
 from app.harness.tools import McpConnections, ToolGateway
 from app.runtime import RunContext
 
@@ -59,7 +60,8 @@ class TaskRunner:
         trace_id = message.get("traceId") or uuid.uuid4().hex
         events = BackendEventPublisher(self.http, task_id, trace_id)
         settings = self.settings
-        async with McpConnections(settings.business_mcp_url, settings.rag_mcp_url, message.get("requestedBy")) as clients:
+        urls = {"business": settings.business_mcp_url, "rag": settings.rag_mcp_url, "ops": settings.ops_mcp_url}
+        async with McpConnections(urls, message.get("requestedBy")) as clients:
             tools = ToolGateway(
                 clients,
                 timeout_seconds=settings.tool_timeout_seconds,
@@ -88,7 +90,10 @@ class TaskRunner:
     async def _replan(self, message: dict[str, Any], config: dict, ctx: RunContext) -> dict[str, Any] | None:
         graph = self.replan_graph
         snapshot = await graph.aget_state(config)
-        if message["action"] == "RESUME":
+        if message["action"] == "REVISE":
+            if not await self._revise(message["revise"], config, ctx):
+                return None
+        elif message["action"] == "RESUME":
             if not snapshot.next:
                 log_event("resume_after_finish_ignored", trace_id=ctx.trace_id, task_id=ctx.task_id)
                 return None
@@ -137,6 +142,48 @@ class TaskRunner:
             # 승인 대기로 멈춘 상태다. APPROVAL_REQUIRED는 request_approval 노드가 이미 보냈다.
             return None
         return {"values": state.values, "kind": "REPLAN"}
+
+    async def _revise(self, revise: dict[str, Any], config: dict, ctx: RunContext) -> bool:
+        """사용자가 생각 기록에서 고른 판단 하나를 고쳐 다시 실행합니다. 처리했으면 True를 돌려줍니다."""
+        graph = self.replan_graph
+        comment = f"{revise.get('node', '')} 판단에 대해: {revise['comment']}"
+        event_id = revise.get("eventId")
+        latest = await graph.aget_state(config)
+        if event_id is not None and event_id in (latest.values.get("revisions_done") or []):
+            # 이미 반영한 요청이다. 반영 뒤 다음 노드에서 실패해 재시도된 경우에만 마지막 체크포인트에서 이어 간다.
+            if latest.next and "await_approval" not in latest.next:
+                await graph.ainvoke(None, config, context=ctx)
+                return True
+            log_event("duplicate_revise_ignored", trace_id=ctx.trace_id, task_id=ctx.task_id, event_id=event_id)
+            return False
+        done = [*(latest.values.get("revisions_done") or []), event_id]
+        if revise.get("phase") == "exec":
+            # 실행 단계는 외부에 예약과 발송이 이미 남았으므로 되감지 않는다. 확정 직후 지점부터 실행팀을 다시 시작하고,
+            # supervisor가 지목한 Agent와 그 결과에 기대는 뒤 단계 Agent만 다시 보낸다(취소 후 재예약, 정정 안내).
+            await graph.aupdate_state(
+                config,
+                {"revise_order": {"agent": revise["agent"], "comment": revise["comment"]}, "revisions_done": done},
+                as_node="commit_plan",
+            )
+            await graph.ainvoke(None, config, context=ctx)
+            return True
+        # 계획 단계는 타임 트래블이다. 그 노드가 실행되기 직전(같은 step_seq, 다음 노드가 그 노드)의 체크포인트를 찾아
+        # 사용자 요청을 넣은 분기를 만들고 거기서부터 다시 돈다. 앞 단계 결과는 그대로 재사용된다.
+        target = None
+        async for past in graph.aget_state_history(config):
+            if revise["node"] in (past.next or ()) and int(past.values.get("step_seq") or 0) == int(revise["step"]):
+                target = past
+                break
+        if target is None:
+            log_event("revise_target_not_found", trace_id=ctx.trace_id, task_id=ctx.task_id, step=revise.get("step"))
+            await ctx.events.publish(
+                "FAILED", {"error": "수정 요청한 판단의 체크포인트를 찾지 못했습니다. 변경을 다시 입력해 주세요."}
+            )
+            return False
+        feedback = [*(target.values.get("user_feedback") or []), comment]
+        forked = await graph.aupdate_state(target.config, {"user_feedback": feedback, "revisions_done": done})
+        await graph.ainvoke(None, forked, context=ctx)
+        return True
 
     async def _ask(self, message: dict[str, Any], config: dict, ctx: RunContext) -> dict[str, Any]:
         task = await self._task(ctx.task_id)
@@ -222,7 +269,9 @@ async def consume(settings: Settings, runner: TaskRunner, http: httpx.AsyncClien
                         error=repr(error),
                         trace_id=body.get("traceId"),
                     )
-                    target = RETRY_QUEUE if attempt < MAX_ATTEMPTS else DEAD_LETTER_QUEUE
+                    # 다시 해도 같은 오류(설정 누락 등)는 재시도로 토큰과 시간만 쓰므로 바로 DLQ로 보낸다.
+                    permanent = isinstance(error, PermanentError)
+                    target = RETRY_QUEUE if attempt < MAX_ATTEMPTS and not permanent else DEAD_LETTER_QUEUE
                     await exchange.publish(
                         aio_pika.Message(
                             message.body,
@@ -234,7 +283,8 @@ async def consume(settings: Settings, runner: TaskRunner, http: httpx.AsyncClien
                     )
                     if target == DEAD_LETTER_QUEUE:
                         events = BackendEventPublisher(http, body["taskId"], body.get("traceId") or "")
-                        await events.publish("FAILED", {"error": f"{MAX_ATTEMPTS}회 시도 후 실패: {error}", "attempts": attempt})
+                        reason = "재시도해도 같은 오류라 바로 실패" if permanent else f"{MAX_ATTEMPTS}회 시도 후 실패"
+                        await events.publish("FAILED", {"error": f"{reason}: {error}", "attempts": attempt})
 
         consumer_tag = await queue.consume(lambda m: asyncio.ensure_future(handle(m)))
         await stop.wait()

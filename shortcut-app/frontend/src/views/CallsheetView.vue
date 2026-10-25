@@ -17,7 +17,7 @@ import { useAuthStore } from '../stores/auth.js'
 import { useNotificationStore } from '../stores/notifications.js'
 import { useToastStore } from '../stores/toast.js'
 import { useShootDayStore } from '../stores/shootDay.js'
-import { addMinutes, dateTime, dateWithWeekday, josa, ver } from '../format.js'
+import { addMinutes, dateTime, dateWithWeekday, josa, ver, won } from '../format.js'
 
 const notifications = useNotificationStore()
 const shootDay = useShootDayStore()
@@ -28,6 +28,8 @@ const sheet = ref(null)
 const selectedVersion = ref('')
 const error = ref(null)
 const loading = ref(true)
+// 확정 뒤 실행팀이 잡은 예약, 렌탈, 허가, 차량, 연락, 장부 현황이다. 조회가 안 되면 숨긴다.
+const ops = ref(null)
 
 const BLOCK_LABELS = { AM: '오전', PM: '오후' }
 // 일출, 일몰 데이터가 없어서 씬 시작 시각으로 낮과 밤을 나눈다
@@ -49,6 +51,7 @@ async function load() {
     const keep = versions.value.some((v) => String(v.versionNo) === selectedVersion.value)
     if (!keep) selectedVersion.value = String(b.callsheet?.versionNo ?? versions.value[0]?.versionNo ?? '')
     await loadSheet(b.shootDay.id, selectedVersion.value)
+    ops.value = await api(`/shoot-days/${b.shootDay.id}/ops`).catch(() => null)
   } catch (e) {
     error.value = e
   } finally {
@@ -77,6 +80,59 @@ watch(
     }
   }
 )
+
+const OPS_STATUS = {
+  HELD: '가예약',
+  CONFIRMED: '확정',
+  CANCELLED: '취소',
+  MANUAL_PENDING: '처리 대기',
+  BOOKED: '예약',
+  QUOTED: '견적',
+  APPROVED: '허가',
+  DENIED: '반려',
+  APPLIED: '신청'
+}
+const opsStatus = (s) => OPS_STATUS[s] ?? s
+const activeOnly = (list) => (list ?? []).filter((x) => x.status !== 'CANCELLED')
+const questionCount = (m) => (Array.isArray(m?.questions) ? m.questions.length : (m?.questions ?? 0))
+const opsLines = computed(() => {
+  const o = ops.value
+  if (!o) return []
+  const lines = []
+  const res = activeOnly(o.reservations)
+  if (res.length)
+    lines.push({
+      label: '장소 예약',
+      text: res.map((r) => `${r.locationName ?? ''} ${r.reservationId ?? r.id} ${opsStatus(r.status)}`.trim()).join(', ')
+    })
+  const rentals = activeOnly(o.rentals)
+  if (rentals.length)
+    lines.push({
+      label: '장비 렌탈',
+      text: rentals.map((r) => `${r.bookingId ?? r.id} ${opsStatus(r.status)}${r.deliveryAt ? `, ${r.deliveryAt} 도착` : ''}`).join(', ')
+    })
+  const permits = o.permits ?? []
+  if (permits.length)
+    lines.push({
+      label: '촬영 허가',
+      text: permits.map((p) => `${p.kind === 'DRONE' ? '드론' : '장소'} ${p.permitId ?? p.id} ${opsStatus(p.status)}`).join(', ')
+    })
+  const trips = activeOnly(o.transports)
+  if (trips.length)
+    lines.push({
+      label: '이동 수단',
+      text: trips.map((t) => `${t.departAt ?? ''} ${t.pickup ?? ''} 출발 (${t.bookingId ?? t.id})`.trim()).join(', ')
+    })
+  if (o.messages?.sent)
+    lines.push({ label: '연락', text: `발송 ${o.messages.sent}건, 확인 ${o.messages.acked ?? 0}건, 질문 ${questionCount(o.messages)}건` })
+  if (o.budget?.capKrw !== undefined && (o.budget.spentKrw ?? 0) > 0)
+    lines.push({
+      label: '제작비',
+      text: `집행 ${won(o.budget.spentKrw)}, 잔액 ${won(o.budget.remainingKrw)}${o.budget.over ? ' (예산 초과)' : ''}`,
+      warn: o.budget.over
+    })
+  return lines
+})
 
 const isLatest = computed(() => String(board.value?.callsheet?.versionNo ?? '') === selectedVersion.value)
 
@@ -336,6 +392,19 @@ function print() {
           <section class="sheet-section">
             <h2 class="sheet-label">공지</h2>
             <p class="mt-1 font-medium">{{ board.shootDay.notice }}</p>
+          </section>
+        </template>
+
+        <template v-if="opsLines.length">
+          <Separator />
+          <section class="sheet-section">
+            <h2 class="sheet-label">실행 현황</h2>
+            <dl class="mt-2 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+              <template v-for="l in opsLines" :key="l.label">
+                <dt class="text-muted-foreground">{{ l.label }}</dt>
+                <dd class="break-words" :class="{ 'text-destructive': l.warn }">{{ l.text }}</dd>
+              </template>
+            </dl>
           </section>
         </template>
 

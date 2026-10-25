@@ -21,7 +21,7 @@ from fastmcp.exceptions import ResourceError, ToolError
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from rag_mcp.chunking import Document, split_into_chunks
+from rag_mcp.chunking import Document, split_into_chunks, split_places
 from rag_mcp.embedding import Embedder
 from rag_mcp.store import Store
 
@@ -76,6 +76,8 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
                 "version": row["version"],
                 "heading": row["heading"],
                 "text": row["text"],
+                # 비어 있으면 어디에나 적용되는 조항이다. Agent가 후보 장소와 맞지 않는 조항을 근거에서 뺀다.
+                "locations": list(row.get("locations") or []),
                 "score": round(float(row["score"]), 4),
             }
             for row in rows
@@ -90,7 +92,8 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
             Field(description="좁힐 문서 종류. LAW 법률, PERMIT 촬영 허가, NO_FLY 비행 금지, SAFETY 재난과 기상, POLICY 예산과 승인"),
         ] = None,
     ) -> list[dict]:
-        """법규와 사내 규정에서 질의와 가까운 조항을 찾아 chunk_id, 제목, 조항 제목, 원문, 유사도를 돌려준다.
+        """법규와 사내 규정에서 질의와 가까운 조항을 찾아 chunk_id, 제목, 조항 제목, 원문, 적용 장소, 유사도를 돌려준다.
+        특정 장소의 허가 조건이나 비행 금지 구역을 찾을 때는 질의에 장소 이름을 넣는다.
         계약서와 대본은 포함하지 않는다. 계약서 조항은 search_contract_clause, 대본 씬은 search_script를 쓴다."""
         types = list(doc_types) if doc_types else REGULATION_TYPES
         return run_search(embed_query(query), k, doc_types=types)
@@ -139,9 +142,16 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         doc_type: Literal["LAW", "PERMIT", "NO_FLY", "SAFETY", "POLICY", "CONTRACT", "SCRIPT"],
         version: Annotated[str, Field(min_length=1, max_length=40)],
         text: Annotated[str, Field(min_length=20)],
+        locations: Annotated[
+            list[str] | None, Field(description="특정 장소에만 적용되는 문서면 장소 이름 키워드, 예: [\"한강\"]")
+        ] = None,
+        section_locations: Annotated[
+            dict[str, list[str]] | None, Field(description="일부 조항만 다른 장소에 적용될 때 조항 제목 -> 장소 키워드")
+        ] = None,
     ) -> dict:
         """문서를 조항 단위로 잘라 임베딩하고 저장한다. 같은 doc_id가 있으면 새 내용으로 바꾼다(재색인)."""
-        document = Document(doc_id, title, doc_type, version, text)
+        sections = {heading: split_places(places) for heading, places in (section_locations or {}).items()}
+        document = Document(doc_id, title, doc_type, version, text, split_places(locations or []), sections)
         chunks = split_into_chunks(document)
         if not chunks:
             raise ToolError(format_error("EMPTY_DOCUMENT", "본문에 색인할 내용이 없습니다.", False))

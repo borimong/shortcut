@@ -44,7 +44,7 @@ class WeatherForecastServiceTest {
     private static final ZonedDateTime NOW = ZonedDateTime.of(2026, 10, 22, 9, 0, 0, 0, ZoneId.of("Asia/Seoul"));
     private static final LocalDate DAY1 = NOW.toLocalDate();
     private static final LocalDate DAY2 = DAY1.plusDays(1);
-    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, null, null);
+    private static final AppSettings SEED = new AppSettings(5, 5.0, 1.0, 3, AppSettings.SEED, false, false, null, null);
     private static final AppSettings LIVE = AppSettings.DEFAULT;
     private static final Location HANGANG = new Location(1, "한강 공원", "서울 영등포구 여의도 한강공원", false, "서울 영등포구",
             LocalTime.of(6, 0), LocalTime.of(22, 0), LocalTime.of(9, 0), LocalTime.of(17, 0), 300_000, false, 0.95, 6,

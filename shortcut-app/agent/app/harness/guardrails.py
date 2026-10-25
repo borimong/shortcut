@@ -14,6 +14,21 @@ _RESIDENT_NO = re.compile(r"\b(\d{6})[-\s]?([1-4])\d{6}\b")
 DESTRUCTIVE_TOOLS = frozenset({"business_commit_plan", "rag_delete_document"})
 # 업무 데이터를 바꾸는 도구다. LLM이 고르는 노드의 허용 목록에는 넣지 않는다.
 WRITE_TOOLS = DESTRUCTIVE_TOOLS | {"business_submit_proposal", "business_link_entity", "rag_index_document"}
+# 실행 Agent가 가상 외부 서비스에 남기는 쓰기 도구다. 사람 승인으로 확정된 뒤에만 도는 실행팀의 허용 목록에만 넣는다.
+OPS_WRITE_TOOLS = frozenset(
+    {
+        "ops_venue_hold",
+        "ops_venue_confirm",
+        "ops_venue_cancel",
+        "ops_rental_book",
+        "ops_rental_cancel",
+        "ops_permit_apply",
+        "ops_transport_book",
+        "ops_transport_cancel",
+        "ops_send_message",
+        "ops_ledger_record",
+    }
+)
 
 
 def mask_pii(text: str) -> str:

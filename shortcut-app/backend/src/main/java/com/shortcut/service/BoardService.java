@@ -9,6 +9,8 @@ import com.shortcut.domain.Callsheet;
 import com.shortcut.domain.ChangeEvent;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.Proposal;
+import com.shortcut.domain.ProposalStatus;
+import com.shortcut.domain.Role;
 import com.shortcut.domain.Scene;
 import com.shortcut.dto.BoardDtos.BlockView;
 import com.shortcut.dto.BoardDtos.BlockWeatherView;
@@ -40,15 +42,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class BoardService {
 
-    // 촬영판 연락처에는 현장에서 바로 연락할 제작부와 연출부 책임자만 보인다.
-    private static final Set<String> CONTACT_ROLES = Set.of("PRODUCER", "PRODUCTION_MANAGER", "DIRECTOR", "AD1", "AD2");
     private static final Map<String, String> EVENT_LABELS = Map.of(
             "RAIN", "우천", "ACTOR_SCHEDULE", "배우 일정", "LOCATION_CANCEL", "장소 취소",
             "EQUIPMENT_FAILURE", "장비 고장", "DISASTER", "천재지변", "OTHER", "기타");
@@ -82,7 +81,7 @@ public class BoardService {
 
         List<ContactView> contacts = new ArrayList<>();
         users.findAll().stream()
-                .filter(u -> u.active() && CONTACT_ROLES.contains(u.role()) && u.phone() != null)
+                .filter(u -> u.active() && Role.CONTACTS.contains(u.role()) && u.phone() != null)
                 .forEach(u -> contacts.add(new ContactView(u.title(), u.name(), u.phone())));
         for (Actor actor : data.actors().values()) {
             if (actor.managerPhone() != null) {
@@ -157,22 +156,22 @@ public class BoardService {
             List<String> roles = proposals.findApprovals(p.id()).stream().map(Approval::role).toList();
             items.add(new HistoryItem(p.createdAt(), "APPROVAL_REQUEST",
                     "승인 요청: " + String.join(", ", roles), link));
-            if ("STALE".equals(p.status())) {
-                items.add(new HistoryItem(p.updatedAt(), "STALE",
+            if (ProposalStatus.STALE.equals(p.status())) {
+                items.add(new HistoryItem(p.updatedAt(), ProposalStatus.STALE,
                         "변경안 " + p.versionLabel() + " 무효: 촬영 데이터 변경", link));
             }
         }
         for (DecidedApproval decided : proposals.findDecided(shootDayId)) {
-            boolean approved = "APPROVED".equals(decided.approval().status());
+            boolean approved = ProposalStatus.APPROVED.equals(decided.approval().status());
             String text = "v" + decided.versionNo() + " " + decided.approval().role() + " "
                     + nullToEmpty(decided.approval().userName())
                     + (approved ? " 승인" : " 거절: " + nullToEmpty(decided.approval().reason()));
-            items.add(new HistoryItem(decided.approval().decidedAt(), approved ? "APPROVED" : "REJECTED", text,
+            items.add(new HistoryItem(decided.approval().decidedAt(), approved ? ProposalStatus.APPROVED : ProposalStatus.REJECTED, text,
                     "/proposals/" + decided.approval().proposalId()));
         }
         for (Callsheet c : callsheets.findAll(shootDayId)) {
             if (c.proposalId() != null) {
-                items.add(new HistoryItem(c.createdAt(), "COMMITTED", "확정 콜시트 v" + c.versionNo(), "/"));
+                items.add(new HistoryItem(c.createdAt(), ProposalStatus.COMMITTED, "확정 콜시트 v" + c.versionNo(), "/"));
             } else if (c.restoredFrom() != null) {
                 items.add(new HistoryItem(c.createdAt(), "RESTORED", Josa.euroRo("콜시트 v" + c.restoredFrom()) + " 되돌려 v"
                         + c.versionNo() + " 배포" + (c.note() == null ? "" : " (" + c.note() + ")"), "/callsheet"));

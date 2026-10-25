@@ -100,4 +100,19 @@ public final class TaskDtos {
     /** proposalId는 함께 철회한 변경안이다. 승인을 기다리던 변경안이 없었으면 비어 있다. */
     public record CancelResult(long taskId, Long proposalId, String status) {
     }
+
+    /**
+     * 생각 기록(THOUGHT 이벤트) 하나를 골라 고쳐 달라는 요청이다.
+     *
+     * @param eventId 이 작업의 THOUGHT 이벤트 id
+     * @param comment 고쳐 달라는 내용 한 줄
+     */
+    public record RevisionRequest(@NotNull Long eventId, @NotBlank @Size(max = 300) String comment) {
+    }
+
+    /**
+     * @param phase plan이면 체크포인트에서 다시 계획하고, exec이면 실행팀이 해당 Agent만 다시 보낸다
+     */
+    public record RevisionAccepted(long taskId, String phase) {
+    }
 }

@@ -6,7 +6,10 @@ import com.shortcut.common.JsonColumns;
 import com.shortcut.domain.AiTask;
 import com.shortcut.domain.Approval;
 import com.shortcut.domain.Proposal;
+import com.shortcut.domain.ProposalStatus;
+import com.shortcut.domain.Role;
 import com.shortcut.domain.TaskEvent;
+import com.shortcut.domain.TaskStatus;
 import com.shortcut.dto.TaskDtos.CancelResult;
 import com.shortcut.repository.ProposalRepository;
 import com.shortcut.repository.TaskRepository;
@@ -28,8 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CancelService {
 
-    public static final String CANCELLED = "CANCELLED";
-    public static final String WITHDRAWN = "WITHDRAWN";
+    public static final String CANCELLED = TaskStatus.CANCELLED;
+    public static final String WITHDRAWN = ProposalStatus.WITHDRAWN;
 
     private final TaskRepository tasks;
     private final ProposalRepository proposals;
@@ -55,7 +58,7 @@ public class CancelService {
     public CancelResult cancel(CurrentUser user, long taskId, String reason) {
         AiTask task = tasks.findTask(taskId)
                 .orElseThrow(() -> ApiException.notFound("TASK_NOT_FOUND", "작업이 없습니다: " + taskId));
-        if (!EventService.CHANGE_ROLES.contains(user.role()) && !user.username().equals(task.requestedBy())) {
+        if (!Role.CHANGERS.contains(user.role()) && !user.username().equals(task.requestedBy())) {
             throw ApiException.forbidden("재계획 중단은 제작 PD, 연출감독, 요청한 사람만 할 수 있습니다.");
         }
         if (!"REPLAN".equals(task.kind())) {

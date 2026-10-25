@@ -3,6 +3,7 @@ doc_id: permit-hapjeong-rooftop
 title: 합정 루프탑 촬영 허가 조건 (시연용 샘플)
 doc_type: PERMIT
 version: 2026-10
+locations: 합정
 ---
 시연용 데이터의 합정 루프탑 야간 촬영 허가 조건을 정리한 자료입니다.
 

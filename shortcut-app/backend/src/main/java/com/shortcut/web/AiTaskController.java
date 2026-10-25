@@ -5,6 +5,8 @@ import com.shortcut.dto.ProposalDtos.ApprovalResult;
 import com.shortcut.dto.TaskDtos.AskRequest;
 import com.shortcut.dto.TaskDtos.CancelRequest;
 import com.shortcut.dto.TaskDtos.CancelResult;
+import com.shortcut.dto.TaskDtos.RevisionAccepted;
+import com.shortcut.dto.TaskDtos.RevisionRequest;
 import com.shortcut.dto.TaskDtos.TaskCreated;
 import com.shortcut.dto.TaskDtos.TaskView;
 import com.shortcut.security.CurrentUser;
@@ -67,8 +69,20 @@ public class AiTaskController {
 
     @GetMapping(value = "/{id}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(@PathVariable long id,
-                             @RequestHeader(value = "Last-Event-ID", required = false) Long lastEventId) {
-        return tasks.stream(id, lastEventId);
+                             @RequestHeader(value = "Last-Event-ID", required = false) Long lastEventId,
+                             @RequestParam(value = "after", required = false) Long after) {
+        // EventSource는 처음 열 때 헤더를 붙일 수 없으므로, 수정 요청 뒤 이어 받기는 after 쿼리로 한다. 헤더가 있으면 헤더가 우선이다.
+        return tasks.stream(id, lastEventId != null ? lastEventId : after);
+    }
+
+    /**
+     * 생각 하나를 고쳐 달라는 요청이다. Agent가 큐에서 이어 받아 처리하므로 202를 준다.
+     */
+    @PostMapping("/{id}/revisions")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public RevisionAccepted revise(@AuthenticationPrincipal Jwt jwt, @PathVariable long id,
+                                   @Valid @RequestBody RevisionRequest request) {
+        return tasks.revise(CurrentUser.from(jwt), id, request);
     }
 
     /**
