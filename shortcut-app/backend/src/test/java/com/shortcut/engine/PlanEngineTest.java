@@ -329,12 +329,24 @@ class PlanEngineTest {
     }
 
     @Test
-    void 이회차_오후는_1단계처럼_배우가_블록_내내_있다고_보면_실행_가능_후보가_없다() {
-        // 1단계 엔진은 배우가 블록 전체 시간에 있다고 봤다. 배우 C의 10:30~14:30 일정이 14:00 시작과 겹쳐 모두 막혔다.
+    void 이회차_오후는_배우가_블록_내내_있다고_보면_1_2_3안이_모두_막혀_조정_시간을_만든다() {
+        // 1단계 엔진처럼 배우가 블록 전체 시간에 있다고 보면 배우 C의 10:30~14:30 일정이 1/2/3안 시간대와 모두 겹친다.
+        // 그러면 배우들이 함께 되는 시간에 맞춰 성수 14:30~16:30 조정 시간을 장비 묶음마다 하나씩 만든다.
         EvaluationResult result = engine.evaluate(SeedPlan.day2(false), null, List.of());
 
-        assertThat(result.candidates()).hasSize(27).noneMatch(CandidateResult::feasible);
+        List<CandidateResult> reviewed = result.candidates().stream()
+                .filter(c -> c.timeOptionNo() != PlanEngine.ADJUSTED_TIME_OPTION_NO).toList();
+        List<CandidateResult> adjusted = result.candidates().stream()
+                .filter(c -> c.timeOptionNo() == PlanEngine.ADJUSTED_TIME_OPTION_NO).toList();
+        assertThat(reviewed).hasSize(27).noneMatch(CandidateResult::feasible);
         assertThat(find(result, "L2-E1,5-T14001600").violations()).extracting(Finding::code).containsExactly("ACTOR_BUSY");
+        assertThat(adjusted).hasSize(3).allSatisfy(c -> {
+            assertThat(c.feasible()).isTrue();
+            assertThat(c.location().id()).isEqualTo(2L);
+            assertThat(c.start()).isEqualTo(t("14:30"));
+            assertThat(c.end()).isEqualTo(t("16:30"));
+            assertThat(c.warnings()).extracting(Finding::code).contains("TIME_ADJUSTED");
+        });
     }
 
     @Test

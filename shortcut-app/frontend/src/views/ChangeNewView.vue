@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CircleAlert, Info } from '@lucide/vue'
+import { CircleAlert, Info, Plus, X } from '@lucide/vue'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
@@ -30,7 +30,20 @@ const error = ref(null)
 const options = ref(null)
 const weather = ref(null)
 const rain = ref({ locationId: null, fromHour: 13, toHour: 17, mm: 8 })
-const actor = ref({ actorId: null, mode: 'ABSENT', from: '09:00', to: '15:00', reasonKind: 'OTHER_PRODUCTION' })
+// 배우 일정 변경은 배우마다 한 줄이다. 여러 배우의 일정이 함께 바뀌면 줄을 더해 한 번에 접수한다(백엔드는 변경 10건까지 받는다).
+const MAX_ACTOR_ROWS = 10
+const actorRow = (actorId) => ({ actorId, mode: 'ABSENT', from: '09:00', to: '15:00', reasonKind: 'OTHER_PRODUCTION' })
+const actors = ref([actorRow(null)])
+
+function addActorRow() {
+  const used = new Set(actors.value.map((r) => r.actorId))
+  const next = options.value?.actors.find((a) => !used.has(a.id))?.id ?? options.value?.actors[0]?.id ?? null
+  actors.value.push(actorRow(next))
+}
+
+function removeActorRow(index) {
+  actors.value.splice(index, 1)
+}
 // 배우 다른 일정의 사유 종류다. 개인 사정은 적지 않고 종류만 고른다.
 const REASON_OPTIONS = [
   ['OTHER_PRODUCTION', '타 작품'],
@@ -55,7 +68,7 @@ onMounted(async () => {
     options.value = o
     rain.value.locationId = o.pmLocationId
     cancelLocationId.value = o.pmLocationId
-    actor.value.actorId = o.actors[0]?.id ?? null
+    actors.value[0].actorId = o.actors[0]?.id ?? null
     disaster.value.region = o.locations.find((l) => l.id === o.pmLocationId)?.region ?? o.regions[0] ?? ''
   } catch (e) {
     error.value = e
@@ -107,12 +120,13 @@ const changes = computed(() => {
         ? [{ kind: 'RAIN_FORECAST', targetId: rain.value.locationId, fromHour: rain.value.fromHour, toHour: rain.value.toHour, mm: Number(rain.value.mm) }]
         : []
     case 'ACTOR_SCHEDULE':
-      if (!actor.value.actorId) return []
-      if (actor.value.mode === 'ABSENT') return [{ kind: 'ACTOR_ABSENT', targetId: actor.value.actorId }]
-      if (actor.value.mode === 'BUSY') {
-        return [{ kind: 'ACTOR_BUSY', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to, reasonKind: actor.value.reasonKind }]
-      }
-      return [{ kind: 'ACTOR_WINDOW', targetId: actor.value.actorId, from: actor.value.from, to: actor.value.to }]
+      return actors.value
+        .filter((r) => r.actorId)
+        .map((r) => {
+          if (r.mode === 'ABSENT') return { kind: 'ACTOR_ABSENT', targetId: r.actorId }
+          if (r.mode === 'BUSY') return { kind: 'ACTOR_BUSY', targetId: r.actorId, from: r.from, to: r.to, reasonKind: r.reasonKind }
+          return { kind: 'ACTOR_WINDOW', targetId: r.actorId, from: r.from, to: r.to }
+        })
     case 'LOCATION_CANCEL':
       return cancelLocationId.value ? [{ kind: 'LOCATION_UNAVAILABLE', targetId: cancelLocationId.value }] : []
     case 'EQUIPMENT_FAILURE':
@@ -250,37 +264,47 @@ async function submit() {
                 </p>
               </div>
 
-              <div v-else-if="type === 'ACTOR_SCHEDULE'" class="grid gap-3 sm:grid-cols-4">
-                <Field class="sm:col-span-2">
-                  <FieldLabel for="actor">배우</FieldLabel>
-                  <select id="actor" v-model="actor.actorId" :class="selectClass">
-                    <option v-for="a in options.actors" :key="a.id" :value="a.id">{{ a.name }} (현재 {{ a.availableFrom }}~{{ a.availableTo }})</option>
-                  </select>
-                </Field>
-                <Field class="sm:col-span-2">
-                  <FieldLabel for="actor-mode">변경</FieldLabel>
-                  <select id="actor-mode" v-model="actor.mode" :class="selectClass">
-                    <option value="ABSENT">오늘 불참</option>
-                    <option value="WINDOW">가용 시간 변경</option>
-                    <option value="BUSY">다른 일정 추가(소속사 회신)</option>
-                  </select>
-                </Field>
-                <template v-if="actor.mode === 'WINDOW' || actor.mode === 'BUSY'">
+              <div v-else-if="type === 'ACTOR_SCHEDULE'" class="flex flex-col gap-3">
+                <div v-for="(row, i) in actors" :key="i" class="grid gap-3 rounded-md border p-3 sm:grid-cols-4">
                   <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-from">{{ actor.mode === 'BUSY' ? '다른 일정 시작' : '가용 시작' }}</FieldLabel>
-                    <Input id="actor-from" v-model="actor.from" type="time" />
-                  </Field>
-                  <Field class="sm:col-span-2">
-                    <FieldLabel for="actor-to">{{ actor.mode === 'BUSY' ? '다른 일정 끝' : '가용 끝' }}</FieldLabel>
-                    <Input id="actor-to" v-model="actor.to" type="time" />
-                  </Field>
-                  <Field v-if="actor.mode === 'BUSY'" class="sm:col-span-2">
-                    <FieldLabel for="actor-reason">사유 종류</FieldLabel>
-                    <select id="actor-reason" v-model="actor.reasonKind" :class="selectClass">
-                      <option v-for="[value, label] in REASON_OPTIONS" :key="value" :value="value">{{ label }}</option>
+                    <FieldLabel :for="`actor-${i}`">배우</FieldLabel>
+                    <select :id="`actor-${i}`" v-model="row.actorId" :class="selectClass">
+                      <option v-for="a in options.actors" :key="a.id" :value="a.id">{{ a.name }} (현재 {{ a.availableFrom }}~{{ a.availableTo }})</option>
                     </select>
                   </Field>
-                </template>
+                  <Field class="sm:col-span-2">
+                    <div class="flex items-center justify-between">
+                      <FieldLabel :for="`actor-mode-${i}`">변경</FieldLabel>
+                      <Button v-if="actors.length > 1" type="button" variant="ghost" size="sm" :aria-label="`${i + 1}번째 배우 줄 삭제`" @click="removeActorRow(i)">
+                        <X data-icon="inline-start" />삭제
+                      </Button>
+                    </div>
+                    <select :id="`actor-mode-${i}`" v-model="row.mode" :class="selectClass">
+                      <option value="ABSENT">오늘 불참</option>
+                      <option value="WINDOW">가용 시간 변경</option>
+                      <option value="BUSY">다른 일정 추가(소속사 회신)</option>
+                    </select>
+                  </Field>
+                  <template v-if="row.mode === 'WINDOW' || row.mode === 'BUSY'">
+                    <Field class="sm:col-span-2">
+                      <FieldLabel :for="`actor-from-${i}`">{{ row.mode === 'BUSY' ? '다른 일정 시작' : '가용 시작' }}</FieldLabel>
+                      <Input :id="`actor-from-${i}`" v-model="row.from" type="time" />
+                    </Field>
+                    <Field class="sm:col-span-2">
+                      <FieldLabel :for="`actor-to-${i}`">{{ row.mode === 'BUSY' ? '다른 일정 끝' : '가용 끝' }}</FieldLabel>
+                      <Input :id="`actor-to-${i}`" v-model="row.to" type="time" />
+                    </Field>
+                    <Field v-if="row.mode === 'BUSY'" class="sm:col-span-2">
+                      <FieldLabel :for="`actor-reason-${i}`">사유 종류</FieldLabel>
+                      <select :id="`actor-reason-${i}`" v-model="row.reasonKind" :class="selectClass">
+                        <option v-for="[value, label] in REASON_OPTIONS" :key="value" :value="value">{{ label }}</option>
+                      </select>
+                    </Field>
+                  </template>
+                </div>
+                <Button type="button" variant="outline" class="self-start" :disabled="actors.length >= MAX_ACTOR_ROWS" @click="addActorRow">
+                  <Plus data-icon="inline-start" />배우 추가
+                </Button>
               </div>
 
               <Field v-else-if="type === 'LOCATION_CANCEL'">

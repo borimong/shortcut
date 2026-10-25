@@ -104,10 +104,19 @@ public class ScheduleRepository {
     /**
      * 데이터 정합성 문제를 사람이 읽을 문장으로 돌려준다. 기동 때 경고 로그로만 남긴다.
      * 대사 화자가 등장 배역에 없거나, 배정한 씬의 배역이 캐스팅되지 않았거나, 블록 씬 길이 합이 블록보다 길거나,
-     * 같은 배우·날짜에 종일 불가와 가능 시간대가 함께 있는 경우다.
+     * 같은 배우·날짜에 종일 불가와 가능 시간대가 함께 있거나, 대본 씬에 촬영 장소가 없거나,
+     * 씬 배정에 적은 세트 장소가 대본 씬 촬영 장소와 다른 경우다.
      */
     public List<String> findIntegrityProblems() {
         return jdbc.sql("""
+                        SELECT ss.code || ' 대본 씬에 촬영 장소가 정해지지 않았습니다' FROM script_scenes ss
+                        WHERE ss.location_id IS NULL
+                        UNION ALL
+                        SELECT DISTINCT s.code || ' 배정 장소(' || s.location_id || ')가 대본 씬 촬영 장소('
+                               || ss.location_id || ')와 다릅니다' FROM scenes s
+                        JOIN script_scenes ss ON ss.project_id = s.project_id AND ss.code = s.code
+                        WHERE s.location_id <> ss.location_id
+                        UNION ALL
                         SELECT l.scene_code || ' 대사 화자(배역 ' || l.character_id || ')가 등장 배역에 없습니다' FROM script_lines l
                         WHERE l.kind = 'DIALOGUE' AND NOT EXISTS (
                             SELECT 1 FROM scene_characters sc

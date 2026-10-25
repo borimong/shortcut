@@ -72,13 +72,29 @@ def _json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+# 1/2/3안 시간대가 배우 일정으로 모두 막혀 엔진이 배우 가능 시간에 맞춰 만든 시간대의 안 번호다(PlanEngine.ADJUSTED_TIME_OPTION_NO).
+ADJUSTED_TIME_OPTION_NO = 0
+
+
+# 세트 고정 씬의 세트 장소가 1/2/3안 장소에 없어 엔진이 후보로 더한 장소의 안 번호다(PlanEngine.SET_LOCATION_OPTION_NO).
+SET_LOCATION_OPTION_NO = 5
+
+
+def _time_source(option_no: int) -> str:
+    return "조정 시간, 1/2/3안 밖" if option_no == ADJUSTED_TIME_OPTION_NO else f"{option_no}안"
+
+
+def _location_source(option_no: int) -> str:
+    return "세트 장소, 1/2/3안 밖" if option_no == SET_LOCATION_OPTION_NO else f"{option_no}안"
+
+
 def describe(candidate: dict[str, Any]) -> str:
     """후보안을 사람이 읽는 한 줄로 바꿉니다. 엔진이 씬 순서를 바꾼 후보는 새 씬 시각표를 붙입니다."""
     names = ", ".join(item["name"] for item in candidate["equipment"]["items"])
     text = (
-        f"장소 {candidate['location']['name']}({candidate['location']['optionNo']}안), "
+        f"장소 {candidate['location']['name']}({_location_source(candidate['location']['optionNo'])}), "
         f"장비 {names}({candidate['equipment']['optionNo']}안), "
-        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({candidate['time']['optionNo']}안), "
+        f"시간 {candidate['time']['start']}~{candidate['time']['end']}({_time_source(candidate['time']['optionNo'])}), "
         f"종합 점수 {candidate['totalScore']}"
     )
     if candidate.get("sceneOrderChanged"):
@@ -1046,11 +1062,27 @@ async def suggest_alternatives(state: dict[str, Any], ctx: RunContext) -> dict[s
     }
 
 
+def closest_candidate(candidates: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """사람에게 보여 줄 가장 가까운 후보입니다. 되는 후보가 있으면 점수 1등을, 없으면 세트 고정에 걸리지 않은 후보 가운데
+    위반이 가장 적은 것을 고릅니다. 점수 1등은 세트 밖 장소처럼 어떤 조율로도 성립하지 않는 안일 수 있습니다."""
+    if not candidates:
+        return None
+    feasible = [c for c in candidates if c["feasible"]]
+    if feasible:
+        return feasible[0]
+
+    def locked(candidate: dict[str, Any]) -> bool:
+        return any(v["code"] == "SCRIPT_SETTING_LOCKED" for v in candidate["violations"])
+
+    pool = [c for c in candidates if not locked(c)] or candidates
+    return min(pool, key=lambda c: (len(c["violations"]), -c["totalScore"]))
+
+
 @harnessed("report_human", "사람에게 보고")
 async def report_human(state: dict[str, Any], ctx: RunContext) -> dict[str, Any]:
     """멈춤 조건에 걸리면 지금까지의 최선안, 위반, 추천을 정리합니다. NEEDS_HUMAN 이벤트는 worker가 보냅니다."""
     stop = stop_condition(ctx.counter, ctx.settings.limits) or state.get("stop_condition") or NO_FEASIBLE_PLAN
-    best = next(iter(state.get("candidates") or []), None)
+    best = closest_candidate(state.get("candidates") or [])
     blockers = state.get("location_blockers") or []
     reason = STOP_MESSAGES[stop]
     if blockers:

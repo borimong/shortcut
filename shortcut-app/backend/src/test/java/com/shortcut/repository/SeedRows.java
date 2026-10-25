@@ -37,8 +37,32 @@ final class SeedRows {
     }
 
     /**
+     * UPDATE table ... FROM (VALUES (...), (...)) AS v (열, ...) 형식으로 덮어쓰는 값을 열 이름 → 값으로 읽는다.
+     * 대본 시드가 만든 행에 제작부 값을 얹을 때 이 형식을 쓴다. 같은 표의 UPDATE가 여럿이면 모두 읽으므로 열 이름으로 고른다.
+     */
+    static List<Map<String, String>> updateRows(String seed, String table) {
+        List<Map<String, String>> rows = new ArrayList<>();
+        Matcher update = Pattern.compile("UPDATE " + table + "\\b[^;]*?FROM \\(VALUES").matcher(seed);
+        Matcher alias = Pattern.compile("\\)\\s*AS v \\(([^)]*)\\)").matcher(seed);
+        while (update.find()) {
+            if (!alias.find(update.end())) {
+                continue;
+            }
+            String[] columns = alias.group(1).split(",");
+            for (List<String> tuple : tuples(seed, update.end())) {
+                Map<String, String> row = new HashMap<>();
+                for (int i = 0; i < columns.length; i++) {
+                    row.put(columns[i].strip(), tuple.get(i));
+                }
+                rows.add(row);
+            }
+        }
+        return rows;
+    }
+
+    /**
      * VALUES 뒤의 괄호 묶음을 값 목록으로 나눈다. 따옴표 안의 쉼표와 괄호는 값의 일부이고, 주석은 건너뛴다.
-     * 괄호 밖에서 쉼표와 공백이 아닌 글자(ON CONFLICT, 세미콜론)가 나오면 VALUES가 끝난 것이다.
+     * 괄호 밖에서 쉼표와 공백이 아닌 글자(ON CONFLICT, 세미콜론)나 FROM (VALUES ...)를 닫는 괄호가 나오면 VALUES가 끝난 것이다.
      */
     private static List<List<String>> tuples(String seed, int from) {
         List<List<String>> tuples = new ArrayList<>();
@@ -61,6 +85,9 @@ final class SeedRows {
                     value.append(c);
                 }
             } else if (c == ')') {
+                if (depth == 0) {
+                    break;
+                }
                 if (--depth > 0) {
                     value.append(c);
                 } else {
