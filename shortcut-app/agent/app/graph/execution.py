@@ -399,6 +399,33 @@ def _ok(outcomes: list[ToolOutcome], tool: str) -> list[dict[str, Any]]:
     return [o.data for o in outcomes if o.ok and o.name == tool and isinstance(o.data, dict)]
 
 
+def ledger_refs(prior: dict[str, Any]) -> list[dict[str, str]]:
+    """앞 단계 결과에서 장부에 기록할 수 있는 예약 번호를 모읍니다.
+
+    렌탈처럼 건너뛴 Agent는 결과가 없으므로 그 계정의 번호도 없습니다. 이 목록을 장부 Agent에 주지 않으면
+    모델이 장부 양식의 렌탈 항목을 채우려고 번호를 지어내고, 없는 번호 하나 때문에 기록 전체가 거절됐습니다.
+    """
+    refs: list[dict[str, str]] = []
+
+    def add(account, ref_type, ref_id):
+        if ref_id:
+            refs.append({"account": account, "ref_type": ref_type, "ref_id": str(ref_id)})
+
+    for agent, account, ref_type, key in (
+        ("venue", "VENUE", "RESERVATION", "reservationId"),
+        ("rental", "EQUIPMENT_RENTAL", "RENTAL", "bookingId"),
+        ("transport", "TRANSPORT", "TRANSPORT", "bookingId"),
+    ):
+        artifacts = (prior.get(agent) or {}).get("artifacts") or {}
+        add(account, ref_type, artifacts.get(key))
+        for cancelled in artifacts.get("cancelled") or []:
+            add("CANCEL_FEE", ref_type, cancelled.get(key))
+    for permit in ((prior.get("permit") or {}).get("artifacts") or {}).get("permits") or []:
+        if permit.get("status") == "APPROVED":
+            add("PERMIT_FEE", "PERMIT", permit.get("permitId"))
+    return refs
+
+
 def _cancelled(outcomes: list[ToolOutcome], tool: str, key: str) -> list[dict[str, Any]]:
     return [{key: d.get(key), "cancelFeeKrw": d.get("cancelFeeKrw", 0)} for d in _ok(outcomes, tool)]
 
@@ -535,6 +562,7 @@ def make_agent(name: str):
             facts=_json(facts),
             prior=_json(state.get("prior") or {}),
             comment=state.get("comment") or "없음",
+            refs=_json(ledger_refs(state.get("prior") or {})),
         )
         outcomes, last = await run_tool_loop(ctx, system, user, TOOLS[name], ctx.settings.limits.max_exec_tool_rounds)
         status, artifacts = JUDGES[name](outcomes, facts)

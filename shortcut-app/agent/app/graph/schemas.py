@@ -16,9 +16,11 @@ THOUGHT_FIELD = "생각 기록. 다른 필드보다 먼저 채웁니다. observa
 class Thought(BaseModel):
     """판단 노드가 남기는 생각 기록입니다. 화면의 생각 기록 탭에 그대로 보이고, 사용자가 이 단위로 수정을 요청합니다."""
 
-    observation: str = Field(description="무엇을 봤는지. 판단에 쓴 사실과 숫자를 한두 문장으로")
-    decision: str = Field(description="무엇을 정했는지 한 문장으로")
-    reason: str = Field(description="왜 그렇게 정했는지 한두 문장으로")
+    # 생각 기록은 화면 표시용이라 모델이 일부를 빠뜨려도 판단 결과를 버리지 않습니다. 빈 칸은 노드의 기본 생각으로 채웁니다.
+    # 필수로 두었을 때 같은 입력에서 decision과 reason을 매번 빠뜨려 구조화 응답 전체가 실패한 일이 있었습니다.
+    observation: str = Field(default="", description="무엇을 봤는지. 판단에 쓴 사실과 숫자를 한두 문장으로")
+    decision: str = Field(default="", description="무엇을 정했는지 한 문장으로")
+    reason: str = Field(default="", description="왜 그렇게 정했는지 한두 문장으로")
 
 
 class ImpactedEntity(BaseModel):

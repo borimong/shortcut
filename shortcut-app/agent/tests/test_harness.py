@@ -226,3 +226,26 @@ def test_tool_specs_reload_once_when_a_server_started_late():
     assert LateClient.calls == 2
     with pytest.raises(PermanentError):
         run(gateway.specs(["ops_ledger_record"]))
+
+
+def test_structured_output_is_asked_once_more_when_parsing_fails():
+    """모델이 필수 필드를 빠뜨려 해석에 실패하면 같은 요청을 한 번 더 보냅니다."""
+    from types import SimpleNamespace as _NS
+
+    from app.harness.model import ModelGateway
+
+    gateway = ModelGateway(primary=None, fallback=None)
+    raw = _NS(usage_metadata=None, response_metadata={})
+    answers = iter(
+        [
+            {"raw": raw, "parsed": None, "parsing_error": "thought.decision Field required"},
+            {"raw": raw, "parsed": {"ok": True}, "parsing_error": None},
+        ]
+    )
+
+    async def fake_recover(ctx, call):
+        return next(answers)
+
+    gateway._recover = fake_recover
+    ctx, _, _, _ = make_context()
+    assert run(gateway.structured(ctx, [], dict)) == {"ok": True}
