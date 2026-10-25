@@ -24,3 +24,7 @@ class RunContext:
     store: Any = None
     # 노드 래퍼가 State의 카운터를 복사해 넣고 노드가 끝나면 다시 State에 씁니다.
     counter: dict[str, Any] = field(default_factory=dict)
+    # 지금 일하는 Agent 이름입니다. 도구 이벤트와 Agent 카드가 이 값으로 누가 한 일인지 구분합니다.
+    agent: str = "planner"
+    # 실행팀 subgraph입니다. 부모 그래프의 execute 노드가 이 값으로 실행팀을 부릅니다.
+    exec_graph: Any = None

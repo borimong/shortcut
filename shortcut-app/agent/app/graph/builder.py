@@ -28,7 +28,8 @@ def guarded(limits: Limits, route: Callable[[dict[str, Any]], str]) -> Callable[
 
 def after_collect(state: dict[str, Any]) -> str:
     # 첫 검색에서 빠진 범주가 있으면 그 범주만 한 번 더 찾게 한다.
-    if state.get("missing_info") and state.get("info_retries", 0) < 2:
+    # 다시 찾아도 새 근거가 없었으면 같은 검색을 되풀이하지 않는다.
+    if state.get("missing_info") and state.get("info_retries", 0) < 2 and not state.get("evidence_stalled"):
         return "collect_constraints"
     return "reevaluate_plans"
 
@@ -45,7 +46,7 @@ def after_reevaluate(state: dict[str, Any]) -> str:
 def after_compose(state: dict[str, Any]) -> str:
     if state.get("selected_plan") is None:
         return "reevaluate_plans" if state.get("repeat_filtered") else when_exhausted(state)
-    if state.get("missing_info") and state.get("info_retries", 0) < nodes.MAX_INFO_RETRIES:
+    if state.get("missing_info") and state.get("info_retries", 0) < nodes.MAX_INFO_RETRIES and not state.get("evidence_stalled"):
         return "collect_constraints"
     # 자체 검토에서 설명만 고친 경우에는 같은 후보라 검증 게이트를 다시 거치지 않는다.
     if state["selected_plan"]["hash"] == state.get("validated_hash"):
@@ -78,7 +79,8 @@ def after_alternatives(state: dict[str, Any]) -> str:
 
 
 def after_commit(state: dict[str, Any]) -> str:
-    return "publish" if state.get("callsheet_version_no") else "reevaluate_plans"
+    # 확정되면 실행팀이 예약, 렌탈, 허가, 차량, 연락, 장부를 처리한 뒤 공지한다.
+    return "execute" if state.get("callsheet_version_no") else "reevaluate_plans"
 
 
 def build_replan_graph(limits: Limits) -> StateGraph:
@@ -95,6 +97,7 @@ def build_replan_graph(limits: Limits) -> StateGraph:
         "request_approval",
         "await_approval",
         "commit_plan",
+        "execute",
         "publish",
         "suggest_alternatives",
         "report_human",
@@ -136,7 +139,9 @@ def build_replan_graph(limits: Limits) -> StateGraph:
         ["commit_plan", "reevaluate_plans", "suggest_alternatives", "report_human"],
     )
     # 확정은 이미 사람이 승인한 결과라 한도를 넘었다는 이유로 멈추지 않는다.
-    graph.add_conditional_edges("commit_plan", after_commit, ["publish", "reevaluate_plans"])
+    graph.add_conditional_edges("commit_plan", after_commit, ["execute", "reevaluate_plans"])
+    # 확정 이후라 한도를 넘어도 되돌리지 않는다. 실행팀은 자체 한도(supervisor 판단 횟수, Agent별 반복)로 멈춘다.
+    graph.add_edge("execute", "publish")
     graph.add_edge("publish", END)
     graph.add_conditional_edges("suggest_alternatives", guarded(limits, after_alternatives), ["reevaluate_plans", "report_human"])
     graph.add_edge("report_human", END)

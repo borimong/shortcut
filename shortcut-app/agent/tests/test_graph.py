@@ -10,10 +10,12 @@ from langgraph.types import Command
 
 from app.graph.builder import build_replan_graph
 from app.graph.nodes import (
+    NO_DISASTER_ALERT_ID,
     applies_to_places,
     candidate_places,
     constraints_for_issues,
     counts_as_evidence,
+    data_evidence,
     evidence_score,
     fact_problems,
     mentions,
@@ -21,10 +23,10 @@ from app.graph.nodes import (
     quoted,
 )
 from app.graph.qa import build_qa_graph
-from app.graph.schemas import QuotedCheck
+from app.graph.schemas import ConstraintFinding, ConstraintSet, PlanExplanation, QuotedCheck
 from app.graph.state import HARD_CONSTRAINTS
 from app.harness.limits import LOOP_LIMIT, NO_FEASIBLE_PLAN, new_counter
-from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, FakeBackendState, FakeModel, make_context
+from tests.fakes import PAJU, SEONGSU, SEONGSU_MORNING, THOUGHT, FakeBackendState, FakeModel, _task_line, make_context
 
 CONFIG = {"configurable": {"thread_id": "event-1"}}
 
@@ -82,7 +84,9 @@ def test_first_loop_stops_at_approval_and_commits_after_all_approve():
         "compose_plan",
         "validation_gate",
     ]
-    assert nodes[-2:] == ["commit_plan", "publish"]
+    # 확정 뒤 실행팀이 돌고 공지로 끝난다.
+    assert nodes[-2:] == ["execute", "publish"]
+    assert nodes[nodes.index("commit_plan") + 1] == "supervisor"
 
 
 def test_impact_analysis_names_the_block_node_to_start_from():
@@ -187,9 +191,30 @@ def test_pass_without_evidence_is_downgraded_to_warning():
         return await graph.aget_state(CONFIG)
 
     run(scenario())
-    checklist = backend.proposals[0]["checklist"]
-    assert all(item["status"] == "WARN" for item in checklist)
+    checklist = {item["constraint"]: item for item in backend.proposals[0]["checklist"]}
+    # 재난 문자는 조회 결과(0건)가 근거라 모델이 인용하지 않아도 통과다.
+    assert checklist.pop("DISASTER")["status"] == "PASS"
+    assert all(item["status"] == "WARN" for item in checklist.values())
     assert any("근거 조항 확인 필요" in u for u in backend.proposals[0]["unresolved"])
+
+
+def test_no_disaster_alert_is_evidence_for_the_disaster_category():
+    ctx, backend, _, _ = make_context()
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    disaster = next(item for item in proposal["checklist"] if item["constraint"] == "DISASTER")
+    assert disaster["status"] == "PASS" and NO_DISASTER_ALERT_ID in disaster["evidence_ids"]
+    # 조회 결과는 rag 원문 대조 없이 근거 패널에 실린다.
+    assert any(e["id"] == NO_DISASTER_ALERT_ID and e["doc_type"] == "DATA" for e in proposal["evidence"])
+
+
+def test_disaster_alert_data_counts_only_when_no_alert_was_issued():
+    assert NO_DISASTER_ALERT_ID in data_evidence({"disaster_alerts": {"alerts": []}})
+    assert data_evidence({"disaster_alerts": {"alerts": [{"type": "HEAVY_RAIN"}]}}) == {}
+    assert data_evidence({}) == {}
+    fact = data_evidence({"disaster_alerts": {"alerts": []}})[NO_DISASTER_ALERT_ID]
+    assert counts_as_evidence("DISASTER", fact) and not counts_as_evidence("WEATHER", fact)
 
 
 def test_cited_evidence_is_checked_against_original_resource():
@@ -569,3 +594,125 @@ def test_citation_must_match_document_type_and_not_be_an_intro():
     assert not counts_as_evidence("SCHEDULE", law)
     assert counts_as_evidence("SCHEDULE", permit_hours)
     assert not counts_as_evidence("NO_FLY_ZONE", {"doc_type": "NO_FLY", "heading": "개요"})
+
+
+class OmittingModel(FakeModel):
+    """제약 정리에서 정해 둔 범주를 비워 두는 가짜 모델입니다. 실제 로그에서 본 누락(재난 조항, 재수집 때 날씨 조항)을 흉내 낸다."""
+
+    def __init__(self, omit_rounds, *, recheck=True, explain_omit=(), **kwargs):
+        super().__init__(**kwargs)
+        self.omit_rounds = [set(o) for o in omit_rounds]
+        self.recheck = recheck
+        self.explain_omit = set(explain_omit)
+        self.summaries = 0
+        self.rechecks = 0
+
+    async def structured(self, ctx, messages, schema):
+        result = await super().structured(ctx, messages, schema)
+        if schema is ConstraintSet and "재확인" in _task_line(messages):
+            self.rechecks += 1
+            return result if self.recheck else ConstraintSet(findings=[], thought=THOUGHT)
+        if schema is ConstraintSet:
+            omit = self.omit_rounds[min(self.summaries, len(self.omit_rounds) - 1)]
+            self.summaries += 1
+            findings = [
+                ConstraintFinding(constraint=f.constraint, summary="", evidence_ids=[]) if f.constraint in omit else f
+                for f in result.findings
+            ]
+            return ConstraintSet(findings=findings, thought=THOUGHT)
+        if schema is PlanExplanation and self.explain_omit:
+            for item in result.checklist:
+                if item.constraint in self.explain_omit:
+                    item.evidence_ids = []
+        return result
+
+
+ALERT = {"type": "HEAVY_RAIN", "region": "서울", "message": "호우 경보"}
+
+
+def test_empty_category_is_rechecked_from_collected_clauses_without_searching_again():
+    backend = FakeBackendState(disaster_alerts=[ALERT])
+    model = OmittingModel([{"DISASTER"}])
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        return (await graph.aget_state(CONFIG)).values
+
+    values = run(scenario())
+    disaster = next(h for h in values["hard_constraints"] if h["constraint"] == "DISASTER")
+    assert disaster["evidence_ids"] == ["safety-disaster-weather#1"]
+    # 다시 검색하지 않고(제약 정리 1번) 받은 조항에서 고르기만 한다.
+    assert model.rechecks == 1 and model.summaries == 1
+
+
+def test_recollection_keeps_earlier_citations_and_stops_when_nothing_new_is_found():
+    backend = FakeBackendState(disaster_alerts=[ALERT])
+    # 근거 말고는 고칠 곳이 없도록 비용 이유를 설명에 넣는다.
+    cost = ["추가 비용 150,000원은 실내 스튜디오 대관료 때문에 듭니다."] * 5
+    model = OmittingModel(
+        [{"DISASTER"}, {"DISASTER", "WEATHER"}], recheck=False, explain_omit={"DISASTER"}, explanation_extras=cost
+    )
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+
+    async def scenario():
+        await graph.ainvoke(initial_state(), CONFIG, context=ctx)
+        return (await graph.aget_state(CONFIG)).values
+
+    values = run(scenario())
+    weather = next(h for h in values["hard_constraints"] if h["constraint"] == "WEATHER")
+    # 두 번째 정리에서 날씨 조항을 빠뜨려도 첫 번째에서 찾은 근거가 남는다.
+    assert weather["evidence_ids"] == ["safety-disaster-weather#2"]
+    assert values["evidence_stalled"] is True
+    assert model.summaries == 2
+    # 남은 사유가 더 구할 수 없는 근거뿐이라 1회차에서 승인 요청으로 넘어가고, 빈 범주는 미확정 항목에 남는다.
+    proposal = backend.proposals[0]
+    assert proposal["review"]["rounds"] == 1 and proposal["review"]["passed"] is False
+    assert "DISASTER 근거 조항 확인 필요" in proposal["unresolved"]
+
+
+def test_permit_for_another_place_is_not_evidence_for_the_chosen_plan():
+    # 한강에만 적용되는 허가 조항은 후보 장소(한강 현재안)로는 수집되지만, 성수 안의 근거는 아니다.
+    backend = FakeBackendState(hit_overrides={"contract-actor-a-v3#1": {"doc_type": "PERMIT", "locations": ["한강"]}})
+    model = OmittingModel([set()])
+    ctx, _, _, _ = make_context(backend, model=model)
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    proposal = backend.proposals[0]
+    assert proposal["candidate"]["location_id"] == SEONGSU["location"]["id"]
+    schedule = next(item for item in proposal["checklist"] if item["constraint"] == "SCHEDULE")
+    assert "contract-actor-a-v3#1" not in schedule["evidence_ids"]
+    # 그 조항이 유일한 근거였던 범주는 성수에 맞는 조항에서 다시 고르게 한 번 묻는다.
+    assert model.rechecks >= 1
+
+
+def test_no_fly_list_for_another_place_still_counts_for_the_chosen_plan():
+    # 비행금지 안내는 피해야 할 장소 목록이라, 다른 후보 장소(한강)를 적은 조항도 성수 안의 비행금지 근거가 된다.
+    backend = FakeBackendState(hit_overrides={"no-fly-zone-notice#2": {"locations": ["한강"]}})
+    ctx, _, _, _ = make_context(backend)
+    graph, _ = compile_graph(ctx)
+    run(graph.ainvoke(initial_state(), CONFIG, context=ctx))
+    no_fly = next(item for item in backend.proposals[0]["checklist"] if item["constraint"] == "NO_FLY_ZONE")
+    assert no_fly["evidence_ids"] == ["no-fly-zone-notice#2"]
+
+
+def test_recheck_files_clauses_under_their_own_category_when_the_model_mislabels_it():
+    from app.graph.nodes import recheck_empty_categories
+
+    class MislabelingModel(FakeModel):
+        async def structured(self, ctx, messages, schema):
+            # 일정 칸의 계약 조항을 고르고 범주 이름은 사건 종류(DISASTER)로 적는다.
+            return ConstraintSet(
+                findings=[ConstraintFinding(constraint="DISASTER", summary="호우 경보로 촬영 불가", evidence_ids=["c#1"])],
+                thought=THOUGHT,
+            )
+
+    ctx, _, _, _ = make_context(model=MislabelingModel())
+    evidence = {"c#1": {"doc_type": "CONTRACT", "heading": "제5조 촬영 시간", "title": "계약서", "text": "09시부터 16시까지"}}
+    findings = {"SCHEDULE": {"constraint": "SCHEDULE", "summary": "", "evidence_ids": []}}
+    filled = run(recheck_empty_categories(ctx, {"event": {}}, findings, evidence, only={"SCHEDULE"}))
+    assert filled == ["SCHEDULE"]
+    assert findings["SCHEDULE"]["evidence_ids"] == ["c#1"]
+    assert "호우" not in findings["SCHEDULE"]["summary"]

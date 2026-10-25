@@ -175,3 +175,54 @@ def test_all_models_failing_raises_model_unavailable():
 
     with pytest.raises(ModelUnavailableError):
         run(call_with_recovery(failing, failing, sleep=no_sleep))
+
+
+def test_tool_specs_load_once_when_parallel_agents_ask_at_the_same_time():
+    """실행팀 Agent가 Send로 동시에 처음 도구 목록을 읽어도 빈 목록을 보지 않아야 한다."""
+    import asyncio as _asyncio
+    from types import SimpleNamespace as _NS
+
+    from app.harness.tools import ToolGateway as _Gateway
+
+    class SlowClient:
+        calls = 0
+
+        async def list_tools(self):
+            SlowClient.calls += 1
+            await _asyncio.sleep(0.05)
+            return [
+                _NS(name="venue_check", description="", input_schema={}),
+                _NS(name="rental_quote", description="", input_schema={}),
+            ]
+
+    gateway = _Gateway({"ops": SlowClient()}, timeout_seconds=1, max_chars=1000, max_same_calls=3)
+
+    async def scenario():
+        return await _asyncio.gather(gateway.specs(["ops_venue_check"]), gateway.specs(["ops_rental_quote"]))
+
+    first, second = _asyncio.run(scenario())
+    assert first[0]["function"]["name"] == "ops_venue_check"
+    assert second[0]["function"]["name"] == "ops_rental_quote"
+    assert SlowClient.calls == 1
+
+
+def test_tool_specs_reload_once_when_a_server_started_late():
+    """에이전트보다 늦게 뜬 MCP 서버의 도구는 목록을 한 번 다시 읽어 찾고, 그래도 없으면 재시도하지 않을 오류를 낸다."""
+    from types import SimpleNamespace as _NS
+
+    from app.harness.recovery import PermanentError
+    from app.harness.tools import ToolGateway as _Gateway
+
+    class LateClient:
+        calls = 0
+
+        async def list_tools(self):
+            LateClient.calls += 1
+            names = ["venue_check"] if LateClient.calls == 1 else ["venue_check", "rental_quote"]
+            return [_NS(name=n, description="", input_schema={}) for n in names]
+
+    gateway = _Gateway({"ops": LateClient()}, timeout_seconds=1, max_chars=1000, max_same_calls=3)
+    assert run(gateway.specs(["ops_rental_quote"]))[0]["function"]["name"] == "ops_rental_quote"
+    assert LateClient.calls == 2
+    with pytest.raises(PermanentError):
+        run(gateway.specs(["ops_ledger_record"]))

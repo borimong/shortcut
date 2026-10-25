@@ -21,6 +21,10 @@ class ModelUnavailableError(RuntimeError):
     """재시도와 대체 모델까지 모두 실패했을 때 냅니다."""
 
 
+class PermanentError(RuntimeError):
+    """작업을 다시 실행해도 같은 결과가 나오는 오류입니다. worker는 재시도 큐로 보내지 않고 바로 실패로 처리합니다."""
+
+
 def is_retryable(error: Exception) -> bool:
     """같은 요청을 다시 보내면 성공할 수 있는 오류인지 판정합니다."""
     if isinstance(error, openai.APIStatusError):

@@ -78,6 +78,15 @@ services:
     depends_on:
       - backend
 
+  # 실행팀 Agent 전용 가상 외부 서비스 도구(장소, 장비, 허가, 차량, 연락, 장부). backend /internal/ops/** 를 부른다.
+  ops-mcp:
+    build: ./mcp/ops-mcp
+    environment:
+      <<: *secrets
+      BACKEND_INTERNAL_URL: http://backend:8080
+    depends_on:
+      - backend
+
   rag-mcp:
     build: ./mcp/rag-mcp
     environment:
@@ -105,6 +114,7 @@ services:
       BACKEND_INTERNAL_URL: http://backend:8080
       BUSINESS_MCP_URL: http://business-mcp:9101/mcp
       RAG_MCP_URL: http://rag-mcp:9102/mcp
+      OPS_MCP_URL: http://ops-mcp:9103/mcp
       RABBITMQ_URL: amqp://shortcut:shortcut@rabbitmq:5672/
       CHECKPOINT_DSN: postgresql://shortcut:shortcut@postgres:5432/shortcut?options=-csearch_path%3Dagent
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -118,6 +128,7 @@ services:
       rabbitmq: { condition: service_healthy }
       business-mcp: { condition: service_started }
       rag-mcp: { condition: service_started }
+      ops-mcp: { condition: service_started }
 
   frontend:
     build: ./frontend

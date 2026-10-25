@@ -37,6 +37,10 @@ class ReplanState(TypedDict, total=False):
     evidence: dict[str, dict[str, Any]]
     missing_info: list[str]
     info_retries: int
+    # 마지막 재수집이 새 조항도 새 범주도 찾지 못했는지. 참이면 같은 루프 안에서는 다시 검색하지 않는다.
+    evidence_stalled: bool
+    # 장소 이름 -> 그 장소에 맞게 추린 하드 제약 근거와, 추릴 때의 수집 회차
+    place_constraints: dict[str, dict[str, Any]]
     # 최적화 가중치와 조정 이유
     weights: dict[str, float]
     weight_rationale: str
@@ -84,6 +88,19 @@ class ReplanState(TypedDict, total=False):
     alternatives: list[dict[str, Any]]
     suggestions: list[dict[str, Any]]
     result: dict[str, Any]
+    # 노드 실행 순번이다. 생각 기록(THOUGHT)의 step이 이 값이고, 계획 단계 수정 요청은 이 값으로 체크포인트를 찾는다
+    step_seq: int
+    # 사용자가 생각 기록에서 고른 수정 요청. 판단 노드가 "반드시 반영" 섹션으로 받는다
+    user_feedback: list[str]
+    # 가중치를 사용자 수정 요청까지 반영해 다시 조정했는지 판단하려고 그때의 요청 개수를 남긴다
+    weights_feedback_count: int
+    # 실행 단계 수정 요청 {agent, comment}. 실행팀 supervisor가 그 Agent와 뒤 단계 Agent만 다시 보낸다
+    revise_order: dict[str, Any] | None
+    # 처리한 수정 요청의 이벤트 id. 큐가 같은 메시지를 두 번 보내도 한 번만 반영한다
+    revisions_done: list[int]
+    # 실행팀 보고 전체(수정 요청으로 다시 돌린 보고까지 시간순)와 마지막 실행 요약
+    exec_reports: list[dict[str, Any]]
+    execution: dict[str, Any] | None
 
 
 class QaState(TypedDict, total=False):
@@ -96,3 +113,4 @@ class QaState(TypedDict, total=False):
     evidence: dict[str, dict[str, Any]]
     answer: str
     loop_counter: dict[str, Any]
+    step_seq: int

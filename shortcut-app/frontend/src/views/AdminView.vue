@@ -4,6 +4,7 @@ import { CircleAlert } from '@lucide/vue'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -56,7 +57,9 @@ async function saveSettings() {
       maxLoops: Number(settings.value.maxLoops),
       rainBlockMm: Number(settings.value.rainBlockMm),
       rainWarnMm: Number(settings.value.rainWarnMm),
-      rainAlertLeadHours: Number(settings.value.rainAlertLeadHours)
+      rainAlertLeadHours: Number(settings.value.rainAlertLeadHours),
+      mockVenueConflict: !!settings.value.mockVenueConflict,
+      mockPermitDenied: !!settings.value.mockPermitDenied
     }
     settings.value = { ...(await api('/admin/settings', { method: 'PUT', body })) }
     toast.info('운영 설정을 저장했습니다. 다음 안건부터 적용됩니다.')
@@ -166,6 +169,24 @@ const leftMembers = computed(() => members.value.filter((m) => !m.active))
               <FieldLabel for="rain-lead">우천 알림 시점 (몇 시간 전)</FieldLabel>
               <Input id="rain-lead" v-model="settings.rainAlertLeadHours" type="number" min="0" max="48" required />
               <FieldDescription>비가 시작되는 촬영 시각보다 이만큼 먼저 전 스태프에게 "비로 촬영 불가" 알림을 보냅니다.</FieldDescription>
+            </Field>
+          </FieldGroup>
+          <!-- 가상 외부 서비스가 일부러 실패하게 만들어 실행팀의 뒤 단계 중단, 재지시, 사람 보고를 시연한다 -->
+          <FieldGroup class="mt-6 gap-3">
+            <h3 class="text-sm font-medium">실행팀 실패 시연</h3>
+            <Field orientation="horizontal">
+              <Checkbox id="mock-venue" v-model="settings.mockVenueConflict" />
+              <div class="flex flex-col gap-0.5">
+                <FieldLabel for="mock-venue">장소 가예약 실패 시연</FieldLabel>
+                <FieldDescription>켜면 가상 아워플레이스가 같은 시간대 예약이 있다며 가예약을 거절합니다. 2, 3단계가 실행되지 않는지 볼 수 있습니다.</FieldDescription>
+              </div>
+            </Field>
+            <Field orientation="horizontal">
+              <Checkbox id="mock-permit" v-model="settings.mockPermitDenied" />
+              <div class="flex flex-col gap-0.5">
+                <FieldLabel for="mock-permit">촬영 허가 반려 시연</FieldLabel>
+                <FieldDescription>켜면 가상 허가 기관이 촬영 허가를 반려합니다. 연락과 장부 전에 멈추는지 볼 수 있습니다.</FieldDescription>
+              </div>
             </Field>
           </FieldGroup>
           <div class="mt-4 flex flex-wrap justify-end gap-2">

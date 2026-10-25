@@ -17,11 +17,12 @@ public final class AdminDtos {
     }
 
     public record SettingsView(int maxLoops, double rainBlockMm, double rainWarnMm, int rainAlertLeadHours,
+                               boolean mockVenueConflict, boolean mockPermitDenied,
                                String updatedBy, OffsetDateTime updatedAt) {
 
         public static SettingsView of(AppSettings s) {
             return new SettingsView(s.maxLoops(), s.rainBlockMm(), s.rainWarnMm(), s.rainAlertLeadHours(),
-                    s.updatedBy(), s.updatedAt());
+                    s.mockVenueConflict(), s.mockPermitDenied(), s.updatedBy(), s.updatedAt());
         }
     }
 
@@ -29,7 +30,9 @@ public final class AdminDtos {
             @NotNull @Min(1) @Max(10) Integer maxLoops,
             @NotNull @DecimalMin("0.1") @DecimalMax("100") Double rainBlockMm,
             @NotNull @DecimalMin("0") @DecimalMax("100") Double rainWarnMm,
-            @NotNull @Min(0) @Max(48) Integer rainAlertLeadHours) {
+            @NotNull @Min(0) @Max(48) Integer rainAlertLeadHours,
+            Boolean mockVenueConflict,
+            Boolean mockPermitDenied) {
     }
 
     /**
