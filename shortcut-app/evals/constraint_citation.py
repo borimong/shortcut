@@ -170,6 +170,8 @@ async def run_scenario(scenario: Scenario, deps: SimpleNamespace) -> dict:
         "plan_set": {
             "current": {"location": {"name": names[0]}},
             "options": [{"optionNo": i + 1, "location": {"name": name}} for i, name in enumerate(names)],
+            # 노드가 블록의 씬 코드로 대본을 찾는다(SCRIPT 범주). 이 평가는 대본 밖 7개 범주를 재므로 씬은 비워 둔다.
+            "block": {"scenes": [], "actorIds": []},
         },
         "impacted_entities": {"contract_doc_ids": scenario.contract_doc_ids, "risks": scenario.risks},
         "conditions": {"disaster_alerts": {"alerts": scenario.alerts}},

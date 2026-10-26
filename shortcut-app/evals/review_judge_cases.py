@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import Any
 
 REAL_PATH = Path(__file__).resolve().parent / "review_judge_real.json"
-CATEGORIES = ["CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER"]
+# 대본(SCRIPT)은 PR #8에서 하드 제약 범주에 들어왔다. 체크리스트에 없으면 노드가 근거 0건 범주로 보고 통과를 막으므로 함께 둔다.
+CATEGORIES = ["CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEATHER", "SCRIPT"]
 # 실제 실행에서 각 범주에 인용된 조항 중 범주에 맞는 것만 골랐다.
 EVIDENCE = {
     "CONTRACT": ["contract-actor-a-v3#1", "contract-actor-b-v1#1"],
@@ -28,6 +29,7 @@ EVIDENCE = {
     "NO_FLY_ZONE": ["no-fly-zone-notice#1"],
     "DISASTER": ["safety-disaster-weather#1"],
     "WEATHER": ["safety-disaster-weather#2"],
+    "SCRIPT": ["script-ep07-v1#13"],
 }
 ISSUE_NAMES = {"LOCATION": "장소", "EQUIPMENT": "장비", "TIME": "시간"}
 ROLE_NAMES = {"SOUND": "동시녹음팀장", "DOP": "촬영감독", "DIRECTOR": "연출감독", "AD1": "조감독", "PRODUCER": "제작 PD"}
@@ -70,6 +72,7 @@ def _checklist(candidate: dict[str, Any], event: dict[str, Any]) -> list[dict[st
         "WEATHER": "실내 장소라 시간당 강수량 기준 적용 대상 아님"
         if candidate["location"]["indoor"]
         else f"{loc} {start}~{end} 예보 강수량이 촬영 불가 기준 미만",
+        "SCRIPT": "변경 대상 씬의 대본 원문 장소 조건과 등장 배역 확인, 엔진 대본 경고 없음",
     }
     return [{"constraint": c, "status": "PASS", "note": notes[c], "evidenceIds": list(EVIDENCE[c])} for c in CATEGORIES]
 
