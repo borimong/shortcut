@@ -95,6 +95,7 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | #6 | 재난 문자 0건 조회 결과를 근거로 인정, 확정 뒤 실행팀(6 Agent, ops-mcp), 생각 기록 수정 요청, 근거 루프 개선 | 김현수 |
 | #7 | 장부 번호 목록, 재확인 후보, 생각 기록 누락 수정 | 김현수 |
 | #8 | 대본과 배우 날짜별 일정 교차검증, 블록 안 씬 순서 바꾸기, 재계획 중단과 되돌리기, 실시간 날씨 예보, 스키마 정리 | 신지호 |
+| #10 | rag-mcp 검색을 하이브리드(벡터 + BM25)로 바꾸고 검색 품질 개선 전후 측정(평가 결과 8행) | 안윤태 |
 
 ## 평가 결과 (Phase 1 대 Phase 2)
 
@@ -154,5 +155,5 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | 임지현 | R1 PM, AI Engineer | - |
 | 신지호 | R5 Frontend, AI Engineer | #4, #8 |
 | 정원규 | R6 QA, Eval | - (#2 열림) |
-| 안윤태 | R4 Backend, Tool | - (Phase 1 MCP 서버 #1) |
+| 안윤태 | R4 Backend, Tool (MCP, RAG 검색) | #10 (Phase 1 MCP 서버 #1) |
 | 최준형 | R4 Backend, Tool | #3 |
