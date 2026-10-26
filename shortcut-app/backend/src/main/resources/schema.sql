@@ -756,3 +756,8 @@ COMMENT ON COLUMN scenes.location_id IS '세트 고정 씬(script_scenes.setting
 -- 고정이 아닌 씬은 블록이 대체 장소로 옮겨 가면 거기서 찍으므로 지금 블록 장소와 다를 수 있다.
 ALTER TABLE script_scenes ADD COLUMN IF NOT EXISTS location_id bigint REFERENCES locations (id);
 COMMENT ON COLUMN script_scenes.location_id IS '제작부가 정한 이 씬의 촬영 장소. 세트 고정 씬은 scenes.location_id와 같고, 고정이 아닌 씬은 블록이 옮겨 가면 그 장소에서 찍는다.';
+
+-- 안내문을 보낸 실행 라운드다. 같은 작업, 같은 라운드, 같은 받는 사람에게는 한 번만 보낸다.
+-- 안내문은 LLM이 써서 재시도 때마다 문장이 조금씩 달라지므로 문장으로는 중복을 가릴 수 없다.
+-- 비어 있으면 라운드를 모르는 호출이라 예전처럼 같은 문장일 때만 중복으로 본다.
+ALTER TABLE outreach_messages ADD COLUMN IF NOT EXISTS exec_round integer;

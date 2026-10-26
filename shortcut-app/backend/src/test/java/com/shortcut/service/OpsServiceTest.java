@@ -18,11 +18,14 @@ import com.shortcut.domain.ForecastInfo;
 import com.shortcut.domain.Location;
 import com.shortcut.domain.ShootDay;
 import com.shortcut.dto.OpsDtos.LedgerEntryRequest;
+import com.shortcut.dto.OpsDtos.OutgoingMessage;
 import com.shortcut.dto.OpsDtos.LedgerRequest;
 import com.shortcut.dto.OpsDtos.LedgerResult;
 import com.shortcut.dto.OpsDtos.PermitApplyRequest;
 import com.shortcut.dto.OpsDtos.PermitResult;
 import com.shortcut.dto.OpsDtos.Replies;
+import com.shortcut.dto.OpsDtos.SendRequest;
+import com.shortcut.dto.OpsDtos.SendResult;
 import com.shortcut.dto.OpsDtos.TransportQuote;
 import com.shortcut.dto.OpsDtos.TransportQuoteRequest;
 import com.shortcut.dto.OpsDtos.VenueCancelResult;
@@ -31,6 +34,7 @@ import com.shortcut.dto.OpsDtos.VenueHoldResult;
 import com.shortcut.repository.OpsRepository;
 import com.shortcut.repository.OpsRepository.LedgerRow;
 import com.shortcut.repository.OpsRepository.MessageRow;
+import com.shortcut.repository.OpsRepository.RentalRow;
 import com.shortcut.repository.OpsRepository.ReservationRow;
 import com.shortcut.repository.UserRepository;
 import java.time.LocalDate;
@@ -240,7 +244,39 @@ class OpsServiceTest {
         verify(ops).updateMessageReply(eq(2L), eq("QUESTION"), eq(OpsService.QUESTION_REPLY));
     }
 
+    @Test
+    void 같은_라운드에서_이미_보낸_사람에게는_문장이_달라도_다시_보내지_않는다() {
+        given(ops.findRentals(DAY)).willReturn(List.of(bookedRental()));
+        MessageRow sent = new MessageRow(5, DAY, 7L, "VENDOR:rental", "가상 렌탈사", "장비 업체", "EMAIL",
+                "14:00까지 성수 스튜디오로 장비를 보내 주세요", "SENT", null);
+        // 재시도에서 LLM이 같은 내용을 다른 문장으로 다시 썼다.
+        String rewritten = "성수 스튜디오에 14시 전까지 장비 도착 부탁드립니다";
+        given(ops.findMessage(7L, "VENDOR:rental", 1, rewritten)).willReturn(Optional.of(sent));
+
+        SendResult result = service.send(new SendRequest(DAY, 7L, List.of(new OutgoingMessage("VENDOR:rental", rewritten)), 1));
+
+        assertThat(result.sent()).extracting("messageId").containsExactly(5L);
+        verify(ops, never()).insertMessage(any(), any());
+    }
+
+    @Test
+    void 다음_라운드의_정정_안내는_새로_보내고_라운드를_남긴다() {
+        given(ops.findRentals(DAY)).willReturn(List.of(bookedRental()));
+        given(ops.insertMessage(any(), eq(2))).willReturn(9L);
+
+        SendResult result = service.send(new SendRequest(DAY, 7L,
+                List.of(new OutgoingMessage("VENDOR:rental", "도착 시각이 13:30으로 바뀌었습니다")), 2));
+
+        assertThat(result.sent()).extracting("messageId").containsExactly(9L);
+        verify(ops).findMessage(7L, "VENDOR:rental", 2, "도착 시각이 13:30으로 바뀌었습니다");
+        verify(ops).insertMessage(any(), eq(2));
+    }
+
     // ---------------------------------------------------------------- 시드
+
+    private static RentalRow bookedRental() {
+        return new RentalRow("RT-1", DAY, 7L, List.of(1L), T14, T16, "BOOKED", 0, LocalTime.of(13, 0), 0);
+    }
 
     private static ReservationRow reservation(String id, String status, long cost) {
         return new ReservationRow(id, DAY, 2L, T14, T16, status, "OURPLACE_MOCK", 7L, cost, 0);

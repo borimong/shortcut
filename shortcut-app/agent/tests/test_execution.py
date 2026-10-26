@@ -132,6 +132,23 @@ def test_exec_revision_reruns_only_the_target_and_its_dependents():
     assert "조명은 2시 도착으로" in rental_prompt
 
 
+def test_send_message_gets_task_and_round_from_code_not_model():
+    # 가짜 모델은 send_message에 라운드를 넣지 않는다. 작업 번호와 라운드는 Harness가 채워야 한다.
+    ctx, _, clients, _ = make_context()
+    first = run_exec(ctx, exec_input(facts(taskId=42)))
+    sends = [args for name, args in clients["ops"].calls if name == "send_message"]
+    contact_round = next(r["round"] for r in first["exec_reports"] if r["agent"] == "contact")
+    # 라운드는 supervisor가 단계마다 올리는 번호다. 재시도로 노드가 다시 돌아도 체크포인트의 같은 값이 들어간다.
+    assert sends and all(a["task_id"] == 42 and a["round"] == contact_round for a in sends)
+
+    clients["ops"].calls.clear()
+    run_exec(ctx, exec_input(facts(taskId=42), prior_reports=first["exec_reports"], rounds=first["rounds"],
+                             revise_order={"agent": "contact", "comment": "집결 시각을 다시 알려 주세요"}))
+    resends = [args for name, args in clients["ops"].calls if name == "send_message"]
+    # 수정 요청 뒤에는 라운드가 올라가 정정 안내를 새로 보낸다.
+    assert resends and all(a["round"] > contact_round for a in resends)
+
+
 def initial_state():
     return {
         "task_id": 1,
