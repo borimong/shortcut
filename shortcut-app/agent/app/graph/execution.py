@@ -549,6 +549,12 @@ def _tool_log(outcomes: list[ToolOutcome]) -> str:
     return "\n".join(lines) or "도구를 부르지 않았습니다"
 
 
+def _fixed_args(state: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """안내문 발송에 작업 번호와 실행 라운드를 코드가 넣습니다. 백엔드가 이 둘과 받는 사람으로 중복을 가려,
+    재시도로 노드가 다시 돌며 모델이 문장을 새로 써도 같은 라운드에는 한 번만 보냅니다."""
+    return {"ops_send_message": {"task_id": state["facts"]["taskId"], "round": state["round"]}}
+
+
 def make_agent(name: str):
     """실행 Agent 노드를 만듭니다. 도구는 LLM이 고르고, 성공 여부와 결과물은 코드가 도구 결과로 판정합니다."""
 
@@ -564,7 +570,9 @@ def make_agent(name: str):
             comment=state.get("comment") or "없음",
             refs=_json(ledger_refs(state.get("prior") or {})),
         )
-        outcomes, last = await run_tool_loop(ctx, system, user, TOOLS[name], ctx.settings.limits.max_exec_tool_rounds)
+        outcomes, last = await run_tool_loop(
+            ctx, system, user, TOOLS[name], ctx.settings.limits.max_exec_tool_rounds, fixed_args=_fixed_args(state)
+        )
         status, artifacts = JUDGES[name](outcomes, facts)
         note = await ctx.model.structured(
             ctx,

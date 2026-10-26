@@ -243,7 +243,24 @@ public class OpsRepository {
                              String role, String channel, String text, String status, String reply) {
     }
 
-    public Optional<MessageRow> findMessage(Long taskId, String recipientId, String text) {
+    /**
+     * 이미 보낸 안내문을 찾는다. 라운드를 알면 작업, 라운드, 받는 사람으로 찾고(문장은 보지 않음),
+     * 모르면 예전처럼 같은 문장일 때만 같은 안내문으로 본다.
+     */
+    public Optional<MessageRow> findMessage(Long taskId, String recipientId, Integer round, String text) {
+        if (round != null) {
+            return jdbc.sql("""
+                            SELECT * FROM outreach_messages
+                            WHERE task_id IS NOT DISTINCT FROM CAST(:taskId AS bigint) AND recipient_id = :recipientId
+                              AND exec_round = :round
+                            ORDER BY id LIMIT 1
+                            """)
+                    .param("taskId", taskId)
+                    .param("recipientId", recipientId)
+                    .param("round", round)
+                    .query(OpsRepository::mapMessage)
+                    .optional();
+        }
         return jdbc.sql("""
                         SELECT * FROM outreach_messages
                         WHERE task_id IS NOT DISTINCT FROM CAST(:taskId AS bigint) AND recipient_id = :recipientId AND text = :text
@@ -256,13 +273,14 @@ public class OpsRepository {
                 .optional();
     }
 
-    public long insertMessage(MessageRow m) {
+    public long insertMessage(MessageRow m, Integer round) {
         return jdbc.sql("""
                         INSERT INTO outreach_messages (shoot_day_id, task_id, recipient_id, recipient_name, role, channel,
-                                                       text, status, reply)
-                        VALUES (:shootDayId, :taskId, :recipientId, :name, :role, :channel, :text, :status, :reply)
+                                                       text, status, reply, exec_round)
+                        VALUES (:shootDayId, :taskId, :recipientId, :name, :role, :channel, :text, :status, :reply, :round)
                         RETURNING id
                         """)
+                .param("round", round)
                 .param("shootDayId", m.shootDayId())
                 .param("taskId", m.taskId())
                 .param("recipientId", m.recipientId())

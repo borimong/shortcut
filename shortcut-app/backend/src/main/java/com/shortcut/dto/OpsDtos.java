@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.time.LocalTime;
 import java.util.List;
@@ -134,8 +135,17 @@ public final class OpsDtos {
             @NotBlank @Size(max = 1000) String text) {
     }
 
+    /**
+     * @param round 실행팀 라운드. 주면 같은 작업, 같은 라운드에서 이미 보낸 사람에게는 다시 보내지 않는다(재시도 대비).
+     *              다음 라운드(수정 요청 뒤)의 정정 안내는 새로 보낸다
+     */
     public record SendRequest(@NotNull Long shootDayId, Long taskId,
-                              @NotEmpty @Size(max = 40) List<@Valid OutgoingMessage> messages) {
+                              @NotEmpty @Size(max = 40) List<@Valid OutgoingMessage> messages,
+                              @Positive Integer round) {
+
+        public SendRequest(Long shootDayId, Long taskId, List<OutgoingMessage> messages) {
+            this(shootDayId, taskId, messages, null);
+        }
     }
 
     public record SentMessage(long messageId, String recipientId, String status) {

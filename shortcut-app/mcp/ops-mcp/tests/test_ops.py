@@ -209,6 +209,16 @@ def test_contact_tools():
     assert seen[2][:3] == ("GET", "/internal/ops/messages/replies", {"taskId": "9"})
 
 
+def test_send_message_passes_round_only_when_given():
+    seen, server = recorder()
+    message = {"recipient_id": "ACTOR:1", "text": "13:30 집결"}
+    call(server, "send_message", {"shoot_day_id": 1, "task_id": 9, "messages": [message], "round": 2})
+    call(server, "send_message", {"shoot_day_id": 1, "task_id": 9, "messages": [message]})
+    # 라운드가 있으면 백엔드가 작업, 라운드, 받는 사람으로 중복을 가린다. 없으면 예전 요청 그대로다.
+    assert seen[0][3]["round"] == 2
+    assert "round" not in seen[1][3]
+
+
 def test_send_message_rejects_unknown_recipient_format():
     seen, server = recorder()
     with pytest.raises(ToolError):

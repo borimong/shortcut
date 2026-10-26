@@ -396,13 +396,15 @@ public class OpsService {
                 throw ApiException.badRequest("VALIDATION_FAILED",
                         "연락 대상이 아닙니다: " + message.recipientId() + ". contacts_for_change 결과의 recipientId를 쓰세요");
             }
-            Optional<MessageRow> existing = ops.findMessage(request.taskId(), message.recipientId(), message.text());
+            // 같은 라운드에서 이미 보낸 사람이면 다시 보내지 않는다. 재시도로 LLM이 문장을 새로 써도 한 번만 간다.
+            Optional<MessageRow> existing = ops.findMessage(request.taskId(), message.recipientId(), request.round(),
+                    message.text());
             if (existing.isPresent()) {
                 sent.add(new SentMessage(existing.get().id(), message.recipientId(), existing.get().status()));
                 continue;
             }
             long id = ops.insertMessage(new MessageRow(0, request.shootDayId(), request.taskId(), contact.recipientId(),
-                    contact.name(), contact.role(), contact.channel(), message.text(), "SENT", null));
+                    contact.name(), contact.role(), contact.channel(), message.text(), "SENT", null), request.round());
             if (message.recipientId().startsWith("USER:")) {
                 notifications.notifyUsernames(List.of(message.recipientId().substring("USER:".length())),
                         NotificationService.CHANGE_NOTICE, "촬영 변경 안내", message.text(), "/");

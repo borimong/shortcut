@@ -264,10 +264,14 @@ def build_server(backend: BackendClient | None = None) -> FastMCP:
         shoot_day_id: ShootDayId,
         task_id: TaskId,
         messages: Annotated[list[Message], Field(min_length=1, max_length=40, description="받는 사람별 안내문")],
+        round: Annotated[int | None, Field(ge=1, description="실행팀 라운드. Agent Harness가 채운다")] = None,
     ) -> dict:
         """여러 사람에게 안내문을 한 번에 보낸다. 안내문에는 바뀐 내용, 확정된 예약 번호, 집결 시각(HH:mm)과 장소,
-        장비 도착 시각, 허가 조건처럼 그 사람이 움직이는 데 필요한 것을 담는다. 보낸 뒤 get_replies로 응답을 모은다."""
+        장비 도착 시각, 허가 조건처럼 그 사람이 움직이는 데 필요한 것을 담는다. 보낸 뒤 get_replies로 응답을 모은다.
+        같은 작업, 같은 라운드에서 이미 보낸 사람에게는 다시 보내지 않으므로 재시도해도 안내가 두 번 가지 않는다."""
         body = {"shootDayId": shoot_day_id, "taskId": task_id, "messages": [m.to_backend() for m in messages]}
+        if round is not None:
+            body["round"] = round
         return await call("POST", "/internal/ops/messages", json=body)
 
     @mcp.tool(annotations=READ_ONLY)

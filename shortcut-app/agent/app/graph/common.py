@@ -154,9 +154,15 @@ def feedback_block(state: dict[str, Any]) -> str:
 
 
 async def run_tool_loop(
-    ctx: RunContext, system: str, user: str, allowed: list[str], max_rounds: int
+    ctx: RunContext,
+    system: str,
+    user: str,
+    allowed: list[str],
+    max_rounds: int,
+    fixed_args: dict[str, dict[str, Any]] | None = None,
 ) -> tuple[list[ToolOutcome], AIMessage]:
-    """모델이 허용된 도구 가운데 필요한 것을 고르고, Harness가 실행해 결과를 돌려주는 반복입니다."""
+    """모델이 허용된 도구 가운데 필요한 것을 고르고, Harness가 실행해 결과를 돌려주는 반복입니다.
+    fixed_args는 도구별로 코드가 정하는 인자입니다(작업 번호, 실행 라운드). 모델이 적은 값보다 우선합니다."""
     specs = await ctx.tools.specs(allowed)
     messages: list[BaseMessage] = [SystemMessage(system), HumanMessage(user)]
     outcomes: list[ToolOutcome] = []
@@ -168,7 +174,8 @@ async def run_tool_loop(
         if not last.tool_calls:
             break
         for call in last.tool_calls:
-            outcome = await ctx.tools.call(ctx, call["name"], call["args"], allowed=allowed)
+            args = {**call["args"], **((fixed_args or {}).get(call["name"]) or {})}
+            outcome = await ctx.tools.call(ctx, call["name"], args, allowed=allowed)
             outcomes.append(outcome)
             messages.append(
                 ToolMessage(
