@@ -117,7 +117,7 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | 근거 인용 | `python -m evals.constraint_citation --corpus full --label <이름>` | `phase1_constraint_citation.md`, `phase2_constraint_citation.md` |
 | 자체 검토 채점 | `python -m evals.review_judge --label <이름>` | `phase1_review_judge*.md`, `phase2_review_judge*.md` |
 | 통합 시나리오 | `INTERNAL_TOKEN=... python -m evals.run_eval --label <이름>` | `phase1_eval.md`, `phase2_eval.md` |
-| 검색 품질(참고, 개선 전 측정만) | rag-mcp 이미지 안에서 `python -m evals.rag_retrieval --label baseline` (파일 머리말 참고) | `phase1_rag_retrieval.md` |
+| 검색 품질 | rag-mcp 이미지 안에서 `python -m evals.rag_retrieval --label <이름>` (파일 머리말 참고). Phase 2에 rag-mcp 검색을 하이브리드(벡터 + BM25)로 바꿈 | `phase1_rag_retrieval.md`, `phase2_rag_retrieval.md` |
 
 - 자체 검토 별도 세트(4행)는 결과를 보기 전에 독립 수치로 남긴 2026-10-23 코드 측정값입니다. 본 세트(3행)는 현재 main으로 다시 쟀고, PR #8에서 하드 제약에 대본(SCRIPT) 범주가 들어와 케이스 체크리스트에 대본 근거 1건을 더했습니다.
 - 근거 인용 평가의 개선 후 값은 운영 코퍼스를 Phase 1과 같은 8문서로 고정하고 쟀습니다. main에 새로 들어온 문서 4개(배우 D, E 계약서, 합정 허가서, 대본)는 정답 라벨이 없어 넣으면 평가셋이 달라지기 때문입니다.

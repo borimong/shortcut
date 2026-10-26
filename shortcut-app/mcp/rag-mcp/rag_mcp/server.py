@@ -23,6 +23,7 @@ from pydantic import Field
 
 from rag_mcp.chunking import Document, split_into_chunks, split_places
 from rag_mcp.embedding import Embedder
+from rag_mcp.hybrid import fuse
 from rag_mcp.store import Store
 
 logger = logging.getLogger("rag-mcp")
@@ -37,6 +38,9 @@ DocId = Annotated[str, Field(pattern=r"^[a-z0-9\-]+$", max_length=80)]
 SceneCode = Annotated[str, Field(pattern=r"^S\d{1,3}$", description="씬 코드, 예: S12")]
 # 대본 문서는 씬마다 "S#12. 장소 (낮, 실외)" 머리말로 잘린다. 대본 한 편의 씬 수보다 넉넉하게 잡는다.
 MAX_SCRIPT_CHUNKS = 200
+# 하이브리드 검색에서 BM25로 다시 매길 벡터 후보 수. 범위(문서 종류·계약서 한 건) 안의 조각을 거의 다 받는 크기다.
+HYBRID_POOL = 60
+SEARCH_MODES = ("hybrid", "vector")
 
 
 def format_error(code: str, message: str, retryable: bool) -> str:
@@ -44,8 +48,14 @@ def format_error(code: str, message: str, retryable: bool) -> str:
     return f"[{code}] {message} (retryable={'true' if retryable else 'false'})"
 
 
-def build_server(store: Store, embedder: Embedder) -> FastMCP:
-    """저장소와 임베딩 모델을 주입받아 도구와 Resource를 등록한다."""
+def build_server(store: Store, embedder: Embedder, search_mode: str | None = None) -> FastMCP:
+    """저장소와 임베딩 모델을 주입받아 도구와 Resource를 등록한다.
+
+    search_mode: "hybrid"(기본, 벡터 + BM25 순위 합치기) 또는 "vector"(벡터만). 비우면 RAG_SEARCH_MODE를 읽는다.
+    """
+    mode = (search_mode or os.getenv("RAG_SEARCH_MODE", "hybrid")).lower()
+    if mode not in SEARCH_MODES:
+        raise ValueError(f"RAG_SEARCH_MODE는 {' 또는 '.join(SEARCH_MODES)}: {mode}")
     mcp = FastMCP(
         "rag-mcp",
         instructions=(
@@ -61,9 +71,13 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
             logger.warning("질의 임베딩 실패: %s", error)
             raise ToolError(format_error("EMBEDDING_UNAVAILABLE", "임베딩 모델을 호출할 수 없습니다. 잠시 뒤 다시 시도하세요.", True)) from error
 
-    def run_search(vector: list[float], k: int, **filters) -> list[dict]:
+    def run_search(query: str, k: int, **filters) -> list[dict]:
+        vector = embed_query(query)
         try:
-            rows = store.search(vector, k, **filters)
+            if mode == "hybrid":
+                rows = fuse(query, store.search(vector, max(k, HYBRID_POOL), **filters), k)
+            else:
+                rows = store.search(vector, k, **filters)
         except Exception as error:
             logger.warning("벡터 검색 실패: %s", error)
             raise ToolError(format_error("VECTOR_DB_UNAVAILABLE", "벡터 DB 검색에 실패했습니다. 잠시 뒤 다시 시도하세요.", True)) from error
@@ -96,7 +110,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         특정 장소의 허가 조건이나 비행 금지 구역을 찾을 때는 질의에 장소 이름을 넣는다.
         계약서와 대본은 포함하지 않는다. 계약서 조항은 search_contract_clause, 대본 씬은 search_script를 쓴다."""
         types = list(doc_types) if doc_types else REGULATION_TYPES
-        return run_search(embed_query(query), k, doc_types=types)
+        return run_search(query, k, doc_types=types)
 
     @mcp.tool(annotations=READ_ONLY)
     def search_contract_clause(
@@ -116,7 +130,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
                 "get_entity_context로 배우의 현재 계약서 ID를 다시 확인하세요.",
                 False,
             ))
-        return run_search(embed_query(query), k, doc_id=contract_doc_id)
+        return run_search(query, k, doc_id=contract_doc_id)
 
     @mcp.tool(annotations=READ_ONLY)
     def search_script(
@@ -129,8 +143,8 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         """대본(SCRIPT 문서)에서 씬 원문을 찾는다. 씬 머리말(heading)에 극 중 장소, 낮/밤, 실내/실외가 있다.
         영향 받는 씬의 대본 요구(야외 장면인지, 밤 장면인지, 누가 나오는지)를 근거로 인용할 때 쓴다."""
         if not scene_codes:
-            return run_search(embed_query(query), k, doc_types=["SCRIPT"])
-        hits = run_search(embed_query(query), MAX_SCRIPT_CHUNKS, doc_types=["SCRIPT"])
+            return run_search(query, k, doc_types=["SCRIPT"])
+        hits = run_search(query, MAX_SCRIPT_CHUNKS, doc_types=["SCRIPT"])
         order = {f"S#{int(code[1:]):02d}.": i for i, code in enumerate(scene_codes)}
         picked = [hit for hit in hits if hit["heading"].split(" ", 1)[0] in order]
         return sorted(picked, key=lambda hit: (order[hit["heading"].split(" ", 1)[0]], hit["chunk_id"]))
@@ -182,10 +196,10 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
 
     @mcp.resource("rag://index/info", mime_type="application/json")
     def index_info() -> str:
-        """색인 문서 목록과 임베딩 모델 이름·차원. 질의도 같은 모델로 임베딩해야 하므로 함께 공개한다."""
+        """색인 문서 목록과 임베딩 모델 이름·차원, 검색 방식. 질의도 같은 모델로 임베딩해야 하므로 함께 공개한다."""
         documents = [{k: v for k, v in d.items() if k != "text"} for d in store.list_documents()]
         return json.dumps(
-            {"embedding_model": embedder.model, "dimension": embedder.dimension, "documents": documents},
+            {"embedding_model": embedder.model, "dimension": embedder.dimension, "search_mode": mode, "documents": documents},
             ensure_ascii=False,
             default=str,
         )
