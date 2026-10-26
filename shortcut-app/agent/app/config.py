@@ -16,8 +16,9 @@ class Limits:
 
     # 한 번의 변경 이벤트에서 최적안을 다시 만드는 횟수 상한이다. 거절을 네 번까지 보완하고 다섯 번째 거절 뒤에는 사람이 조건을 정리한다.
     max_loops: int = 5
-    # 도구 호출 총량 상한이다. 실측한 첫 루프 16~20회에 재계획 루프마다 4~5회, 4안 구성 2회, 자체 검토의 후보 교체 검증을 더해 60으로 잡았다.
-    max_tool_calls: int = 60
+    # 도구 호출 총량 상한이다. 대본 범주와 후보 장소별 허가, 비행금지 검색이 들어간 뒤(PR #8) 실측은 첫 루프 41회,
+    # 거절 뒤 루프는 근거 수집만 20회를 넘었다(2026-10-26). 거절 두 번과 4안 구성까지 약 100회라 120으로 잡았다.
+    max_tool_calls: int = 120
     # 루프 하나의 자동 탐색 시간 상한(초)이다. 승인 대기는 빼고, 거절로 새 루프가 시작되면 다시 센다.
     # 현장에서 재계획 한 번을 기다릴 수 있는 시간으로 2분을 잡았다.
     max_seconds: int = 120
@@ -71,7 +72,7 @@ class Settings:
             fallback_model=os.getenv("FALLBACK_MODEL", "gpt-4.1-mini"),
             limits=Limits(
                 max_loops=_int("MAX_LOOPS", 5),
-                max_tool_calls=_int("MAX_TOOL_CALLS", 60),
+                max_tool_calls=_int("MAX_TOOL_CALLS", 120),
                 max_seconds=_int("MAX_SECONDS", 120),
                 max_same_tool_calls=_int("MAX_SAME_TOOL_CALLS", 3),
                 review_pass_score=_int("REVIEW_PASS_SCORE", 80),

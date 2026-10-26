@@ -26,6 +26,9 @@ HARD = ("CONTRACT", "SCHEDULE", "LAW", "BUDGET", "NO_FLY_ZONE", "DISASTER", "WEA
 ROLE_USERS = {"PRODUCER": "pd", "DIRECTOR": "director", "AD1": "ad1", "AD2": "ad2", "DOP": "dop", "SOUND": "sound"}
 # 승인 대기까지 LLM 호출이 여러 번 이어지고, 확정 뒤에는 실행팀(3단계, Agent 최대 6개)이 더 돌아서 넉넉히 기다린다.
 WAIT_SECONDS = 360
+# 평가는 그날 실제 날씨와 상관없이 같은 결과가 나와야 하므로 시드 고정 예보(1회차 한강 13시부터 시간당 8mm)로 돌린다.
+# 기본값인 실시간 예보(LIVE)로 두면 비가 안 오는 날에는 우천 시나리오의 기대 결과가 성립하지 않는다.
+EVAL_SETTINGS = {"weatherSource": "SEED"}
 
 
 @dataclass
@@ -168,7 +171,7 @@ def apply_settings(api: Api, changes: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_scenario(api: Api, scenario: Scenario) -> dict[str, Any]:
-    previous = apply_settings(api, scenario.settings) if scenario.settings else {}
+    previous = apply_settings(api, {**EVAL_SETTINGS, **scenario.settings})
     try:
         return _run_scenario(api, scenario)
     finally:
