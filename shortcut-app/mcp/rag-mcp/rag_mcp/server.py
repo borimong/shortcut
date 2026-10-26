@@ -7,6 +7,9 @@
 도구 4개   search_regulation, search_contract_clause (조회) · index_document (쓰기) · delete_document (삭제)
 Resource   rag://documents/{doc_id} (원문, 근거 패널) · rag://index/info (색인 목록, 임베딩 모델)
 
+검색은 의미 검색(pgvector)과 BM25(글자 2개 단위)의 순위를 RRF로 합친 하이브리드다.
+임베딩 모델을 부를 수 없으면 BM25 결과만으로 답하고 retrieval을 "lexical"로 표시한다.
+
 실행:  python -m rag_mcp.server        → http://0.0.0.0:9102/mcp (Streamable HTTP)
 """
 from __future__ import annotations
@@ -14,7 +17,8 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Annotated, Literal
+import time
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ResourceError, ToolError
@@ -23,6 +27,7 @@ from pydantic import Field
 
 from rag_mcp.chunking import Document, split_into_chunks, split_places
 from rag_mcp.embedding import Embedder
+from rag_mcp.lexical import Bm25, rrf
 from rag_mcp.store import Store
 
 logger = logging.getLogger("rag-mcp")
@@ -37,6 +42,8 @@ DocId = Annotated[str, Field(pattern=r"^[a-z0-9\-]+$", max_length=80)]
 SceneCode = Annotated[str, Field(pattern=r"^S\d{1,3}$", description="씬 코드, 예: S12")]
 # 대본 문서는 씬마다 "S#12. 장소 (낮, 실외)" 머리말로 잘린다. 대본 한 편의 씬 수보다 넉넉하게 잡는다.
 MAX_SCRIPT_CHUNKS = 200
+# 다른 프로세스가 색인을 바꿨을 때 BM25 색인이 이 시간 안에는 따라온다.
+LEXICAL_TTL_SECONDS = 300
 
 
 def format_error(code: str, message: str, retryable: bool) -> str:
@@ -61,27 +68,73 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
             logger.warning("질의 임베딩 실패: %s", error)
             raise ToolError(format_error("EMBEDDING_UNAVAILABLE", "임베딩 모델을 호출할 수 없습니다. 잠시 뒤 다시 시도하세요.", True)) from error
 
-    def run_search(vector: list[float], k: int, **filters) -> list[dict]:
+    # BM25 색인은 조각 전체로 만들어 메모리에 둔다. 이 서버로 색인하거나 지우면 비우고,
+    # 다른 프로세스가 바꾼 경우에 대비해 일정 시간이 지나면 다시 만든다.
+    lexical: dict[str, Any] = {}
+
+    def lexical_index(force: bool = False) -> tuple[list[dict], Bm25]:
+        if force or not lexical or time.monotonic() - lexical["built_at"] > LEXICAL_TTL_SECONDS:
+            try:
+                rows = store.all_chunks()
+            except Exception as error:
+                logger.warning("BM25 색인용 조각 조회 실패: %s", error)
+                raise ToolError(format_error("VECTOR_DB_UNAVAILABLE", "벡터 DB 검색에 실패했습니다. 잠시 뒤 다시 시도하세요.", True)) from error
+            bm25 = Bm25({r["chunk_id"]: f"{r['title']}\n{r['heading']}\n{r['text']}" for r in rows})
+            lexical.update(rows=rows, bm25=bm25, built_at=time.monotonic())
+        return lexical["rows"], lexical["bm25"]
+
+    def hit(row: dict, score: float | None, rank_score: float, retrieval: str) -> dict:
+        return {
+            "chunk_id": row["chunk_id"],
+            "doc_id": row["doc_id"],
+            "title": row["title"],
+            "doc_type": row["doc_type"],
+            "version": row["version"],
+            "heading": row["heading"],
+            "text": row["text"],
+            # 비어 있으면 어디에나 적용되는 조항이다. Agent가 후보 장소와 맞지 않는 조항을 근거에서 뺀다.
+            "locations": list(row.get("locations") or []),
+            # score는 의미 검색의 코사인 유사도다. 순서는 rank_score(RRF)로 정해진다.
+            "score": None if score is None else round(float(score), 4),
+            "rank_score": round(rank_score, 6),
+            "retrieval": retrieval,
+        }
+
+    def run_search(
+        query: str, k: int, *, doc_types: list[str] | None = None, doc_id: str | None = None, refreshed: bool = False
+    ) -> list[dict]:
+        """의미 검색과 BM25의 순위를 RRF로 합쳐 상위 k개를 돌려준다. 임베딩이 안 되면 BM25 결과만 쓴다."""
+        rows, bm25 = lexical_index(force=refreshed)
+        pool = [r for r in rows if (not doc_types or r["doc_type"] in doc_types) and (not doc_id or r["doc_id"] == doc_id)]
+        position = {r["chunk_id"]: i for i, r in enumerate(pool)}
+        lexical_scores = {r["chunk_id"]: bm25.score(query, r["chunk_id"]) for r in pool}
+        by_lexical = sorted(position, key=lambda cid: (-lexical_scores[cid], position[cid]))
+
         try:
-            rows = store.search(vector, k, **filters)
+            vector = embed_query(query)
+        except ToolError:
+            matched = [cid for cid in by_lexical if lexical_scores[cid] > 0][:k]
+            if not matched:
+                raise
+            logger.warning("임베딩 없이 BM25 결과 %d건으로 답합니다.", len(matched))
+            by_id = {r["chunk_id"]: r for r in pool}
+            return [hit(by_id[cid], None, lexical_scores[cid], "lexical") for cid in matched]
+
+        try:
+            dense = store.search(vector, max(k, len(pool)), doc_types=doc_types, doc_id=doc_id)
         except Exception as error:
             logger.warning("벡터 검색 실패: %s", error)
             raise ToolError(format_error("VECTOR_DB_UNAVAILABLE", "벡터 DB 검색에 실패했습니다. 잠시 뒤 다시 시도하세요.", True)) from error
-        return [
-            {
-                "chunk_id": row["chunk_id"],
-                "doc_id": row["doc_id"],
-                "title": row["title"],
-                "doc_type": row["doc_type"],
-                "version": row["version"],
-                "heading": row["heading"],
-                "text": row["text"],
-                # 비어 있으면 어디에나 적용되는 조항이다. Agent가 후보 장소와 맞지 않는 조항을 근거에서 뺀다.
-                "locations": list(row.get("locations") or []),
-                "score": round(float(row["score"]), 4),
-            }
-            for row in rows
-        ]
+        if not refreshed and any(row["chunk_id"] not in position for row in dense):
+            # 다른 프로세스가 새로 색인한 조각이 있으면 BM25 색인을 한 번 다시 만들어 두 순위가 같은 조각을 보게 한다.
+            return run_search(query, k, doc_types=doc_types, doc_id=doc_id, refreshed=True)
+        dense = [row for row in dense if row["chunk_id"] in position]
+
+        cosine = {row["chunk_id"]: row["score"] for row in dense}
+        fused = rrf([[row["chunk_id"] for row in dense], by_lexical])
+        ranked = sorted(fused, key=lambda cid: (-fused[cid], position[cid]))[:k]
+        by_id = {r["chunk_id"]: r for r in pool}
+        return [hit(by_id[cid], cosine.get(cid), fused[cid], "hybrid") for cid in ranked]
 
     @mcp.tool(annotations=READ_ONLY)
     def search_regulation(
@@ -96,7 +149,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         특정 장소의 허가 조건이나 비행 금지 구역을 찾을 때는 질의에 장소 이름을 넣는다.
         계약서와 대본은 포함하지 않는다. 계약서 조항은 search_contract_clause, 대본 씬은 search_script를 쓴다."""
         types = list(doc_types) if doc_types else REGULATION_TYPES
-        return run_search(embed_query(query), k, doc_types=types)
+        return run_search(query, k, doc_types=types)
 
     @mcp.tool(annotations=READ_ONLY)
     def search_contract_clause(
@@ -116,7 +169,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
                 "get_entity_context로 배우의 현재 계약서 ID를 다시 확인하세요.",
                 False,
             ))
-        return run_search(embed_query(query), k, doc_id=contract_doc_id)
+        return run_search(query, k, doc_id=contract_doc_id)
 
     @mcp.tool(annotations=READ_ONLY)
     def search_script(
@@ -129,8 +182,8 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         """대본(SCRIPT 문서)에서 씬 원문을 찾는다. 씬 머리말(heading)에 극 중 장소, 낮/밤, 실내/실외가 있다.
         영향 받는 씬의 대본 요구(야외 장면인지, 밤 장면인지, 누가 나오는지)를 근거로 인용할 때 쓴다."""
         if not scene_codes:
-            return run_search(embed_query(query), k, doc_types=["SCRIPT"])
-        hits = run_search(embed_query(query), MAX_SCRIPT_CHUNKS, doc_types=["SCRIPT"])
+            return run_search(query, k, doc_types=["SCRIPT"])
+        hits = run_search(query, MAX_SCRIPT_CHUNKS, doc_types=["SCRIPT"])
         order = {f"S#{int(code[1:]):02d}.": i for i, code in enumerate(scene_codes)}
         picked = [hit for hit in hits if hit["heading"].split(" ", 1)[0] in order]
         return sorted(picked, key=lambda hit: (order[hit["heading"].split(" ", 1)[0]], hit["chunk_id"]))
@@ -160,6 +213,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         except Exception as error:
             raise ToolError(format_error("EMBEDDING_UNAVAILABLE", "임베딩 모델을 호출할 수 없습니다.", True)) from error
         store.upsert(document, chunks, vectors, embedder.model)
+        lexical.clear()
         return {"doc_id": doc_id, "chunks": len(chunks), "embedding_model": embedder.model, "dimension": embedder.dimension}
 
     @mcp.tool(annotations=DESTRUCTIVE)
@@ -167,6 +221,7 @@ def build_server(store: Store, embedder: Embedder) -> FastMCP:
         """문서와 chunk를 색인에서 지운다. 되돌릴 수 없다."""
         if not store.delete(doc_id):
             raise ToolError(format_error("DOCUMENT_NOT_FOUND", f"{doc_id} 문서가 색인에 없습니다.", False))
+        lexical.clear()
         return {"doc_id": doc_id, "deleted": True}
 
     @mcp.resource("rag://documents/{doc_id}", mime_type="text/markdown")

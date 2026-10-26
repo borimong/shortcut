@@ -30,6 +30,8 @@ from pathlib import Path
 from typing import Any
 
 from rag_mcp.chunking import Chunk, Document, parse_markdown, split_into_chunks
+# 운영 rag-mcp의 하이브리드 검색과 같은 BM25를 쓴다.
+from rag_mcp.lexical import Bm25
 
 ROOT = Path(__file__).resolve().parent.parent
 GOLDEN = Path(__file__).resolve().parent / "rag_golden.json"
@@ -153,34 +155,6 @@ def _cosine(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return dot / norm if norm else 0.0
-
-
-def _bigrams(text: str) -> list[str]:
-    """한국어는 형태소 분석기 없이 어절 안의 글자 두 개씩을 토큰으로 쓴다(조사가 붙어도 겹치게)."""
-    tokens = []
-    for word in re.findall(r"[0-9A-Za-z가-힣]+", text.lower()):
-        tokens.extend([word] if len(word) == 1 else [word[i : i + 2] for i in range(len(word) - 1)])
-    return tokens
-
-
-class Bm25:
-    def __init__(self, texts: dict[str, str], k1: float = 1.5, b: float = 0.75) -> None:
-        self.docs = {cid: Counter(_bigrams(t)) for cid, t in texts.items()}
-        self.lengths = {cid: sum(c.values()) for cid, c in self.docs.items()}
-        self.avg = statistics.mean(self.lengths.values())
-        df = Counter(term for counts in self.docs.values() for term in counts)
-        n = len(self.docs)
-        self.idf = {term: math.log(1 + (n - d + 0.5) / (d + 0.5)) for term, d in df.items()}
-        self.k1, self.b = k1, b
-
-    def score(self, query: str, cid: str) -> float:
-        counts, length = self.docs[cid], self.lengths[cid]
-        total = 0.0
-        for term in set(_bigrams(query)):
-            tf = counts.get(term, 0)
-            if tf:
-                total += self.idf[term] * tf * (self.k1 + 1) / (tf + self.k1 * (1 - self.b + self.b * length / self.avg))
-        return total
 
 
 def chunk_text(chunk: Chunk, documents: dict[str, Document], with_title: bool) -> str:

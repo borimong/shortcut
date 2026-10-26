@@ -206,3 +206,50 @@ def test_indexer_reindexes_when_place_scope_changes(indexed_server, tmp_path):
     assert not run(again())[0].get("skipped")
     hits = store.search([1.0] * 64, 50, doc_id="permit-hangang-filming")
     assert {tuple(hit["locations"]) for hit in hits} == {("한강", "여의도")}
+
+
+def test_search_fuses_dense_and_bm25_ranks(indexed_server):
+    server, _ = indexed_server
+    hits = data(tool_call(server, "search_regulation", {"query": "주 52시간 연장 근로 한도", "k": 4}))
+    assert hits and all(hit["retrieval"] == "hybrid" for hit in hits)
+    # 순서는 RRF 점수로 정해지고, score에는 의미 검색의 코사인 유사도가 그대로 실린다.
+    assert [hit["rank_score"] for hit in hits] == sorted((hit["rank_score"] for hit in hits), reverse=True)
+    assert all(isinstance(hit["score"], float) for hit in hits)
+    # 글자가 그대로 겹치는 법 조항은 개발용 해시 임베딩이 약해도 BM25 덕분에 1등으로 올라온다.
+    assert hits[0]["doc_id"] == "law-labor-standards"
+
+
+def test_embedding_failure_falls_back_to_bm25_within_scope(indexed_server):
+    _, store = indexed_server
+    server = build_server(store, FailingEmbedder(64))
+    hits = data(tool_call(server, "search_regulation", {"query": "주 52시간 연장 근로 한도"}))
+    assert hits and all(hit["retrieval"] == "lexical" and hit["score"] is None for hit in hits)
+    assert hits[0]["doc_id"] == "law-labor-standards"
+    assert all(hit["doc_type"] not in ("CONTRACT", "SCRIPT") for hit in hits)
+
+    clauses = data(tool_call(server, "search_contract_clause",
+                             {"query": "22시 이후의 촬영", "contract_doc_id": "contract-actor-a-v3"}))
+    assert {hit["doc_id"] for hit in clauses} == {"contract-actor-a-v3"}
+
+
+def test_embedding_failure_without_keyword_match_is_still_retryable(indexed_server):
+    _, store = indexed_server
+    server = build_server(store, FailingEmbedder(64))
+    with pytest.raises(ToolError) as error:
+        tool_call(server, "search_regulation", {"query": "qzxw"})
+    assert "[EMBEDDING_UNAVAILABLE]" in str(error.value)
+
+
+def test_bm25_index_follows_index_and_delete(indexed_server):
+    server, _ = indexed_server
+    text = "## 제1조 테스트\n흑요석 크레인은 풍속 초속 9미터를 넘으면 쓰지 않는다. 현장 안전 담당이 확인한다."
+    args = {"doc_id": "policy-obsidian-crane", "title": "흑요석 크레인 운용 기준", "doc_type": "POLICY",
+            "version": "v1", "text": text}
+    tool_call(server, "search_regulation", {"query": "흑요석 크레인"})  # 새 문서를 넣기 전에 BM25 색인을 만들어 둔다.
+    tool_call(server, "index_document", args)
+    hits = data(tool_call(server, "search_regulation", {"query": "흑요석 크레인", "k": 1}))
+    assert hits[0]["doc_id"] == "policy-obsidian-crane"
+
+    tool_call(server, "delete_document", {"doc_id": "policy-obsidian-crane"})
+    hits = data(tool_call(server, "search_regulation", {"query": "흑요석 크레인", "k": 8}))
+    assert all(hit["doc_id"] != "policy-obsidian-crane" for hit in hits)

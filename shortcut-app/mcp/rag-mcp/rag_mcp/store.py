@@ -22,6 +22,7 @@ class Store(Protocol):
                doc_id: str | None = None) -> list[dict[str, Any]]: ...
     def get_document(self, doc_id: str) -> dict[str, Any] | None: ...
     def list_documents(self) -> list[dict[str, Any]]: ...
+    def all_chunks(self) -> list[dict[str, Any]]: ...
 
 
 class PgVectorStore:
@@ -134,6 +135,17 @@ class PgVectorStore:
                 """
             ).fetchall()
 
+    def all_chunks(self):
+        """BM25 색인을 만들 조각 전체. 임베딩은 빼고 검색 결과와 같은 열을 돌려준다."""
+        with self._pool.connection() as conn:
+            return conn.execute(
+                """
+                SELECT c.chunk_id, c.doc_id, d.title, d.doc_type, d.version, c.heading, c.text, c.locations
+                FROM rag.chunks c JOIN rag.documents d ON d.doc_id = c.doc_id
+                ORDER BY c.doc_id, c.chunk_no
+                """
+            ).fetchall()
+
 
 class MemoryStore:
     """PgVectorStore와 같은 메서드를 가진 메모리 저장소. 서버를 다시 띄우면 비므로 indexer를 다시 돌린다."""
@@ -182,6 +194,15 @@ class MemoryStore:
             counts[chunk.doc_id] = counts.get(chunk.doc_id, 0) + 1
         return [{k: v for k, v in d.items() if k != "text"} | {"chunks": counts.get(d["doc_id"], 0)}
                 for d in sorted(self.documents.values(), key=lambda d: d["doc_id"])]
+
+    def all_chunks(self):
+        rows = []
+        for chunk, _ in sorted(self.chunks.values(), key=lambda item: (item[0].doc_id, item[0].chunk_no)):
+            document = self.documents[chunk.doc_id]
+            rows.append({"chunk_id": chunk.chunk_id, "doc_id": chunk.doc_id, "title": document["title"],
+                         "doc_type": document["doc_type"], "version": document["version"], "heading": chunk.heading,
+                         "text": chunk.text, "locations": list(chunk.locations)})
+        return rows
 
 
 def document_scope(document: Document) -> dict[str, Any]:
