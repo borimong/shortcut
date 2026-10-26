@@ -57,6 +57,7 @@ RAG_MCP_URL=http://localhost:9102/mcp python -m rag_mcp.indexer   # 다른 터�
 | `EMBEDDING_PROVIDER` | `openai` | `openai` 또는 `hash`(개발용) |
 | `EMBEDDING_MODEL`, `EMBEDDING_DIM` | `text-embedding-3-small`, 1536 | openai |
 | `RAG_STORE` | `pgvector` | `pgvector` 또는 `memory`(개발용) |
+| `RAG_SEARCH_MODE` | `hybrid` | `hybrid`(벡터 + BM25 순위를 RRF로 합침) 또는 `vector`(벡터만, 이전 동작) |
 | `RAG_DB_DSN` | `postgresql://shortcut:shortcut@localhost:5432/shortcut` | pgvector |
 | `RAG_MCP_URL`, `RAG_CORPUS_DIR` | `http://localhost:9102/mcp`, `rag-mcp/corpus` | indexer |
 
@@ -75,3 +76,16 @@ RAG_MCP_URL=http://localhost:9102/mcp python -m rag_mcp.indexer   # 다른 터�
 - [ ] 실제 스택에서 `docker compose up` 후 시연 시나리오(우천 → 거절 → 재계획 → 확정) 한 바퀴 확인
 - [ ] `evals/run_eval`로 도구 오류 문장(errors.py) 바꾸기 전후 비교
 - [ ] docstring 튜닝: LangSmith trace에서 모델이 도구를 잘못 고른 경우를 보고 고친다
+
+## 하이브리드 검색 (Phase 2)
+
+검색 평가(`evals/results/phase1_rag_retrieval.md`)에서 벡터만 쓰면 숫자·법률 용어 질의("야간근로 가산 수당", "22시 이후 촬영 제한")와
+구어체 질의에서 1등을 자주 놓쳤다. 그래서 rag-mcp 검색을 하이브리드로 바꿨다(`rag_mcp/hybrid.py`).
+
+1. 도구와 같은 범위(문서 종류, 계약서 한 건)로 벡터 후보를 최대 60개 받는다.
+2. 같은 후보를 BM25로 다시 매긴다. 한국어는 어절 안의 글자 두 개씩을 토큰으로 쓴다(형태소 분석기 없음).
+3. 두 순위를 RRF(1/(60+순위))로 합쳐 상위 k개를 돌려준다. 결과의 `score`는 예전과 같은 코사인 유사도다.
+
+범위 거르기는 벡터 검색이 먼저 하므로 BM25가 다른 계약서나 범위 밖 문서를 끌어오지 않는다.
+`RAG_SEARCH_MODE=vector`로 이전 동작으로 되돌릴 수 있고, 현재 방식은 `rag://index/info`의 `search_mode`에 보인다.
+

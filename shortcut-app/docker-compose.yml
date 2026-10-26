@@ -97,6 +97,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY를 .env에 넣으세요}
       EMBEDDING_PROVIDER: openai
       RAG_STORE: pgvector
+      # hybrid = 벡터 + BM25 순위 합치기(기본), vector = 벡터만(이전 동작)
+      RAG_SEARCH_MODE: ${RAG_SEARCH_MODE:-hybrid}
       RAG_DB_DSN: postgresql://shortcut:shortcut@postgres:5432/shortcut
     depends_on:
       postgres: { condition: service_healthy }

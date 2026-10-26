@@ -95,6 +95,7 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | #6 | 재난 문자 0건 조회 결과를 근거로 인정, 확정 뒤 실행팀(6 Agent, ops-mcp), 생각 기록 수정 요청, 근거 루프 개선 | 김현수 |
 | #7 | 장부 번호 목록, 재확인 후보, 생각 기록 누락 수정 | 김현수 |
 | #8 | 대본과 배우 날짜별 일정 교차검증, 블록 안 씬 순서 바꾸기, 재계획 중단과 되돌리기, 실시간 날씨 예보, 스키마 정리 | 신지호 |
+| #10 | rag-mcp 검색을 하이브리드(벡터 + BM25)로 바꾸고 검색 품질 개선 전후 측정(평가 결과 8행) | 안윤태 |
 
 ## 평가 결과 (Phase 1 대 Phase 2)
 
@@ -109,15 +110,17 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | 5 | 통합 시나리오 | Phase 1 공통 5개 | 기대 결과 일치 | 5/5 (확정까지) | 5/5 (실행까지) | Phase 2는 확정 뒤 실행까지 판정 |
 | 6 | 통합 시나리오 비용 | 공통 5개 평균 | 토큰, 응답 시간 | 34,813토큰, 33.0초 | 159,707토큰, 141.6초 | 실행팀 6 Agent 포함 |
 | 7 | 단위와 통합 테스트 | agent, MCP, backend | 통과한 테스트 수 | 116개 | 274개 | 모두 통과 |
+| 8 | 검색 품질 (rag-mcp) | 정답셋 63문항, 같은 12문서 색인 | Hit@1 / Hit@4 / MRR | 0.746 / 0.873 / 0.815 (벡터만) | 0.825 / 0.937 / 0.880 (하이브리드) | 개선 전 값은 Phase 1과 같은 벡터 검색을 현재 색인에서 잰 값 |
 
 - 통합 시나리오 7개(Phase 1 공통 5개에 실행 단계 충돌, 씬 순서 조정 추가)는 현재 main에서 7/7입니다(2026-10-26, 1회 측정).
+- 검색 품질(8행)은 rag-mcp 검색을 벡터만에서 벡터 + BM25(글자 2개 단위) RRF 하이브리드로 바꾼 전후입니다. 같은 색인에서 `RAG_SEARCH_MODE`만 바꿔 쟀습니다(2026-10-26, 1회). 1등을 놓친 질의가 16건에서 11건으로 줄었고, 키워드 질의 Hit@1은 0.857에서 0.929, 구어체는 0.400에서 0.533이 됐습니다. 범위 위반은 둘 다 0건입니다. Phase 1의 8문서 색인 baseline은 Hit@1 0.778이었고, 문서가 12건으로 늘며 벡터만의 값이 0.746으로 내려갔습니다.
 
 | 평가 | 실행 명령 (shortcut-app 폴더) | 결과 파일 (`evals/results/`) |
 |---|---|---|
 | 근거 인용 | `python -m evals.constraint_citation --corpus full --label <이름>` | `phase1_constraint_citation.md`, `phase2_constraint_citation.md` |
 | 자체 검토 채점 | `python -m evals.review_judge --label <이름>` | `phase1_review_judge*.md`, `phase2_review_judge*.md` |
 | 통합 시나리오 | `INTERNAL_TOKEN=... python -m evals.run_eval --label <이름>` | `phase1_eval.md`, `phase2_eval.md` |
-| 검색 품질(참고, 개선 전 측정만) | rag-mcp 이미지 안에서 `python -m evals.rag_retrieval --label baseline` (파일 머리말 참고) | `phase1_rag_retrieval.md` |
+| 검색 품질 | rag-mcp 이미지 안에서 `python -m evals.rag_retrieval --label <이름>` (파일 머리말 참고). Phase 2에 rag-mcp 검색을 하이브리드(벡터 + BM25)로 바꿈 | `phase1_rag_retrieval.md`(8문서), `phase2_rag_retrieval_vector.md`(개선 전), `phase2_rag_retrieval.md`(개선 후) |
 
 - 자체 검토 별도 세트(4행)는 결과를 보기 전에 독립 수치로 남긴 2026-10-23 코드 측정값입니다. 본 세트(3행)는 현재 main으로 다시 쟀고, PR #8에서 하드 제약에 대본(SCRIPT) 범주가 들어와 케이스 체크리스트에 대본 근거 1건을 더했습니다.
 - 근거 인용 평가의 개선 후 값은 운영 코퍼스를 Phase 1과 같은 8문서로 고정하고 쟀습니다. main에 새로 들어온 문서 4개(배우 D, E 계약서, 합정 허가서, 대본)는 정답 라벨이 없어 넣으면 평가셋이 달라지기 때문입니다.
@@ -152,5 +155,5 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | 임지현 | R1 PM, AI Engineer | - |
 | 신지호 | R5 Frontend, AI Engineer | #4, #8 |
 | 정원규 | R6 QA, Eval | - (#2 열림) |
-| 안윤태 | R4 Backend, Tool | - (Phase 1 MCP 서버 #1) |
+| 안윤태 | R4 Backend, Tool (MCP, RAG 검색) | #10 (Phase 1 MCP 서버 #1) |
 | 최준형 | R4 Backend, Tool | #3 |
