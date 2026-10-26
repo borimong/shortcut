@@ -155,6 +155,6 @@ Phase 1(AI Agent Capstone) 제출 시점은 `phase1-end` 태그(ddf32a7)입니�
 | 김현수 | R2 AI Engineer (흐름), 발표 | #5, #6, #7 |
 | 임지현 | R1 PM, AI Engineer | #12 |
 | 신지호 | R5 Frontend, AI Engineer | #4, #8 |
-| 정원규 | R6 QA, Eval | - (#2 열림) |
+| 정원규 | R6 QA, Eval | - (#2 열림, 면접 일정으로 불참) |
 | 안윤태 | R4 Backend, Tool (MCP, RAG 검색) | #10 (Phase 1 MCP 서버 #1) |
 | 최준형 | R4 Backend, Tool | #3 |
